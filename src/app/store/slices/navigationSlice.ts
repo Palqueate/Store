@@ -28,11 +28,9 @@ export const createNavigationSlice = (set, get) => ({
   go: (screen) => { set({ acctMenu: false }); routerNavigate(pathForScreen(screen, get())); scrollTop() },
   goEvents: () => get().go('events'),
   openEventPalcos: (id) => {
-    // Al entrar a un evento: si tiene una sola función se autoselecciona; si
-    // tiene varias, se deja sin elegir para que el cliente elija fecha y hora.
-    const ev = get().events.find((e) => e.id === id)
-    const occs = ev ? eventOccurrences(ev) : []
-    set({ eventId: id, occurrenceId: occs.length === 1 ? occs[0].id : null, seats: [] })
+    // Al entrar a un evento se autoselecciona la primera función (fecha + hora).
+    // Si tiene varias, el cliente puede cambiarla desde el selector.
+    set({ eventId: id, occurrenceId: get()._firstOcc(id), seats: [] })
     get().go('eventPalcos')
   },
   selectPalco: (id) => {

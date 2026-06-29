@@ -17,7 +17,9 @@ export function useEventPalcosVM(): any {
   // Función elegida: la del estado si pertenece a este evento; si el evento
   // tiene una sola, se autoselecciona; si no, queda sin elegir (el cliente
   // primero elige fecha y hora).
-  var selOcc = occs.find(function (o) { return o.id === s.occurrenceId }) || (occs.length === 1 ? occs[0] : null)
+  // Si la función del estado no pertenece a este evento (p. ej. al llegar por
+  // URL directa), se autoselecciona la primera.
+  var selOcc = occs.find(function (o) { return o.id === s.occurrenceId }) || occs[0] || null
   var selOccId = selOcc ? selOcc.id : null
   var multiDate = occs.length > 1
 
