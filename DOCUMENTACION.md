@@ -1,584 +1,295 @@
-# Palqueate — Documentación funcional y técnica
+# Palqueate — Qué es y cómo funciona
 
-> Documento integral del funcionamiento de la aplicación, sus requerimientos,
-> arquitectura, dominio, flujos de usuario y guía de operación.
-> Fecha del documento: 2026-06-29.
-
----
-
-## 1. ¿Qué es Palqueate?
-
-**Palqueate** es un **marketplace de dos lados** para **alquilar palcos** (boxes
-privados) en estadios de fútbol uruguayos. Conecta a tres tipos de actor:
-
-- **Cliente / hincha** — navega eventos y palcos, elige asientos y reserva.
-- **Palquista / dueño** — publica y gestiona sus palcos, ve estadísticas y cobra.
-- **Administrador** — carga eventos, gestiona estadios, verifica palcos y opera
-  el panel de CRM + finanzas.
-
-Un palco puede alquilarse en **tres modalidades**:
-
-| Modalidad | Clave interna | Qué incluye | Término |
-|-----------|---------------|-------------|---------|
-| **Palco entero** | `palcoYear` | Todos los asientos del palco, por 1 año | Temporada (anual) |
-| **Asiento anual** | `seatYear` | Una butaca durante toda la temporada | Temporada (anual) |
-| **Asiento por evento** | `seatEvent` | Una butaca para un evento puntual (una función) | Por evento |
-
-La aplicación es una **recreación fiel en React** de un prototipo originalmente
-diseñado en Claude Design. Todo el estado, los pagos y los datos son
-**del lado del cliente y simulados**; las cuentas y reservas persisten en
-`localStorage`. No hay backend real (aún): la arquitectura está preparada para
-enchufar uno cambiando una sola línea (ver §11).
+> Documento de introducción al producto. Está pensado para que cualquier persona
+> que se suma al proyecto entienda, sin tecnicismos, **qué es Palqueate**, a
+> quién sirve y **cómo se espera que funcione cada parte**.
 
 ---
 
-## 2. Stack tecnológico
+## 1. La idea en una frase
 
-| Capa | Tecnología |
-|------|-----------|
-| Lenguaje | TypeScript 5.6 (modo `strict`, con `noImplicitAny: false`) |
-| UI | React 18.3 |
-| Build / dev server | Vite 5.4 (`@vitejs/plugin-react`) |
-| Routing | `react-router-dom` 7 (`BrowserRouter`) |
-| Estado global | **Zustand** 5 (store compuesto por *slices*) |
-| Iconos | `@heroicons/react` (solo en el *showcase* de componentes) |
-| Estilos | CSS plano con *design tokens* (variables CSS) + estilos inline parseados |
-| Persistencia | `localStorage` del navegador |
-| Fuentes | Archivo + Space Mono (Google Fonts CDN) |
-| Gestor de paquetes | pnpm (hay `pnpm-lock.yaml` y `pnpm-workspace.yaml`) — el README usa `npm` indistintamente |
+**Palqueate es un mercado para alquilar palcos de estadios de fútbol uruguayos.**
 
-No hay tests automatizados ni linter configurado en `package.json`. La
-verificación de calidad es `tsc --noEmit` (type-check) integrado en el build.
+Un *palco* es un box privado dentro de un estadio: un espacio con varios
+asientos, generalmente con comodidades (baño, heladera, TV, etc.), desde donde
+un grupo puede ver los partidos con privacidad y confort.
+
+Hoy esos palcos suelen pertenecer a familias, empresas o grupos de socios que
+muchas veces **no los usan todas las fechas**. Palqueate los conecta con
+hinchas que quieren vivir un partido desde un palco, sin tener que ser dueños.
+
+La plataforma funciona como un **intermediario de confianza**: publica la oferta,
+ordena la disponibilidad, cobra al hincha, retiene una comisión y le paga al
+dueño.
 
 ---
 
-## 3. Requerimientos
+## 2. El problema que resuelve
 
-### 3.1 Requerimientos de entorno (para correr el proyecto)
+- **Para el dueño del palco (palquista):** tiene un activo caro que queda vacío
+  muchas fechas. No tiene una forma simple, segura y profesional de alquilarlo:
+  ni de mostrarlo, ni de cobrar, ni de manejar reservas.
+- **Para el hincha:** ver un partido desde un palco es una experiencia premium,
+  pero comprar uno entero es carísimo y conseguir lugar es difícil y poco
+  transparente.
+- **Para el estadio / la marca:** falta un canal ordenado y confiable que
+  formalice este alquiler informal que ya ocurre "por lo bajo".
 
-- **Node.js** moderno (el proyecto declara `@types/node` ^26; cualquier LTS
-  reciente compatible con Vite 5 sirve).
-- **pnpm** (recomendado, hay lockfile) o **npm**.
-- Navegador moderno con soporte de:
-  - `localStorage`
-  - `FileReader` / `canvas` (para redimensionar la foto de perfil y leer imágenes)
-  - `conic-gradient` y `color-mix()` en CSS (gráficos de finanzas/estadísticas)
-- **Acceso a internet** para cargar las fuentes desde el CDN de Google Fonts
-  (lo demás funciona offline).
-
-### 3.2 Scripts disponibles
-
-```bash
-npm install        # o pnpm install
-npm run dev        # servidor de desarrollo en http://localhost:5173
-npm run build      # type-check (tsc --noEmit) + build de producción a dist/
-npm run preview    # sirve el build de producción
-npm run typecheck  # solo type-check
-```
-
-### 3.3 Requerimientos funcionales (qué debe hacer el sistema)
-
-**Cliente**
-- Explorar eventos (agenda) y palcos (catálogo) con filtros y orden.
-- Ver el detalle de un palco con mapa del estadio, modalidades y grilla de asientos.
-- Seleccionar asientos disponibles (no los ya tomados) según modalidad y función.
-- Agregar reservas al carrito, ver subtotal + comisión (4 %) y pagar.
-- Recibir confirmación con código de reserva y QR.
-- Pedir botana y bebidas asociadas a una reserva.
-- Registrarse / iniciar sesión; gestionar cuenta, foto, preferencias e historial.
-
-**Palquista (dueño)**
-- Publicar un palco mediante un asistente de 10 pasos (país → … → precios).
-- Editar palcos (cualquier cambio los reenvía a verificación).
-- Pausar / reactivar publicaciones.
-- Ver estadísticas (recaudación, ocupación, conversión, tendencias).
-- Responder a campos rechazados por el admin y reenviar a revisión.
-
-**Administrador**
-- Dashboard con KPIs (GMV, comisión, payout, botana, ocupación, etc.).
-- Crear / editar **eventos** (con una o varias funciones fecha+hora).
-- Crear / editar **estadios** (con plano/foto opcional).
-- Listar palcos y **verificarlos** (aprobar / rechazar campo por campo).
-- CRM de clientes (gasto, puntos, historial de reservas).
-- Listado de reservas y panel de finanzas.
-
-**Transversales**
-- Dos temas visuales (oscuro/claro) conmutables.
-- Diseño responsive: barra inferior fija en pantallas < 860px.
-- Persistencia local de cuentas, sesión, órdenes y altas de admin.
-
-### 3.4 Reglas de negocio clave
-
-- **Comisión de la plataforma: 4 %** sobre el subtotal de cada reserva
-  (`fee = round(subtotal * 0.04)`), tanto en el cobro al cliente como en los KPIs.
-- **Visibilidad del catálogo**: solo los palcos en estado `publicado` o
-  `alquilado` aparecen al público. Los `pendiente`, `rechazado` y `pausado`
-  quedan fuera.
-- **Verificación obligatoria**: todo palco nuevo o editado entra como
-  `pendiente` y necesita aprobación del admin antes de publicarse.
-- **No se puede pausar un palco `alquilado`**.
-- **Disponibilidad de asientos** es por modalidad:
-  - `seatYear`: lista de asientos tomados a nivel temporada.
-  - `seatEvent`: asientos tomados indexados por **función** (fecha+hora), no por evento.
-- **Moneda**: pesos uruguayos, formato `"$U 1.180.000"` (`es-UY`).
+Palqueate resuelve los tres lados a la vez: da **vidriera y herramientas** al
+dueño, da **acceso flexible y confianza** al hincha, y **formaliza** la operación.
 
 ---
 
-## 4. Arquitectura general
+## 3. Quiénes usan la aplicación
 
-El proyecto sigue una **arquitectura modular / hexagonal (puertos y adaptadores)**
-con una clara separación entre dominio, aplicación, infraestructura y UI.
+La aplicación tiene **tres roles**, cada uno con su propia experiencia:
 
-```
-src/
-├─ main.tsx                  Punto de entrada: monta App o el Showcase (#showcase)
-├─ App.tsx                   Raíz: tema, header, tabla de rutas, overlays
-│
-├─ app/                      "Composition root" + estado + routing
-│  ├─ container.ts           Inyección de dependencias (memory ↔ http)
-│  ├─ router/                navigation.ts (mapa rutas↔screen) + RouterBridge.tsx
-│  └─ store/                 Store Zustand compuesto por slices
-│     ├─ index.ts            useAppStore + useBootstrap()
-│     ├─ useAppStore.ts      create() combinando los 8 slices
-│     └─ slices/             ui · filters · catalog · navigation · cart · auth · admin · owner
-│
-├─ modules/                  Un módulo por dominio (Screaming Architecture)
-│  ├─ accounts/  events/  food/  home/  orders/  owner/  palcos/  stadiums/  admin/
-│  │   ├─ domain/            Tipos + lógica pura de dominio
-│  │   ├─ application/       ports/ (interfaces) + use-cases/
-│  │   ├─ infrastructure/    InMemory*Repository + Http*Repository
-│  │   └─ ui/                Pantalla (.tsx) + view-model (useXxxVM.ts)
-│
-├─ shared/                   Código transversal
-│  ├─ domain/                money · theme · countries
-│  ├─ application/ports/     HttpClient
-│  ├─ infrastructure/        http/FetchHttpClient · in-memory/db.ts (seed) · storage/localStorage
-│  ├─ lib/                   promoPosters · readImages
-│  └─ ui/                    components/ (Btn, Header, SeatGrid, StadiumMap…) + vm/ (facade, helpers)
-│
-├─ lib/                      Sistema de componentes de diseño + sitio de docs (Showcase)
-└─ styles/                   styles.css → tokens/*.css + global.css
-```
+| Rol | Quién es | Qué busca |
+|-----|----------|-----------|
+| **Cliente / hincha** | Quien quiere ir al partido | Encontrar un buen palco o asiento, reservarlo fácil y pagar seguro |
+| **Palquista / dueño** | Quien tiene un palco | Publicarlo, cobrar y ver cómo le va |
+| **Administrador** | El equipo de Palqueate | Cargar la agenda, verificar la oferta y controlar el negocio |
 
-### 4.1 Capas (de adentro hacia afuera)
-
-1. **Domain** (`modules/*/domain`, `shared/domain`) — tipos e invariantes puras,
-   sin dependencias de framework. Ej.: `Palco`, `Ev`, `User`, `Order`,
-   `eventOccurrences()`, `formatMoney()`.
-2. **Application** (`modules/*/application`) — **puertos** (interfaces de
-   repositorio) y **casos de uso** (funciones que orquestan un puerto). Ej.:
-   `publishPalco(repo, palco)`, `createEvent(repo, ev)`.
-3. **Infrastructure** (`modules/*/infrastructure`) — **adaptadores** que
-   implementan los puertos: `InMemory*Repository` (sobre `localStorage` + el
-   seed mutable) y `Http*Repository` (sobre `FetchHttpClient`).
-4. **UI** (`modules/*/ui`, `shared/ui`, `App.tsx`) — componentes React +
-   *view-models* por pantalla que consumen el store.
-
-La regla de dependencia apunta siempre hacia adentro: la UI depende de casos de
-uso y del store; los casos de uso dependen de puertos; los adaptadores
-implementan puertos. **Ningún consumidor conoce el adaptador concreto.**
+Una misma persona puede ser cliente y palquista a la vez.
 
 ---
 
-## 5. Estado global (Zustand) y *view-models*
+## 4. El producto que se alquila: las tres modalidades
 
-### 5.1 El store y sus *slices*
+La gran flexibilidad de Palqueate es que un palco no se alquila de una sola
+forma. Hay **tres modalidades**, y cada dueño decide cuáles ofrecer:
 
-`useAppStore` (`src/app/store/useAppStore.ts`) se construye combinando **8
-slices**, todos compartiendo el mismo `(set, get)` para poder llamarse entre sí:
+1. **Palco entero (por temporada / 1 año).**
+   El hincha alquila **todo el palco** —todos sus asientos— por la temporada
+   completa. Es la opción para una familia, un grupo de amigos o una empresa que
+   quiere "su" palco fijo todo el año.
 
-| Slice | Responsabilidad |
-|-------|-----------------|
-| `uiSlice` | tema, viewport (`vw`), toast, menú de cuenta, `money()`, `flash()` |
-| `filtersSlice` | estado de filtros de palcos, eventos y métricas (solo estado) |
-| `catalogSlice` | colecciones cargadas (`stadiums`, `events`, `palcos`, `foodCatalog`…) y **selectores derivados** (`filtered`, `priceBounds`, `fromPrice`, `cardVM`, etc.) + `bootstrap()` |
-| `navigationSlice` | `screen` espejo, selección de palco (`pId`, `mode`, `eventId`, `occurrenceId`, `seats`), `go()`, `detailVM()` |
-| `cartSlice` | carrito, pedido de botana, `pay()`, selectores de carrito/comida |
-| `authSlice` | usuario logueado, cuentas, login/registro, edición de perfil y foto |
-| `adminSlice` | pestaña de admin, drafts de evento/estadio, verificación de palcos |
-| `ownerSlice` | asistente de publicación (`wz`), edición, reenvío a revisión |
+2. **Asiento anual (por temporada / 1 año).**
+   El hincha alquila **una butaca** dentro del palco, pero por **toda la
+   temporada**. Comparte el palco con otros, pero tiene su lugar asegurado en
+   cada fecha. Ideal para el hincha fiel que va a todos los partidos pero no
+   necesita el palco entero.
 
-### 5.2 Arranque (`bootstrap`)
+3. **Asiento por evento (puntual).**
+   El hincha alquila **una butaca para un partido o show específico**. Es la
+   opción de menor compromiso: "este sábado quiero ir, y nada más". Es la puerta
+   de entrada para quien quiere probar la experiencia.
 
-`useBootstrap()` (efecto en `App`) llama a `bootstrap()`, que carga **todo en
-paralelo** vía casos de uso (`Promise.all` sobre estadios, eventos, palcos,
-catálogo de comida, cuentas, órdenes y sesión), reconstruye el usuario a partir
-del `sessionId` guardado y publica todo en el store. También engancha un
-listener de `resize` para mantener `vw` (responsive).
-
-### 5.3 Patrón *view-model*
-
-Cada pantalla tiene un hook `useXxxVM()` (en `modules/*/ui/` o `shared/ui/vm/`)
-que lee el store mediante un **facade** (`useFacade`) y produce un objeto plano
-listo para renderizar (textos formateados, estilos inline, callbacks). Así la
-lógica vive fuera del JSX y las pantallas quedan declarativas. El facade expone
-`state` + todas las acciones/selectores del store.
+Esto convierte cada palco en algo parecido a un mini-negocio: el dueño puede,
+por ejemplo, alquilar el palco entero a una empresa, o vender butacas sueltas
+fecha a fecha, o un mix.
 
 ---
 
-## 6. Modelo de dominio
+## 5. El recorrido del hincha (cliente)
 
-### 6.1 `Stadium` (estadio)
+El objetivo es que reservar sea tan simple como comprar una entrada, pero con la
+sensación de estar accediendo a algo exclusivo. Hay **dos puntos de entrada**:
 
-```ts
-{ id, name, short, city, country?, shape, capacity?, year?, surface?,
-  levels?, address?, roof?, mapImage? }
-```
-`mapImage` (data URL) permite usar un plano/foto real como fondo del mapa en
-lugar del campo estilizado.
+### 5.1 Empezar por el evento ("quiero ir a este partido")
 
-### 6.2 `Ev` (evento) y `EventOccurrence` (función)
+1. El hincha entra y mira la **agenda de próximos eventos** (partidos y shows).
+2. Elige el evento al que quiere ir. Si el evento tiene **varias funciones**
+   (por ejemplo un show con tres fechas), elige la fecha y horario.
+3. Ve **qué palcos tienen lugar disponible** para ese evento.
+4. Entra al palco que le gusta y **elige sus asientos**.
+5. Suma la reserva al **carrito**, paga y recibe su **confirmación**.
 
-Un evento puede tener **varias funciones** (`dates: EventOccurrence[]`), cada una
-con fecha+hora propias. El fútbol suele tener una; los shows, varias. Los campos
-"principales" (`month/day/dow/time/iso`) reflejan la **primera** función por
-compatibilidad.
+### 5.2 Empezar por la temporada ("quiero un palco para el año")
 
-- `eventOccurrences(ev)` → devuelve las funciones (o deriva una desde los campos
-  principales si no hay `dates`).
-- `eventOccurrence(ev, id)` → una función concreta (o la primera).
+1. El hincha explora el **catálogo de palcos** con filtros (estadio, precio,
+   cantidad de asientos, estacionamiento, etc.).
+2. Entra al detalle de un palco: ve sus fotos, ubicación en el estadio,
+   comodidades y las **modalidades disponibles** con sus precios.
+3. Elige la modalidad (palco entero, asiento anual o asiento por evento) y,
+   según corresponda, sus asientos.
+4. Reserva, paga y confirma.
 
-Para eventos de **fecha única**, el id de la función **coincide** con el id del
-evento, de modo que la disponibilidad de asientos por evento (`seatEvent.taken`)
-queda indexada por ese mismo id.
+### 5.3 La elección de asientos
 
-### 6.3 `Palco`
+Cuando aplica, el hincha ve un **mapa de butacas del palco**: las disponibles se
+pueden elegir, las ya tomadas aparecen ocupadas. La disponibilidad depende de la
+modalidad y, en el caso "por evento", **de la función específica** (una butaca
+puede estar libre para un partido y ocupada para otro).
 
-```ts
-{ id, stadium, country?, title, sector, map:{x,y}, seats, parking:{has,n},
-  amenities?, coOwners?, payout?, host, rating, photos, images,
-  modes: { palcoYear:{on,price}, seatYear:{on,price,taken[]},
-           seatEvent:{on,price,taken:{[occId]:number[]}} },
-  status, review? }
-```
+### 5.4 El pago y la confirmación
 
-**Estados del palco** (`PalcoStatus`):
+- Al pagar, sobre el precio de la reserva se suma la **comisión de la plataforma
+  (4 %)**. El total queda claro antes de confirmar.
+- Si el hincha no tiene sesión iniciada, se le pide ingresar o registrarse, y el
+  pago continúa solo.
+- Al confirmar, recibe un **código de reserva y un QR** que es su acceso.
 
-| Estado | Significado |
-|--------|-------------|
-| `pendiente` | Registrado, esperando verificación del admin |
-| `rechazado` | El admin lo rechazó; el palquista debe corregir los campos marcados |
-| `publicado` | Aprobado y disponible para alquilar |
-| `pausado` | El dueño lo pausó (oculto del catálogo) |
-| `alquilado` | Con reservas activas (no se puede pausar) |
+### 5.5 La botana (comida y bebida)
 
-**Verificación** (`PalcoReview` + `PalcoFieldFlag`): el admin puede marcar
-campos concretos como no validados, cada uno con su motivo; el palquista puede
-responder (`ownerReply`) y reenviar. El catálogo de campos revisables
-(`PALCO_REVIEW_FIELDS`) cubre país, estadio, ubicación, asientos,
-estacionamiento, comodidades, fotos, co-propietarios y los datos de cobro
-(banco, SWIFT, beneficiario, cuenta, sucursal, documentos de identidad,
-comprobante de domicilio y título de propiedad).
+Después de reservar, el hincha puede **pedir comida y bebida para el palco**
+(picadas, choripán, cerveza, refrescos, etc.). El pedido queda asociado a su
+reserva y termina en una pantalla de "pedido listo". Es una fuente de ingreso
+adicional y mejora la experiencia del día del partido.
 
-**Cobro** (`PalcoPayout`): país de la cuenta, SWIFT/BIC, banco, beneficiario,
-número de cuenta, sucursal y 4 documentos (anverso/reverso de identidad,
-comprobante de domicilio, título de propiedad) como data URLs.
+### 5.6 Su cuenta
 
-### 6.4 `User`
-
-```ts
-{ id, name, email, phone?, pass?, joined?, ci?, birth?, city?, address?,
-  country?, favStadium?, lang?, verified?, points?, admin?, photo?,
-  notif?:{email,sms,push,promos}, card?:{brand,last4,exp,name},
-  billing?:{name,rut} }
-```
-`admin: true` habilita el panel de administración.
-
-### 6.5 `Order` y `OrderItem`
-
-```ts
-Order  = { code, userId, subtotal, fee, total, date, contact:{name,email},
-           food:[{id,name,qty,price}], foodTotal, items: OrderItem[] }
-OrderItem = { uid, palcoId, palcoTitle, stadium, mode, modeLabel, seats[],
-              term, qty, price, eventId?, occurrenceId?, eventLabel?, eventOpp? }
-```
-
-### 6.6 `Food`
-
-Catálogo plano de items (`FoodItem`) con categoría, nombre, precio y descripción,
-agrupados por categorías (`FoodCat`): para compartir, sándwiches, pizzas,
-cervezas, bebidas y dulce.
+El hincha tiene una cuenta donde gestiona sus **datos personales**, su **foto de
+perfil**, sus **preferencias** (notificaciones, estadio favorito, idioma) y su
+**historial de compras**.
 
 ---
 
-## 7. Datos semilla (seed)
+## 6. El recorrido del palquista (dueño)
 
-El "origen de verdad" en memoria está en `src/shared/infrastructure/in-memory/db.ts`,
-con colecciones **mutables** (los adaptadores in-memory hacen `push` sobre ellas):
+El palquista usa Palqueate como su "panel de negocio": publica, gestiona y mide.
 
-- **2 estadios**: Gran Parque Central (GPC) y Campeón del Siglo (CDS).
-- **7 eventos**: 5 de fútbol (fecha única) y 2 shows con múltiples funciones
-  (Banda Aurora x3 funciones, Ghost x2 funciones). Se construyen con `buildEvent`,
-  que replica exactamente la forma que produce el alta del admin.
-- **3 tipos de evento**: Fútbol, Basketball, Show.
-- **6 palcos** (`p1`–`p6`) repartidos entre ambos estadios, con distintas
-  modalidades activas, precios, asientos tomados y estados (`p6` arranca `pausado`).
-- **14 items de botana** en 6 categorías.
-- **1 cuenta demo**: **María Eugenia** (`u_maru`, email
-  `maria.eugenia@palqueate.uy`, pass `palqueate`), que es **admin** y tiene
-  tarjeta, puntos (1840) y preferencias precargadas.
-- **2 órdenes semilla** asociadas a esa cuenta (una con botana).
+### 6.1 Publicar un palco
 
----
+Publicar es un proceso guiado, paso a paso, pensado para juntar toda la
+información que da confianza al hincha y que la plataforma necesita para operar y
+pagarle al dueño. En orden, el dueño carga:
 
-## 8. Routing y pantallas
+1. **País** del palco.
+2. **Estadio** donde está.
+3. **Ubicación** del palco dentro del estadio (lo marca sobre el plano).
+4. **Cantidad de asientos**.
+5. **Estacionamiento** (si tiene y cuántos lugares).
+6. **Comodidades** (Wi-Fi, cocina, heladera, TV, baño, aire, bar, parrillero…).
+7. **Fotos** del palco (se piden varias para que la publicación sea atractiva y creíble).
+8. **Co-propietarios** (si el palco pertenece a más de una persona).
+9. **Datos de cobro y documentación**: cuenta bancaria del beneficiario y
+   documentos que respaldan la titularidad (documento de identidad, comprobante
+   de domicilio y título de propiedad del palco).
+10. **Precios** de cada modalidad que quiera ofrecer.
 
-`App.tsx` define la tabla de rutas con `react-router-dom`. La **URL es la fuente
-de verdad** de qué pantalla se renderiza; el store mantiene un `screen` espejo
-(seteado por `RouterBridge`) solo para la lógica de estados activos del
-view-model. Las acciones del store navegan vía `routerNavigate()`
-(referencia ligada por `RouterBridge`, porque las acciones Zustand viven fuera
-de React y no pueden usar hooks).
+Al terminar, **el palco no se publica automáticamente**: queda **pendiente de
+verificación** por parte del equipo de Palqueate (ver §7). Esto protege a los
+hinchas: nadie alquila algo que no fue revisado.
 
-| Ruta | Pantalla | Descripción |
-|------|----------|-------------|
-| `/` | `Home` | Portada: accesos a eventos y temporada |
-| `/palcos` | `Results` | Catálogo de palcos con filtros y orden |
-| `/eventos` | `Events` | Agenda de eventos con filtros |
-| `/evento/:eventId` | `EventPalcos` | Palcos disponibles para un evento/función |
-| `/palco/:palcoId` | `Detail` | Detalle del palco: mapa, modalidades, asientos |
-| `/carrito` | `Cart` | Carrito de reservas |
-| `/checkout` | `Checkout` | Datos de contacto / pago |
-| `/confirmacion` | `Confirm` | Confirmación con código + QR |
-| `/comida` | `Food` | Menú de botana y bebidas |
-| `/comida/confirmacion` | `FoodConfirm` | "Pedido listo" |
-| `/owner` | `Owner` | "Mis palcos" (pausar/reactivar) |
-| `/owner/metricas` | `Metrics` | Estadísticas del palquista |
-| `/publicar` | `Publish` | Asistente de publicación (10 pasos) |
-| `/cuenta` | `Account` | Mi cuenta (perfil, foto, preferencias, compras) |
-| `/admin` | `Admin` | Panel de administración |
-| `*` | `Home` | Fallback |
+### 6.2 Gestionar sus palcos
 
-**Overlays globales** (montados siempre, controlados por estado): barra inferior
-de navegación (`BottomNav`, en móvil), backdrop de cuenta, modal de auth, modal
-de evento, modal de estadio, modal de revisión de palco y el toast.
+- Puede **pausar** una publicación (deja de aparecer) y **reactivarla** cuando
+  quiera. No se puede pausar un palco que ya tiene reservas activas.
+- Puede **editar** un palco. Cualquier cambio importante lo **devuelve a
+  verificación**, para mantener la calidad de la oferta.
 
-**Showcase**: visitando `/#showcase` (o `/#showcase/<componente>`) se carga, con
-*code-splitting*, un sitio de documentación del sistema de componentes (carpeta
-`src/lib/`). Cruzar la frontera app↔showcase recarga la página; navegar dentro
-de los docs no.
+### 6.3 Ver cómo le va (estadísticas)
+
+El palquista tiene un tablero con sus números: **recaudación**, **ocupación**
+(cuántas butacas vendió sobre las disponibles), **entradas vendidas por evento**,
+**visitas a sus publicaciones** y **conversión**, además de gráficos de ingresos
+por modalidad y por evento, y la evolución en el tiempo. Le sirve para decidir
+precios y qué modalidades conviene ofrecer.
+
+### 6.4 Responder a una verificación rechazada
+
+Si el equipo marca algún dato como incorrecto, el palquista ve **exactamente qué
+campos** fueron observados y por qué. Puede **corregir o aclarar** cada uno y
+**reenviar** el palco a revisión.
 
 ---
 
-## 9. Flujos de usuario detallados
+## 7. El rol del administrador (el equipo Palqueate)
 
-### 9.1 Cliente — reserva *event-first*
+El administrador es el "dueño del mercado": carga la oferta base, controla la
+calidad y vigila la salud del negocio. Trabaja sobre un panel con varias áreas.
 
-```
-Home → "Ver próximos eventos" → elegir evento (y función si tiene varias)
-     → elegir palco con disponibilidad → elegir asientos
-     → carrito → checkout → pagar → confirmación (código + QR)
-     → menú de botana & bebidas → "pedido listo"
-```
+### 7.1 Agenda de eventos
 
-### 9.2 Cliente — reserva por temporada
+Carga y edita los **eventos** (partidos y shows). Un evento tiene su estadio,
+competencia, rival/artista y **una o varias funciones** (fecha + hora). Los shows
+pueden tener varias fechas; el fútbol normalmente una. Apenas se cargan, los
+eventos **aparecen del lado del hincha**.
 
-```
-Home → "Alquilar por temporada" → detalle del palco con las 3 modalidades
-     (palco entero / asiento anual / asiento por evento) y el mapa interactivo
-     del estadio → seleccionar → carrito → checkout → pago.
-```
+### 7.2 Estadios
 
-**Selección de asientos** (`detailVM` + `toggleSeat`): la grilla muestra cada
-butaca como `free`, `sel` (seleccionada), `taken` (tomada, no clickeable) o
-`all` (cuando la modalidad es palco entero, no se elige asiento). El conjunto de
-tomados depende de la modalidad y, para `seatEvent`, de la **función** elegida.
+Da de alta y mantiene los **estadios** (nombre, ciudad, capacidad, año,
+superficie, niveles, si es techado) y puede subir un **plano o foto** real que
+se usa para ubicar los palcos.
 
-**Agregar al carrito** (`addToCart`): construye un `OrderItem` según la
-modalidad, validando que haya al menos un asiento elegido en las modalidades por
-asiento. Calcula `price` (precio × cantidad) y navega al carrito.
+### 7.3 Verificación de palcos (control de calidad)
 
-**Pago** (`pay`): si no hay usuario, abre el modal de login y marca `pendingPay`
-(al loguearse, se reanuda el pago automáticamente). Si hay carrito, simula el
-cobro con un `setTimeout` de 1300 ms; genera un código `PLQ-XXXX`, arma la orden
-(subtotal + `fee` 4 % + total), la persiste y navega a confirmación.
+Es una pieza central de confianza. Cada palco nuevo o editado llega como
+**pendiente**. El administrador lo revisa y puede:
 
-**Botana** (`addFood`/`decFood`/`confirmFood`): el pedido de comida se asocia a
-la reserva activa (`activeRes`), actualizando la orden con `food` y `foodTotal`.
+- **Aprobarlo:** pasa a **publicado** y queda disponible para alquilar.
+- **Rechazarlo:** marca **qué campos** están mal (estadio, ubicación, fotos,
+  datos bancarios, documentos, etc.) y el **motivo** de cada uno. El palco queda
+  **rechazado** y el palquista recibe el detalle para corregir.
 
-### 9.3 Palquista — publicar palco (asistente de 10 pasos)
+Así, todo lo que un hincha ve fue revisado por una persona.
 
-`ownerSlice` maneja el asistente `wz`. Pasos (índice 0–9):
+### 7.4 CRM de clientes
 
-| Paso | Contenido | Validación al avanzar |
-|------|-----------|------------------------|
-| 0 | País | Debe haber/elegirse un estadio en ese país |
-| 1 | Estadio | Estadio requerido |
-| 2 | Ubicación (pin en el plano) | `x` no nulo (tocar el plano) |
-| 3 | Asientos | ≥ 1 asiento |
-| 4 | Estacionamiento | — |
-| 5 | Comodidades | ≥ 1 comodidad |
-| 6 | Fotos | ≥ 3 fotos (`MIN_PHOTOS`) |
-| 7 | Co-propietarios | Cada uno con nombre y email válido |
-| 8 | Cobro (datos bancarios + 4 documentos) | Banco, beneficiario, cuenta, sucursal y los 4 documentos requeridos |
-| 9 | **Precios** (paso final) | ≥ 1 modalidad activa → **publica** |
+Ve a cada cliente con su **gasto total**, **cantidad de reservas**, **puntos** e
+**historial**. Es la base para fidelizar, segmentar y dar soporte.
 
-Comodidades sugeridas (`DEFAULT_AMENITIES`): Wi-Fi, Cocina, Heladera, Televisión,
-Baño, Aire acondicionado, Calefacción, Bar, Parrillero (el palquista puede sumar
-las suyas). Las imágenes y documentos se guardan como **data URLs** (leídas con
-`readImagesAsDataUrls`).
+### 7.5 Reservas y finanzas
 
-Al publicar, el palco entra como **`pendiente`** (a verificación). Si es una
-**edición** (`editId`), se preservan identidad, reputación y asientos ya
-alquilados, pero **vuelve a `pendiente`** y sale del catálogo hasta nueva
-aprobación.
+- **Reservas:** el listado completo de operaciones (quién, qué, cuándo, cuánto).
+- **Finanzas:** la foto económica del negocio —ingresos brutos, **comisión del
+  4 %**, **lo que hay que pagarle a los palquistas (payout)** e ingresos por
+  botana—, con desgloses por estadio y por mes.
 
-### 9.4 Palquista — gestión y métricas
+### 7.6 Tablero principal (dashboard)
 
-- **Mis palcos** (`Owner`): pausar/reactivar (`togglePublish`). No se puede
-  pausar un `alquilado`.
-- **Estadísticas** (`Metrics` / `useMetricsVM`): solo palcos cuyo `host` es
-  `"Vos (demo)"`. KPIs: recaudación, ocupación anual, entradas por evento,
-  vistas (30 días) + conversión. Gráficos de ingresos por modalidad, ventas por
-  evento, tendencia mensual y tabla por palco. Las vistas/favoritos/tendencias
-  son **derivadas determinísticamente** de un hash del id (datos de demo
-  estables, no aleatorios).
-- **Respuesta a rechazos** (`setPalcoFieldReply`, `resubmitPalco`): el palquista
-  aclara campos marcados y reenvía el palco rechazado a `pendiente`.
-
-### 9.5 Autenticación y cuenta
-
-- **Ingresar** (`doLogin`): demo — siempre entra a la cuenta María Eugenia
-  (el formulario se prellenará con sus credenciales).
-- **Registrarse** (`doRegister`): valida nombre (≥2), email (regex) y contraseña
-  (≥4), y que el email no exista. Crea la cuenta, abre sesión y, si había un
-  pago pendiente, lo reanuda.
-- **Mi cuenta** (`Account`): perfil editable (con validaciones), **foto de
-  perfil** (se redimensiona a 256px máx vía canvas y se guarda como JPEG data
-  URL), preferencias de notificaciones, estadio favorito, idioma, e **historial
-  de compras** (`myOrders`).
-- **Sesión**: el id del usuario se guarda en `localStorage` (`pq_session`) y se
-  restaura en el `bootstrap`.
-
-### 9.6 Administración
-
-Acceso solo si `user.admin` (María Eugenia lo es). Pestañas
-(`useAdminVM` / `Admin`):
-
-| Pestaña | Contenido |
-|---------|-----------|
-| **Dashboard** | 10 KPIs (GMV, comisión 4 %, payout a palquistas, ingreso botana, entradas vendidas, ticket promedio, clientes, ocupación media, palcos activos, eventos·estadios), ingresos por estadio, reservas recientes, ventas por mes, dona de ingresos por modalidad y top de eventos |
-| **Eventos** | Listado + alta/edición. Cada evento puede tener varias funciones (fecha+hora); el país filtra los estadios seleccionables; imágenes opcionales |
-| **Estadios** | Listado + alta/edición (capacidad, año, superficie, niveles, techo, plano/foto) |
-| **Palcos** | Listado completo con host, estadio, precio "desde", estado y ocupación |
-| **Verificación** | Palcos `pendiente` (con badge de cantidad). Modal para **aprobar** (pasa a `publicado`) o **rechazar** marcando campos con motivo (pasa a `rechazado`) |
-| **Clientes** (CRM) | Por cuenta: gasto total, nº de órdenes, puntos e historial expandible |
-| **Reservas** | Todas las órdenes con cliente, fecha, total, palco y modalidad |
-| **Finanzas** | Ingresos brutos, comisión 4 %, payout, ingreso botana, desglose por estadio y comisión mensual |
-
-**Eventos y estadios creados en el admin aparecen inmediatamente en el lado
-cliente** (comparten el store y se persisten en `localStorage`).
+Reúne los indicadores clave del negocio en un vistazo: ventas totales (GMV),
+comisión, payout, ingreso por botana, entradas vendidas, ticket promedio,
+cantidad de clientes, ocupación media, palcos activos y cantidad de eventos y
+estadios en la plataforma; más gráficos de ventas por mes, ingresos por
+modalidad y los eventos que más recaudan.
 
 ---
 
-## 10. Persistencia (localStorage)
+## 8. El modelo de negocio (cómo gana dinero)
 
-Los adaptadores in-memory persisten en `localStorage` para sobrevivir recargas.
-Claves usadas:
+- **Comisión por transacción: 4 %.** Sobre cada reserva, Palqueate retiene un
+  4 % del valor. El resto es el **payout** que se transfiere al palquista.
+- **Botana (comidas y bebidas):** ingreso adicional asociado a cada reserva.
+- El crecimiento depende de tres palancas que la plataforma cuida activamente:
+  **más oferta** (palquistas publicando), **más demanda** (hinchas reservando) y
+  **más confianza** (verificación y buena experiencia).
 
-| Clave | Contenido |
-|-------|-----------|
-| `pq_accounts` | Cuentas de usuario (se siembra/mezcla la cuenta demo en cada lectura) |
-| `pq_session` | Id del usuario con sesión iniciada |
-| `pq_orders` | Órdenes/reservas realizadas |
-| `pq_admin_events` | Eventos creados desde el admin |
-| `pq_admin_stadiums` | Estadios creados desde el admin |
-
-Los accesos a `localStorage` están **guardados** (try/catch) para degradar a
-no-op en SSR / modo privado / cuota agotada en lugar de lanzar errores.
-
-> Para resetear la demo a su estado de fábrica, borrar estas claves del
-> `localStorage` del navegador.
+> En términos simples: por cada $100 que paga un hincha por la reserva, ~$4
+> quedan en Palqueate y ~$96 van al dueño del palco (la botana se factura aparte).
 
 ---
 
-## 11. Inyección de dependencias y migración a backend
+## 9. Conceptos clave (glosario)
 
-El **composition root** es `src/app/container.ts`. Allí se construye un
-`Container` con todos los repositorios detrás de sus interfaces (puertos). Hoy
-resuelven a adaptadores **in-memory**; el día que exista un backend, se cambia
-**una sola línea**:
-
-```ts
-const DATA_SOURCE = 'memory' as 'memory' | 'http'  // ← cambiar a 'http'
-const API_BASE_URL = '/api'                         // ← y fijar la URL
-```
-
-Como los consumidores dependen de los **puertos** y no de los adaptadores
-concretos, no hay que tocar ningún otro archivo: `buildHttp()` ya cablea los
-`Http*Repository` sobre `FetchHttpClient`. La sesión sigue siendo local
-(`LocalStorageSessionStore`) en ambos modos.
-
----
-
-## 12. Sistema de diseño y estilos
-
-- **Tokens** en `src/styles/` (`tokens/fonts.css`, `radius.css`, `shadows.css`,
-  `spacing.css`, `typography.css`) + `global.css`, agregados por `styles.css`.
-- **Temas** (`shared/domain/theme.ts`): dos paletas como variables CSS —
-  `palco` (*Palco · noche*, oscuro) y `cancha` (*Cancha · día*, claro),
-  conmutables desde el header (`cycleTheme`). `App` aplica `th.vars` al
-  contenedor raíz.
-- **`css()`** (`shared/ui/css.ts`): parsea los strings de estilo inline del
-  prototipo a objetos de estilo de React, lo que permite mantener el marcado
-  fiel al diseño original.
-- **Componentes compartidos** (`shared/ui/components/`): `Btn`, `Field`,
-  `Toggle`, `StatTile`, `SeatGrid`, `StadiumMap`, `EventCard`, `PalcoCard`,
-  `Header`, `Overlays`.
-- **Biblioteca `src/lib/`**: ~80 componentes de UI de propósito general
-  (Accordion, Calendar, Combobox, DataTable, Drawer, Toast, etc.) con su propio
-  **sitio de documentación** (`Showcase`, code-split en `/#showcase`). Es un
-  *design system* independiente del producto Palqueate.
-
-### 12.1 Responsive
-
-`vw` (ancho de viewport) se mantiene en el store vía listener de `resize`. Por
-debajo de **860px** la navegación superior colapsa a una **barra inferior fija**
-(`BottomNav`) y los layouts de admin/métricas pasan a una sola columna.
+| Término | Qué significa |
+|---------|----------------|
+| **Palco** | Box privado en un estadio, con varios asientos y comodidades |
+| **Palquista** | El dueño de un palco que lo publica para alquilar |
+| **Modalidad** | La forma de alquiler: palco entero, asiento anual o asiento por evento |
+| **Evento** | Un partido o show en un estadio |
+| **Función** | Una fecha y hora concreta de un evento (un show puede tener varias) |
+| **Temporada** | El año deportivo; los alquileres "anuales" cubren toda la temporada |
+| **Botana** | El menú de comidas y bebidas que se pide para el palco |
+| **Verificación** | La revisión que hace Palqueate antes de publicar un palco |
+| **Comisión** | El 4 % que retiene la plataforma sobre cada reserva |
+| **Payout** | Lo que Palqueate le paga al palquista (la reserva menos la comisión) |
+| **GMV** | El total de ventas que pasa por la plataforma |
 
 ---
 
-## 13. Detalles de implementación destacables
+## 10. Estados de un palco (su ciclo de vida)
 
-- **Precio "desde"** (`fromPrice`): toma la modalidad activa más barata de cada
-  palco; `priceBounds` redondea el rango a múltiplos de 500 para sliders prolijos.
-- **Filtrado** (`filtered`): búsqueda por texto (título, sector, host, estadio),
-  multiselect de estadios, tipo de modalidad, estacionamiento, mínimo de
-  asientos y rango de precio; orden por relevancia, precio, asientos o rating.
-- **Funciones de evento**: toda la disponibilidad de `seatEvent` se indexa por
-  **id de función** (`occId`). Para eventos de fecha única ese id coincide con
-  el del evento, lo que mantiene la compatibilidad.
-- **Métricas determinísticas**: vistas, favoritos y tendencias se derivan de un
-  hash del id del palco (`idHash`) para que la demo sea estable entre recargas
-  (no usa `Math.random()` para esos números).
-- **Carteles promocionales** (`promoPoster`): genera posters/gradientes para los
-  eventos sin imagen real.
+Entender estos estados ayuda a seguir cualquier publicación:
+
+1. **Pendiente** — el dueño lo cargó y está esperando que Palqueate lo verifique.
+   No se ve en el catálogo todavía.
+2. **Rechazado** — la verificación encontró problemas. El dueño ve qué corregir
+   y puede reenviarlo. Tampoco se ve en el catálogo.
+3. **Publicado** — aprobado y disponible para alquilar. Es lo que ven los hinchas.
+4. **Pausado** — el dueño decidió ocultarlo temporalmente. Vuelve cuando quiera.
+5. **Alquilado** — tiene reservas activas. No se puede pausar mientras eso dure.
 
 ---
 
-## 14. Limitaciones conocidas / naturaleza de demo
+## 11. Qué es importante recordar
 
-- **Sin backend**: todo es cliente; los pagos son simulados (delay de 1.3 s).
-- **Login de demo**: "Ingresar" siempre entra a María Eugenia, sin verificar
-  contraseña (el registro sí valida y crea cuentas reales en `localStorage`).
-- **Datos en el dispositivo**: las reservas y cuentas viven en el `localStorage`
-  del navegador; no se comparten entre dispositivos ni se respaldan.
-- **Sin tests automatizados ni linter**; la garantía de calidad es el type-check.
-- **Varios slices** usan `// @ts-nocheck` (port casi literal del prototipo), por
-  lo que parte del store no está cubierto por el chequeo de tipos estricto.
-
----
-
-## 15. Glosario
-
-| Término | Significado |
-|---------|-------------|
-| **Palco** | Box privado en un estadio, con varios asientos |
-| **Palquista** | Dueño de un palco que lo publica/alquila |
-| **Modalidad** | Forma de alquiler: palco entero, asiento anual o asiento por evento |
-| **Función** | Una fecha+hora concreta de un evento (`EventOccurrence`) |
-| **Botana** | Menú de comidas y bebidas asociado a una reserva |
-| **GMV** | *Gross Merchandise Value* — ventas brutas totales |
-| **Payout** | Monto neto a transferir a los palquistas (GMV − comisión) |
-| **Comisión** | 4 % que retiene la plataforma sobre cada reserva |
-```
+- Palqueate es un **intermediario de confianza** entre dueños de palcos e hinchas.
+- Su valor está en **tres lados**: oferta para el dueño, acceso para el hincha y
+  control de calidad por parte del equipo.
+- La **flexibilidad de modalidades** (palco entero / asiento anual / por evento)
+  es lo que abre el mercado a muchos más usuarios.
+- La **verificación** y la **claridad en el cobro** son lo que sostiene la
+  confianza, que es el activo más importante del negocio.
+- El ingreso principal es la **comisión del 4 %**, complementada por la **botana**.
