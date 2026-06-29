@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { css } from '@/shared/ui/css'
 import { Modal, Btn, Field, Select, Combobox, FileDropzone, Textarea } from '@/lib'
 import { useOverlaysVM } from '@/shared/ui/vm/useOverlaysVM'
@@ -277,7 +278,10 @@ export function StadiumModal() {
 export function PalcoReviewModal() {
   const vals = useOverlaysVM()
   const r = vals.palcoReview
+  // Lightbox para ver un adjunto (foto o documento) en grande.
+  const [zoom, setZoom] = useState<string | null>(null)
   return (
+    <>
     <Modal
       open={!!vals.palcoReviewOpen}
       onClose={vals.closePalcoReview}
@@ -314,7 +318,7 @@ export function PalcoReviewModal() {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(86px,1fr))', gap: '8px' }}>
                 {(r.images || []).map((src: string, i: number) => (
                   <div key={i} style={{ position: 'relative' }}>
-                    <img src={src} alt={'Foto ' + (i + 1)} style={{ width: '100%', aspectRatio: '1 / 1', objectFit: 'contain', background: 'var(--background,#0E1116)', borderRadius: '10px', border: '1px solid var(--border,rgba(255,255,255,.12))', display: 'block' }} />
+                    <img src={src} alt={'Foto ' + (i + 1)} onClick={() => setZoom(src)} title="Ver en grande" style={{ width: '100%', aspectRatio: '1 / 1', objectFit: 'contain', background: 'var(--background,#0E1116)', borderRadius: '10px', border: '1px solid var(--border,rgba(255,255,255,.12))', display: 'block', cursor: 'zoom-in' }} />
                     <DownloadLink compact href={src} name={attSlug(r.title) + '-foto-' + (i + 1) + '.' + attExt(src)} />
                   </div>
                 ))}
@@ -343,7 +347,7 @@ export function PalcoReviewModal() {
                     {f.isDoc ? (
                       f.image ? (
                         <div>
-                          <img src={f.image} alt={f.label} style={{ maxWidth: '160px', maxHeight: '110px', objectFit: 'contain', background: 'var(--background,#0E1116)', borderRadius: '8px', border: '1px solid var(--border,rgba(255,255,255,.12))', display: 'block' }} />
+                          <img src={f.image} alt={f.label} onClick={() => setZoom(f.image)} title="Ver en grande" style={{ maxWidth: '160px', maxHeight: '110px', objectFit: 'contain', background: 'var(--background,#0E1116)', borderRadius: '8px', border: '1px solid var(--border,rgba(255,255,255,.12))', display: 'block', cursor: 'zoom-in' }} />
                           <DownloadLink href={f.image} name={attSlug(r.title) + '-' + attSlug(f.label) + '.' + attExt(f.image)} />
                         </div>
                       ) : (
@@ -402,6 +406,24 @@ export function PalcoReviewModal() {
         </div>
       ) : null}
     </Modal>
+
+    {/* Lightbox: ver el adjunto en grande */}
+    {zoom ? (
+      <div
+        onClick={() => setZoom(null)}
+        style={{ position: 'fixed', inset: 0, zIndex: 1100, display: 'grid', placeItems: 'center', padding: '32px', background: 'color-mix(in srgb, var(--background,#0E1116) 86%, black)', cursor: 'zoom-out' }}
+      >
+        <button
+          onClick={() => setZoom(null)}
+          aria-label="Cerrar"
+          style={{ position: 'absolute', top: '16px', right: '16px', display: 'grid', placeItems: 'center', width: '40px', height: '40px', borderRadius: '50%', border: '1px solid var(--border,rgba(255,255,255,.2))', background: 'var(--card,#171B22)', color: 'var(--foreground,#F4EFE6)', cursor: 'pointer', fontFamily: "'Archivo'", fontWeight: 800, fontSize: '18px', lineHeight: 1 }}
+        >
+          ×
+        </button>
+        <img src={zoom} alt="Adjunto" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: '10px', boxShadow: '0 24px 60px -16px rgba(0,0,0,.8)', cursor: 'default' }} />
+      </div>
+    ) : null}
+    </>
   )
 }
 
