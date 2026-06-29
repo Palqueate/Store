@@ -162,8 +162,18 @@ export default function Admin() {
                     header: 'HORA',
                     render: (ev: any) => ev.time,
                   },
+                  {
+                    key: 'acciones',
+                    header: '',
+                    width: '88px',
+                    align: 'right',
+                    render: (ev: any) => (
+                      <Btn label="Editar" variant="secondary" onClick={() => ev.edit()} />
+                    ),
+                  },
                 ]}
                 rows={vals.adminEvents || []}
+                onRowClick={(ev: any) => ev.edit()}
               />
             </>
           ) : null}
