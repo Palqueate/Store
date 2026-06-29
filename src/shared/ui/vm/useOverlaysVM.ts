@@ -87,6 +87,7 @@ export function useOverlaysVM(): any {
     stadLevels: s.stadDraft.levels,
     stadRoof: s.stadDraft.roof,
     stadShape: s.stadDraft.shape,
+    stadMapImage: s.stadDraft.mapImage,
     setStadName: function (e) { self.setStadDraft('name', e.target.value) },
     setStadShort: function (e) { self.setStadDraft('short', e.target.value) },
     setStadCity: function (e) { self.setStadDraft('city', e.target.value) },
@@ -97,6 +98,8 @@ export function useOverlaysVM(): any {
     setStadLevels: function (e) { self.setStadDraft('levels', e.target.value) },
     setStadRoof: function (e) { self.setStadDraft('roof', e.target.value) },
     setStadShape: function (e) { self.setStadDraft('shape', e.target.value) },
+    addStadMap: function (files) { self.adminAddStadMap(files) },
+    removeStadMap: function () { self.adminRemoveStadMap() },
     shapeOptions: [
       { value: 'rect', label: 'Rectangular' },
       { value: 'bowl', label: 'Cuenco / bowl' },

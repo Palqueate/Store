@@ -201,6 +201,26 @@ export function StadiumModal() {
           <label style={css("display:block; font-family:'Space Mono'; font-size:10px; letter-spacing:.08em; color:var(--subtle-foreground,#6B7480); margin-bottom:6px;")}>FORMA DEL PLANO</label>
           <Select value={vals.stadShape} options={vals.shapeOptions} onChange={(v) => vals.setStadShape({ target: { value: v } })} />
         </div>
+        <div>
+          <label style={css("display:block; font-family:'Space Mono'; font-size:10px; letter-spacing:.08em; color:var(--subtle-foreground,#6B7480); margin-bottom:6px;")}>MAPA DEL ESTADIO (OPCIONAL)</label>
+          {vals.stadMapImage ? (
+            <div style={{ position: 'relative', borderRadius: '13px', overflow: 'hidden', border: '1px solid var(--border,rgba(255,255,255,.12))', background: 'var(--card,#171B22)' }}>
+              <img src={vals.stadMapImage} alt="Mapa del estadio" style={{ width: '100%', maxHeight: '220px', objectFit: 'cover', display: 'block' }} />
+              <button
+                onClick={vals.removeStadMap}
+                aria-label="Quitar mapa"
+                style={{ position: 'absolute', top: '8px', right: '8px', width: '26px', height: '26px', display: 'grid', placeItems: 'center', borderRadius: '50%', cursor: 'pointer', border: 'none', background: 'color-mix(in srgb, var(--background,#0E1116) 72%, transparent)', color: 'var(--foreground,#F4EFE6)', fontFamily: "'Archivo'", fontWeight: 800, fontSize: '16px', lineHeight: 1 }}
+              >
+                ×
+              </button>
+            </div>
+          ) : (
+            <FileDropzone accept="image/*" hint="Subí el plano o foto aérea del estadio" onFiles={vals.addStadMap} />
+          )}
+          <div style={css("font-size:12px; color:var(--muted-foreground,#9AA6B2); margin-top:6px;")}>
+            Si lo cargás, los dueños ubican su palco sobre este mapa en lugar del plano genérico.
+          </div>
+        </div>
       </div>
     </Modal>
   )

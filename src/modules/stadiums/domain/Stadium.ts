@@ -10,4 +10,7 @@ export interface Stadium {
   levels?: number
   address?: string
   roof?: boolean
+  /** Optional real plan/photo of the stadium (data URL). When set, the map
+   *  renders it as the background instead of the stylized pitch. */
+  mapImage?: string
 }

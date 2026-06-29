@@ -113,6 +113,7 @@ export default function Publish() {
                 stadium={vals.wiz.stadium}
                 name={vals.wiz.stadiumName}
                 shape={vals.wiz.stadiumShape}
+                mapImage={vals.wiz.stadiumMap}
                 markers={vals.wiz.markers}
                 interactive={true}
                 onPick={vals.wiz.onPick}

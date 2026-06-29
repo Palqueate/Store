@@ -17,6 +17,9 @@ interface StadiumMapProps {
   name?: string
   /** Geometry driver from the stadium's domain data: 'rect' | 'bowl' | 'oval' | 'round'. */
   shape?: string
+  /** Real plan/photo of the stadium (data URL). When set it becomes the
+   *  background and the synthetic pitch is hidden — the marker is placed on it. */
+  mapImage?: string
   markers?: Marker[]
   interactive?: boolean
   onPick?: (x: number, y: number) => void
@@ -37,7 +40,7 @@ const LEGACY: Record<string, { name: string; shape: string }> = {
   cds: { name: 'Campeón del Siglo', shape: 'bowl' },
 }
 
-export default function StadiumMap({ stadium = 'gpc', name, shape, markers = [], interactive = false, onPick }: StadiumMapProps) {
+export default function StadiumMap({ stadium = 'gpc', name, shape, mapImage, markers = [], interactive = false, onPick }: StadiumMapProps) {
   const elRef = useRef<HTMLDivElement | null>(null)
 
   function onField(e: React.MouseEvent) {
@@ -78,24 +81,33 @@ export default function StadiumMap({ stadium = 'gpc', name, shape, markers = [],
   const containerStyle = 'position:relative; width:100%; aspect-ratio:' + geo.aspect + '; border-radius:' + geo.radius + '; overflow:hidden; background:radial-gradient(130% 130% at 50% -10%, color-mix(in srgb,var(--primary,#C9A24B) 7%, transparent), transparent 45%), var(--muted,#1F2530); border:1px solid var(--border,rgba(255,255,255,.1)); box-shadow:inset 0 0 70px rgba(0,0,0,.4); cursor:' + (interactive ? 'crosshair' : 'default') + ';'
   const pitchStyle = 'position:absolute; inset:' + geo.inset + '; border-radius:6px; border:2px solid rgba(255,255,255,.5); background:repeating-linear-gradient(90deg, #1f7d46 0 28px, #1b6f3e 28px 56px); box-shadow:0 14px 36px rgba(0,0,0,.45);'
 
+  const hasImage = !!mapImage
+
   return (
     <div ref={elRef} onClick={onField} style={css(containerStyle)}>
-      {/* sector labels */}
-      <div style={{ position: 'absolute', top: '9px', left: 0, right: 0, textAlign: 'center', fontFamily: "'Space Mono'", fontSize: '10px', letterSpacing: '.22em', color: 'var(--subtle-foreground,#6B7480)' }}>NORTE</div>
-      <div style={{ position: 'absolute', bottom: '9px', left: 0, right: 0, textAlign: 'center', fontFamily: "'Space Mono'", fontSize: '10px', letterSpacing: '.22em', color: 'var(--subtle-foreground,#6B7480)' }}>SUR</div>
-      <div style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%) rotate(-90deg)', fontFamily: "'Space Mono'", fontSize: '10px', letterSpacing: '.22em', color: 'var(--subtle-foreground,#6B7480)' }}>OESTE</div>
-      <div style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%) rotate(90deg)', fontFamily: "'Space Mono'", fontSize: '10px', letterSpacing: '.22em', color: 'var(--subtle-foreground,#6B7480)' }}>ESTE</div>
+      {hasImage ? (
+        /* real stadium plan/photo */
+        <img src={mapImage} alt={plateName} draggable={false} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block', pointerEvents: 'none', userSelect: 'none' }} />
+      ) : (
+        <>
+          {/* sector labels */}
+          <div style={{ position: 'absolute', top: '9px', left: 0, right: 0, textAlign: 'center', fontFamily: "'Space Mono'", fontSize: '10px', letterSpacing: '.22em', color: 'var(--subtle-foreground,#6B7480)' }}>NORTE</div>
+          <div style={{ position: 'absolute', bottom: '9px', left: 0, right: 0, textAlign: 'center', fontFamily: "'Space Mono'", fontSize: '10px', letterSpacing: '.22em', color: 'var(--subtle-foreground,#6B7480)' }}>SUR</div>
+          <div style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%) rotate(-90deg)', fontFamily: "'Space Mono'", fontSize: '10px', letterSpacing: '.22em', color: 'var(--subtle-foreground,#6B7480)' }}>OESTE</div>
+          <div style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%) rotate(90deg)', fontFamily: "'Space Mono'", fontSize: '10px', letterSpacing: '.22em', color: 'var(--subtle-foreground,#6B7480)' }}>ESTE</div>
 
-      {/* pitch */}
-      <div style={css(pitchStyle)}>
-        <div style={{ position: 'absolute', left: '50%', top: 0, bottom: 0, width: '2px', background: 'rgba(255,255,255,.45)', transform: 'translateX(-1px)' }} />
-        <div style={{ position: 'absolute', left: '50%', top: '50%', width: '24%', aspectRatio: '1', border: '2px solid rgba(255,255,255,.45)', borderRadius: '50%', transform: 'translate(-50%,-50%)' }} />
-        <div style={{ position: 'absolute', left: '50%', top: '50%', width: '6px', height: '6px', background: 'rgba(255,255,255,.6)', borderRadius: '50%', transform: 'translate(-50%,-50%)' }} />
-        <div style={{ position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)', width: '14%', height: '54%', border: '2px solid rgba(255,255,255,.4)', borderLeft: 'none' }} />
-        <div style={{ position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)', width: '14%', height: '54%', border: '2px solid rgba(255,255,255,.4)', borderRight: 'none' }} />
-        <div style={{ position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)', width: '6%', height: '26%', border: '2px solid rgba(255,255,255,.4)', borderLeft: 'none' }} />
-        <div style={{ position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)', width: '6%', height: '26%', border: '2px solid rgba(255,255,255,.4)', borderRight: 'none' }} />
-      </div>
+          {/* pitch */}
+          <div style={css(pitchStyle)}>
+            <div style={{ position: 'absolute', left: '50%', top: 0, bottom: 0, width: '2px', background: 'rgba(255,255,255,.45)', transform: 'translateX(-1px)' }} />
+            <div style={{ position: 'absolute', left: '50%', top: '50%', width: '24%', aspectRatio: '1', border: '2px solid rgba(255,255,255,.45)', borderRadius: '50%', transform: 'translate(-50%,-50%)' }} />
+            <div style={{ position: 'absolute', left: '50%', top: '50%', width: '6px', height: '6px', background: 'rgba(255,255,255,.6)', borderRadius: '50%', transform: 'translate(-50%,-50%)' }} />
+            <div style={{ position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)', width: '14%', height: '54%', border: '2px solid rgba(255,255,255,.4)', borderLeft: 'none' }} />
+            <div style={{ position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)', width: '14%', height: '54%', border: '2px solid rgba(255,255,255,.4)', borderRight: 'none' }} />
+            <div style={{ position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)', width: '6%', height: '26%', border: '2px solid rgba(255,255,255,.4)', borderLeft: 'none' }} />
+            <div style={{ position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)', width: '6%', height: '26%', border: '2px solid rgba(255,255,255,.4)', borderRight: 'none' }} />
+          </div>
+        </>
+      )}
 
       {/* palco markers */}
       {built.map((m, i) => (
