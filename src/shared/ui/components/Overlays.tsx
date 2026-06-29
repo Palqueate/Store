@@ -2,6 +2,41 @@ import { css } from '@/shared/ui/css'
 import { Modal, Btn, Field, Select, Combobox, FileDropzone, Textarea } from '@/lib'
 import { useOverlaysVM } from '@/shared/ui/vm/useOverlaysVM'
 
+// Extensión de archivo a partir del data URL (jpeg→jpg, fallback jpg).
+function attExt(url: string) {
+  const m = /^data:[a-zA-Z]+\/([a-zA-Z0-9.+-]+)[;,]/.exec(url || '')
+  return m ? m[1].toLowerCase().replace('jpeg', 'jpg') : 'jpg'
+}
+// Slug seguro para nombres de archivo (sin acentos ni símbolos).
+function attSlug(s: string) {
+  return (s || 'adjunto').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'adjunto'
+}
+
+// Descarga un adjunto (data URL) como archivo con un nombre legible.
+function DownloadLink({ href, name, label = 'Descargar', compact = false }: any) {
+  return (
+    <a
+      href={href}
+      download={name}
+      title="Descargar adjunto"
+      style={compact ? {
+        position: 'absolute', bottom: '5px', right: '5px', width: '24px', height: '24px',
+        display: 'grid', placeItems: 'center', borderRadius: '7px', textDecoration: 'none',
+        background: 'color-mix(in srgb, var(--background,#0E1116) 78%, transparent)',
+        border: '1px solid var(--border,rgba(255,255,255,.2))', color: 'var(--foreground,#F4EFE6)',
+      } : {
+        display: 'inline-flex', alignItems: 'center', gap: '6px', marginTop: '8px',
+        padding: '6px 10px', borderRadius: '8px', textDecoration: 'none',
+        border: '1px solid var(--border,rgba(255,255,255,.16))', background: 'transparent',
+        color: 'var(--foreground,#F4EFE6)', fontFamily: "'Archivo'", fontWeight: 700, fontSize: '12px',
+      }}
+    >
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" /></svg>
+      {compact ? null : label}
+    </a>
+  )
+}
+
 // ──────────────────────────────────────────────────────────
 // BottomNav  (no lib equivalent — stays bespoke)
 // ──────────────────────────────────────────────────────────
@@ -270,12 +305,20 @@ export function PalcoReviewModal() {
             </div>
           ) : null}
 
-          {/* Galería de fotos */}
+          {/* Galería de fotos · cada una descargable */}
           {(r.images || []).length > 0 ? (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(86px,1fr))', gap: '8px' }}>
-              {(r.images || []).map((src: string, i: number) => (
-                <img key={i} src={src} alt={'Foto ' + (i + 1)} style={{ width: '100%', aspectRatio: '1 / 1', objectFit: 'contain', background: 'var(--background,#0E1116)', borderRadius: '10px', border: '1px solid var(--border,rgba(255,255,255,.12))' }} />
-              ))}
+            <div>
+              <div style={{ fontFamily: "'Space Mono'", fontSize: '11px', letterSpacing: '.08em', color: 'var(--subtle-foreground,#6B7480)', marginBottom: '8px' }}>
+                FOTOS DEL PALCO · {(r.images || []).length}
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(86px,1fr))', gap: '8px' }}>
+                {(r.images || []).map((src: string, i: number) => (
+                  <div key={i} style={{ position: 'relative' }}>
+                    <img src={src} alt={'Foto ' + (i + 1)} style={{ width: '100%', aspectRatio: '1 / 1', objectFit: 'contain', background: 'var(--background,#0E1116)', borderRadius: '10px', border: '1px solid var(--border,rgba(255,255,255,.12))', display: 'block' }} />
+                    <DownloadLink compact href={src} name={attSlug(r.title) + '-foto-' + (i + 1) + '.' + attExt(src)} />
+                  </div>
+                ))}
+              </div>
             </div>
           ) : null}
 
@@ -299,7 +342,10 @@ export function PalcoReviewModal() {
                     <div style={{ fontFamily: "'Space Mono'", fontSize: '10px', letterSpacing: '.06em', color: 'var(--subtle-foreground,#6B7480)', marginBottom: '4px' }}>{f.label}</div>
                     {f.isDoc ? (
                       f.image ? (
-                        <img src={f.image} alt={f.label} style={{ maxWidth: '160px', maxHeight: '110px', objectFit: 'cover', borderRadius: '8px', border: '1px solid var(--border,rgba(255,255,255,.12))', display: 'block' }} />
+                        <div>
+                          <img src={f.image} alt={f.label} style={{ maxWidth: '160px', maxHeight: '110px', objectFit: 'contain', background: 'var(--background,#0E1116)', borderRadius: '8px', border: '1px solid var(--border,rgba(255,255,255,.12))', display: 'block' }} />
+                          <DownloadLink href={f.image} name={attSlug(r.title) + '-' + attSlug(f.label) + '.' + attExt(f.image)} />
+                        </div>
                       ) : (
                         <span style={{ fontSize: '13px', color: 'var(--destructive,#E5604D)' }}>Sin documento</span>
                       )
