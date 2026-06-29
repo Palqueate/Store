@@ -19,7 +19,12 @@ export default function Admin() {
         {/* sidebar */}
         <aside style={css(vals.adminSidebar)}>
           {(vals.adminTabs || []).map((t: any, i: number) => (
-            <button key={i} onClick={t.pick} style={css(t.style)}>{t.label}</button>
+            <button key={i} onClick={t.pick} style={css(t.style)}>
+              <span style={{ flex: 1 }}>{t.label}</span>
+              {t.badge ? (
+                <span style={{ flex: '0 0 auto', minWidth: '20px', height: '20px', padding: '0 6px', borderRadius: '999px', display: 'inline-grid', placeItems: 'center', background: t.active ? 'var(--primary-foreground,#1A1407)' : 'var(--destructive,#E5604D)', color: t.active ? 'var(--primary,#C9A24B)' : '#fff', fontFamily: "'Archivo'", fontWeight: 800, fontSize: '11px' }}>{t.badge}</span>
+              ) : null}
+            </button>
           ))}
         </aside>
 
@@ -351,6 +356,43 @@ export default function Admin() {
                 ]}
                 rows={vals.adminPalcos || []}
               />
+            </>
+          ) : null}
+
+          {/* VERIFICACIÓN */}
+          {vals.adminTabVerificacion ? (
+            <>
+              <h2 style={{ margin: '0 0 4px', fontFamily: "'Archivo'", fontWeight: 800, fontSize: '22px', color: 'var(--foreground,#F4EFE6)' }}>Verificación de palcos</h2>
+              <p style={{ margin: '0 0 16px', fontSize: '13px', color: 'var(--muted-foreground,#9AA6B2)' }}>Palcos registrados esperando aprobación. Revisá cada uno, aprobalo o rechazalo indicando los campos a corregir.</p>
+              {vals.pendingCount === 0 ? (
+                <Card padding="40px 20px" style={{ textAlign: 'center' } as CSSProperties}>
+                  <div style={{ fontFamily: "'Archivo'", fontWeight: 800, fontSize: '17px', color: 'var(--foreground,#F4EFE6)', marginBottom: '6px' }}>No hay palcos pendientes</div>
+                  <div style={{ fontSize: '13px', color: 'var(--muted-foreground,#9AA6B2)' }}>Cuando un palquista registre o reenvíe un palco, va a aparecer acá.</div>
+                </Card>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(300px,1fr))', gap: '14px' }}>
+                  {(vals.adminPending || []).map((p: any, i: number) => (
+                    <Card key={i} padding="18px" style={{ display: 'flex', flexDirection: 'column', gap: '12px' } as CSSProperties}>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px' }}>
+                        <div style={{ minWidth: 0 }}>
+                          <h3 style={{ margin: '0 0 2px', fontFamily: "'Archivo'", fontWeight: 800, fontSize: '17px', color: 'var(--foreground,#F4EFE6)' }}>{p.title}</h3>
+                          <div style={{ fontSize: '12.5px', color: 'var(--muted-foreground,#9AA6B2)' }}>{p.host} · {p.stadiumName} · {p.country}</div>
+                        </div>
+                        <Badge tone={p.resubmitted ? 'brand' : 'warn'} dot>{p.resubmitted ? 'Reenviado' : 'Nuevo'}</Badge>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '8px' }}>
+                        {[['ASIENTOS', p.seats], ['ESTAC.', p.parking], ['COMODID.', p.amenities], ['CO-PROP.', p.coOwners], ['FOTOS', p.photos], ['DOCS', p.docs]].map((cell: any, j: number) => (
+                          <div key={j} style={{ padding: '8px 10px', borderRadius: '9px', background: 'var(--background,#0E1116)', border: '1px solid var(--border,rgba(255,255,255,.08))' }}>
+                            <div style={{ fontFamily: "'Space Mono'", fontSize: '9px', letterSpacing: '.06em', color: 'var(--subtle-foreground,#6B7480)' }}>{cell[0]}</div>
+                            <div style={{ fontFamily: "'Archivo'", fontWeight: 800, fontSize: '14px', color: 'var(--foreground,#F4EFE6)' }}>{cell[1]}</div>
+                          </div>
+                        ))}
+                      </div>
+                      <Btn label="Revisar palco" icon="arrow" block onClick={p.review} />
+                    </Card>
+                  ))}
+                </div>
+              )}
             </>
           ) : null}
 

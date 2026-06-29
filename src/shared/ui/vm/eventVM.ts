@@ -4,7 +4,7 @@
 import { evTagStyle } from './helpers'
 
 export function evAvail(self, ev) {
-  var palcos = self.allPalcos().filter(function (p) { return p.stadium === ev.stadium && self.statusOf(p) !== 'pausado' && p.modes.seatEvent.on })
+  var palcos = self.allPalcos().filter(function (p) { var st = self.statusOf(p); return p.stadium === ev.stadium && (st === 'publicado' || st === 'alquilado') && p.modes.seatEvent.on })
   var withSeats = palcos.filter(function (p) { return self.eventFreeSeats(p, ev.id) > 0 })
   var freeTotal = withSeats.reduce(function (a, p) { return a + self.eventFreeSeats(p, ev.id) }, 0)
   var minPrice = withSeats.reduce(function (m, p) { return Math.min(m, p.modes.seatEvent.price) }, Infinity)

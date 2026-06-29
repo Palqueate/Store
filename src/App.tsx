@@ -5,7 +5,7 @@ import { THEMES } from '@/shared/domain/theme'
 import { css } from '@/shared/ui/css'
 
 import Header from '@/shared/ui/components/Header'
-import { BottomNav, AcctBackdrop, AuthModal, EventModal, StadiumModal, Toast } from '@/shared/ui/components/Overlays'
+import { BottomNav, AcctBackdrop, AuthModal, EventModal, StadiumModal, PalcoReviewModal, Toast } from '@/shared/ui/components/Overlays'
 
 import Home from '@/modules/home/ui/Home'
 import Results from '@/modules/palcos/ui/Results'
@@ -64,6 +64,7 @@ export default function App() {
       <AuthModal />
       <EventModal />
       <StadiumModal />
+      <PalcoReviewModal />
       <Toast />
     </div>
   )

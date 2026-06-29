@@ -61,7 +61,9 @@ export const createCatalogSlice = (set, get) => ({
     return opts[0] || { v: m.palcoYear.price, l: 'palco / año' }
   },
   filtered: () => {
-    const s = get(); let list = get().allPalcos().filter((p) => get().statusOf(p) !== 'pausado')
+    // Solo los palcos aprobados (disponibles) se muestran al público. Los que
+    // están en revisión, rechazados o pausados quedan fuera del catálogo.
+    const s = get(); let list = get().allPalcos().filter((p) => { const st = get().statusOf(p); return st === 'publicado' || st === 'alquilado' })
     if (s.fStadium !== 'all') list = list.filter((p) => p.stadium === s.fStadium)
     if (s.fType !== 'all') list = list.filter((p) => p.modes[s.fType] && p.modes[s.fType].on)
     if (s.fParking) list = list.filter((p) => p.parking.has)
@@ -92,4 +94,11 @@ export const createCatalogSlice = (set, get) => ({
   },
   publishPalcoEntity: (np) => publishPalcoUseCase(container.palcos, np),
   updatePalcoEntity: (np) => updatePalcoUseCase(container.palcos, np),
+  // Persist an edited palco into both the entity store and the catalog array,
+  // dropping any transient status override for that id.
+  savePalco: (np) => {
+    get().updatePalcoEntity(np)
+    const over = { ...get().statusOver }; delete over[np.id]
+    set({ palcos: get().palcos.map((p) => (p.id === np.id ? np : p)), statusOver: over })
+  },
 })

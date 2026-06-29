@@ -157,6 +157,8 @@ export const createOwnerSlice = (set, get) => ({
     const payout = { ...emptyPayout(), ...(w.payout || {}) }
     if (w.editId) {
       const prev = get().byId(w.editId); if (!prev) { set({ wz: null }); return get().go('owner') }
+      // Editar un palco rechazado o en revisión lo reenvía a verificación.
+      const wasUnderReview = prev.status === 'rechazado' || prev.status === 'pendiente'
       // Preserve identity, reputation and already-rented seats while applying the edits.
       const np = {
         ...prev,
@@ -167,20 +169,38 @@ export const createOwnerSlice = (set, get) => ({
         parking: { has: w.parkHas, n: w.parkHas ? (w.parkN || 1) : 0 },
         amenities, coOwners, payout,
         photos: imgs.length, images: imgs,
+        status: wasUnderReview ? 'pendiente' : prev.status,
         modes: {
           palcoYear: { on: w.mPalco, price: w.pricePalco || 0 },
           seatYear: { on: w.mSeatY, price: w.priceSeatY || 0, taken: prev.modes.seatYear.taken || [] },
           seatEvent: { on: w.mSeatE, price: w.priceSeatE || 0, taken: prev.modes.seatEvent.taken || {} },
         },
       }
-      get().updatePalcoEntity(np)
-      set({ palcos: get().palcos.map((p) => (p.id === np.id ? np : p)), wz: null })
-      get().flash('¡Palco actualizado!'); get().go('owner')
+      get().savePalco(np)
+      set({ wz: null })
+      get().flash(wasUnderReview ? 'Cambios enviados a revisión' : '¡Palco actualizado!'); get().go('owner')
       return
     }
     const id = 'px' + Date.now()
-    const np = { id, stadium: w.stadium, country, title: (w.title || '').trim() || 'Mi palco', sector: get().stadiums[w.stadium].name + ' · Nivel Palcos', map: { x: w.x == null ? 50 : w.x, y: w.y == null ? 14 : w.y }, seats: w.seats || 1, parking: { has: w.parkHas, n: w.parkHas ? (w.parkN || 1) : 0 }, amenities, coOwners, payout, host: 'Vos (demo)', rating: 5.0, photos: imgs.length, images: imgs, modes: { palcoYear: { on: w.mPalco, price: w.pricePalco || 0 }, seatYear: { on: w.mSeatY, price: w.priceSeatY || 0, taken: [] }, seatEvent: { on: w.mSeatE, price: w.priceSeatE || 0, taken: {} } }, status: 'publicado' }
+    // Todo palco nuevo entra en proceso de verificación antes de publicarse.
+    const np = { id, stadium: w.stadium, country, title: (w.title || '').trim() || 'Mi palco', sector: get().stadiums[w.stadium].name + ' · Nivel Palcos', map: { x: w.x == null ? 50 : w.x, y: w.y == null ? 14 : w.y }, seats: w.seats || 1, parking: { has: w.parkHas, n: w.parkHas ? (w.parkN || 1) : 0 }, amenities, coOwners, payout, host: 'Vos (demo)', rating: 5.0, photos: imgs.length, images: imgs, modes: { palcoYear: { on: w.mPalco, price: w.pricePalco || 0 }, seatYear: { on: w.mSeatY, price: w.priceSeatY || 0, taken: [] }, seatEvent: { on: w.mSeatE, price: w.priceSeatE || 0, taken: {} } }, status: 'pendiente' }
     get().publishPalcoEntity(np)
-    set({ palcos: get().palcos.concat([np]), wz: null }); get().flash('¡Palco publicado!'); get().go('owner')
+    set({ palcos: get().palcos.concat([np]), wz: null }); get().flash('Palco enviado a revisión'); get().go('owner')
+  },
+
+  // ── Palquista: respuesta a campos rechazados y reenvío a revisión ──
+  // Guarda la aclaración del palquista sobre un campo marcado como incorrecto.
+  setPalcoFieldReply: (palcoId, fieldKey, text) => {
+    const p = get().byId(palcoId); if (!p || !p.review) return
+    const fields = (p.review.fields || []).map((f) => (f.key === fieldKey ? { ...f, ownerReply: text } : f))
+    get().savePalco({ ...p, review: { ...p.review, fields } })
+  },
+  // Reenvía un palco rechazado a revisión, conservando las respuestas para que
+  // el admin tenga el contexto de lo que el palquista aclaró.
+  resubmitPalco: (palcoId) => {
+    const p = get().byId(palcoId); if (!p) return
+    if (p.status !== 'rechazado') return
+    get().savePalco({ ...p, status: 'pendiente' })
+    get().flash('Palco reenviado a revisión')
   },
 })

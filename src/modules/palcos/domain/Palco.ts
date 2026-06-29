@@ -4,7 +4,55 @@ export interface PalcoModes {
   seatEvent: { on: boolean; price: number; taken: Record<string, number[]> }
 }
 
-export type PalcoStatus = 'publicado' | 'pausado' | 'alquilado'
+// 'pendiente'  → registrado, esperando verificación del admin
+// 'rechazado'  → el admin lo rechazó; el palquista debe revisar los campos malos
+// 'publicado'  → aprobado y disponible para alquilar
+// 'pausado'    → el dueño lo pausó · 'alquilado' → con reservas activas
+export type PalcoStatus = 'pendiente' | 'rechazado' | 'publicado' | 'pausado' | 'alquilado'
+
+/** Un campo marcado por el admin como no validado, con su motivo y la
+ *  eventual respuesta del palquista defendiendo o aclarando el dato. */
+export interface PalcoFieldFlag {
+  /** Clave del campo (ver PALCO_REVIEW_FIELDS). */
+  key: string
+  label: string
+  /** Motivo por el que el admin lo marcó como incorrecto. */
+  reason: string
+  /** Respuesta del palquista: por qué el dato está bien, o aclaración. */
+  ownerReply?: string
+}
+
+/** Resultado de la última revisión de un palco rechazado. */
+export interface PalcoReview {
+  /** Motivo general del rechazo. */
+  reason: string
+  /** Campos marcados como no validados. */
+  fields: PalcoFieldFlag[]
+  reviewedAt?: string
+}
+
+/** Catálogo de campos revisables por el admin durante la verificación.
+ *  Cada uno puede marcarse como no validado con un motivo. */
+export const PALCO_REVIEW_FIELDS: { key: string; label: string }[] = [
+  { key: 'country', label: 'País' },
+  { key: 'stadium', label: 'Estadio' },
+  { key: 'map', label: 'Ubicación en el plano' },
+  { key: 'seats', label: 'Cantidad de asientos' },
+  { key: 'parking', label: 'Estacionamiento' },
+  { key: 'amenities', label: 'Comodidades' },
+  { key: 'images', label: 'Fotos del palco' },
+  { key: 'coOwners', label: 'Co-propietarios' },
+  { key: 'payout.country', label: 'País de la cuenta bancaria' },
+  { key: 'payout.swift', label: 'SWIFT / BIC' },
+  { key: 'payout.bank', label: 'Banco' },
+  { key: 'payout.beneficiary', label: 'Beneficiario bancario' },
+  { key: 'payout.accountNumber', label: 'Número de cuenta' },
+  { key: 'payout.branch', label: 'Sucursal del banco' },
+  { key: 'payout.idFront', label: 'Documento de identidad · anverso' },
+  { key: 'payout.idBack', label: 'Documento de identidad · reverso' },
+  { key: 'payout.proofOfAddress', label: 'Comprobante de domicilio' },
+  { key: 'payout.propertyTitle', label: 'Título de propiedad del palco' },
+]
 
 /** Co-propietario del palco: nombre y email de contacto. */
 export interface PalcoCoOwner {
@@ -57,4 +105,6 @@ export interface Palco {
   images: string[]
   modes: PalcoModes
   status: PalcoStatus
+  /** Última revisión del admin — presente cuando el palco fue rechazado. */
+  review?: PalcoReview
 }

@@ -1,5 +1,5 @@
 import { css } from '@/shared/ui/css'
-import { Modal, Btn, Field, Select, Combobox, FileDropzone } from '@/lib'
+import { Modal, Btn, Field, Select, Combobox, FileDropzone, Textarea } from '@/lib'
 import { useOverlaysVM } from '@/shared/ui/vm/useOverlaysVM'
 
 // ──────────────────────────────────────────────────────────
@@ -232,6 +232,129 @@ export function StadiumModal() {
           </div>
         </div>
       </div>
+    </Modal>
+  )
+}
+
+// ──────────────────────────────────────────────────────────
+// PalcoReviewModal  →  lib Modal (verificación de palcos)
+// ──────────────────────────────────────────────────────────
+export function PalcoReviewModal() {
+  const vals = useOverlaysVM()
+  const r = vals.palcoReview
+  return (
+    <Modal
+      open={!!vals.palcoReviewOpen}
+      onClose={vals.closePalcoReview}
+      title="Verificar palco"
+      width={680}
+      footer={
+        <>
+          <Btn label="Cancelar" variant="ghost" onClick={vals.closePalcoReview} />
+          <Btn label="Rechazar" variant="danger" onClick={r ? r.reject : undefined} />
+          <Btn label="Aprobar" icon="check" onClick={r ? r.approve : undefined} />
+        </>
+      }
+    >
+      {r ? (
+        <div style={css("display:flex; flex-direction:column; gap:16px;")}>
+          {/* Cabecera del palco */}
+          <div>
+            <div style={{ fontFamily: "'Archivo'", fontWeight: 800, fontSize: '18px', color: 'var(--foreground,#F4EFE6)' }}>{r.title}</div>
+            <div style={{ fontSize: '13px', color: 'var(--muted-foreground,#9AA6B2)' }}>{r.host} · {r.stadiumName}</div>
+          </div>
+
+          {r.resubmitted ? (
+            <div style={{ padding: '10px 13px', borderRadius: '10px', background: 'color-mix(in srgb, var(--primary,#C9A24B) 12%, transparent)', border: '1px solid color-mix(in srgb, var(--primary,#C9A24B) 32%, transparent)', fontSize: '13px', color: 'var(--foreground,#F4EFE6)' }}>
+              El palquista reenvió este palco tras el rechazo. Revisá sus respuestas en cada campo marcado.
+            </div>
+          ) : null}
+
+          {/* Galería de fotos */}
+          {(r.images || []).length > 0 ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(86px,1fr))', gap: '8px' }}>
+              {(r.images || []).map((src: string, i: number) => (
+                <img key={i} src={src} alt={'Foto ' + (i + 1)} style={{ width: '100%', aspectRatio: '1 / 1', objectFit: 'cover', borderRadius: '10px', border: '1px solid var(--border,rgba(255,255,255,.12))' }} />
+              ))}
+            </div>
+          ) : null}
+
+          <div style={{ fontFamily: "'Space Mono'", fontSize: '11px', letterSpacing: '.08em', color: 'var(--subtle-foreground,#6B7480)' }}>
+            CAMPOS DEL PALCO · marcá los que no se validan
+          </div>
+
+          {/* Campos revisables */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {(r.fields || []).map((f: any) => (
+              <div
+                key={f.key}
+                style={{
+                  padding: '12px 14px', borderRadius: '12px',
+                  border: '1.5px solid ' + (f.flagged ? 'var(--destructive,#E5604D)' : 'var(--border,rgba(255,255,255,.1))'),
+                  background: f.flagged ? 'color-mix(in srgb, var(--destructive,#E5604D) 9%, transparent)' : 'var(--background,#0E1116)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ fontFamily: "'Space Mono'", fontSize: '10px', letterSpacing: '.06em', color: 'var(--subtle-foreground,#6B7480)', marginBottom: '4px' }}>{f.label}</div>
+                    {f.isDoc ? (
+                      f.image ? (
+                        <img src={f.image} alt={f.label} style={{ maxWidth: '160px', maxHeight: '110px', objectFit: 'cover', borderRadius: '8px', border: '1px solid var(--border,rgba(255,255,255,.12))', display: 'block' }} />
+                      ) : (
+                        <span style={{ fontSize: '13px', color: 'var(--destructive,#E5604D)' }}>Sin documento</span>
+                      )
+                    ) : (
+                      <div style={{ fontFamily: "'Archivo'", fontWeight: 600, fontSize: '14px', color: 'var(--foreground,#F4EFE6)', wordBreak: 'break-word' }}>{f.value}</div>
+                    )}
+                  </div>
+                  <button
+                    onClick={f.toggle}
+                    style={{
+                      flex: '0 0 auto', padding: '7px 11px', borderRadius: '8px', cursor: 'pointer',
+                      fontFamily: "'Archivo'", fontWeight: 700, fontSize: '12px',
+                      border: '1.5px solid ' + (f.flagged ? 'var(--destructive,#E5604D)' : 'var(--border,rgba(255,255,255,.16))'),
+                      background: f.flagged ? 'var(--destructive,#E5604D)' : 'transparent',
+                      color: f.flagged ? '#fff' : 'var(--muted-foreground,#9AA6B2)',
+                    }}
+                  >
+                    {f.flagged ? 'No validado' : 'Marcar'}
+                  </button>
+                </div>
+
+                {f.ownerReply ? (
+                  <div style={{ marginTop: '10px', padding: '8px 11px', borderRadius: '8px', background: 'var(--card,#171B22)', border: '1px solid var(--border,rgba(255,255,255,.1))' }}>
+                    <div style={{ fontFamily: "'Space Mono'", fontSize: '10px', color: 'var(--primary,#C9A24B)', marginBottom: '3px' }}>RESPUESTA DEL PALQUISTA</div>
+                    <div style={{ fontSize: '13px', color: 'var(--foreground,#F4EFE6)' }}>{f.ownerReply}</div>
+                  </div>
+                ) : null}
+
+                {f.flagged ? (
+                  <div style={{ marginTop: '10px' }}>
+                    <Textarea
+                      rows={2}
+                      value={f.reason}
+                      onInput={f.setReason}
+                      placeholder="Motivo: por qué este campo no se valida…"
+                    />
+                  </div>
+                ) : null}
+              </div>
+            ))}
+          </div>
+
+          {/* Motivo general del rechazo */}
+          <Textarea
+            label="MOTIVO GENERAL DEL RECHAZO (SI RECHAZÁS)"
+            rows={3}
+            value={r.reason}
+            onInput={r.setReason}
+            placeholder="Resumen de por qué se rechaza el palco…"
+          />
+          <div style={{ fontSize: '12px', color: 'var(--muted-foreground,#9AA6B2)' }}>
+            {r.flaggedCount} {r.flaggedCount === 1 ? 'campo marcado' : 'campos marcados'} · Aprobar publica el palco; Rechazar lo devuelve al palquista para revisar.
+          </div>
+        </div>
+      ) : null}
     </Modal>
   )
 }

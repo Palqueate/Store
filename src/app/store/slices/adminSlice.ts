@@ -19,6 +19,11 @@ export const createAdminSlice = (set, get) => ({
   adminStadModal: false,
   evEditId: null,
   stadEditId: null,
+  // Verificación de palcos: id del palco en revisión, motivo general del rechazo
+  // y mapa de campos marcados como no validados ({ key: { on, label, reason } }).
+  palcoReviewId: null,
+  palcoReviewReason: '',
+  palcoReviewFlags: {},
   evDraft: { type: 'liga', stadium: 'gpc', country: DEFAULT_COUNTRY, date: '', time: '17:00', comp: '', round: '', opp: '', images: [] },
   stadDraft: { name: '', short: '', city: 'Montevideo', country: DEFAULT_COUNTRY, address: '', capacity: '', year: '', surface: '', levels: '2', roof: 'no', mapImage: '' },
 
@@ -139,5 +144,47 @@ export const createAdminSlice = (set, get) => ({
     const st = { ...base, id: 'st' + Date.now() }
     createStadium(container.stadiums, st)
     set({ stadiums: { ...get().stadiums, [st.id]: st }, adminStadModal: false }); get().flash('Estadio agregado')
+  },
+
+  // ── Verificación de palcos ──
+  // Abre el modal de revisión, precargando los campos marcados en una revisión
+  // previa (cuando el palquista reenvió un palco rechazado).
+  openPalcoReview: (id) => {
+    const p = get().byId(id); if (!p) return
+    const flags = {}
+    if (p.review && p.review.fields) p.review.fields.forEach((f) => { flags[f.key] = { on: true, label: f.label, reason: f.reason || '' } })
+    set({ palcoReviewId: id, palcoReviewReason: (p.review && p.review.reason) || '', palcoReviewFlags: flags })
+  },
+  closePalcoReview: () => set({ palcoReviewId: null, palcoReviewReason: '', palcoReviewFlags: {} }),
+  setPalcoReviewReason: (v) => set({ palcoReviewReason: v }),
+  togglePalcoReviewFlag: (key, label) => {
+    const flags = { ...get().palcoReviewFlags }
+    if (flags[key] && flags[key].on) flags[key] = { ...flags[key], on: false }
+    else flags[key] = { on: true, label, reason: (flags[key] && flags[key].reason) || '' }
+    set({ palcoReviewFlags: flags })
+  },
+  setPalcoReviewFlagReason: (key, label, v) => {
+    const flags = { ...get().palcoReviewFlags }
+    flags[key] = { on: (flags[key] ? flags[key].on : true), label: (flags[key] && flags[key].label) || label, reason: v }
+    set({ palcoReviewFlags: flags })
+  },
+  approvePalcoReview: () => {
+    const id = get().palcoReviewId; const p = id && get().byId(id); if (!p) return
+    const np = { ...p, status: 'publicado' }; delete np.review
+    get().savePalco(np)
+    set({ palcoReviewId: null, palcoReviewReason: '', palcoReviewFlags: {} })
+    get().flash('Palco aprobado y publicado')
+  },
+  rejectPalcoReview: () => {
+    const id = get().palcoReviewId; const p = id && get().byId(id); if (!p) return
+    const flagsMap = get().palcoReviewFlags
+    const fields = Object.keys(flagsMap).filter((k) => flagsMap[k] && flagsMap[k].on).map((k) => ({ key: k, label: flagsMap[k].label, reason: (flagsMap[k].reason || '').trim() }))
+    const reason = (get().palcoReviewReason || '').trim()
+    if (!reason && !fields.length) return get().flash('Indicá un motivo o marcá al menos un campo')
+    for (let i = 0; i < fields.length; i++) { if (!fields[i].reason) return get().flash('Poné el motivo del campo: ' + fields[i].label) }
+    const np = { ...p, status: 'rechazado', review: { reason, fields, reviewedAt: new Date().toISOString() } }
+    get().savePalco(np)
+    set({ palcoReviewId: null, palcoReviewReason: '', palcoReviewFlags: {} })
+    get().flash('Palco rechazado · el palquista fue notificado')
   },
 })

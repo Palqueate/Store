@@ -91,7 +91,23 @@ export function useAdminVM(): any {
 
   var adminReservas = ordersAll.slice().reverse().map(function (o) { var acct = s.accounts.find(function (a) { return a.id === o.userId }); var it0 = o.items[0] || {}; return { code: o.code, client: acct ? acct.name : ((o.contact && o.contact.name) || '—'), date: (function () { try { return new Date(o.date).toLocaleDateString('es-UY', { day: '2-digit', month: 'short', year: 'numeric' }) } catch (e) { return '' } })(), total: self.money((o.total || 0) + (o.foodTotal || 0)), palco: it0.palcoTitle || '—', mode: it0.modeLabel || '' } })
 
-  var adminTabs = [['dashboard', 'Dashboard'], ['eventos', 'Eventos'], ['estadios', 'Estadios'], ['palcos', 'Palcos'], ['clientes', 'Clientes'], ['reservas', 'Reservas'], ['finanzas', 'Finanzas']].map(function (o) { var on = s.adminTab === o[0]; return { id: o[0], label: o[1], active: on, pick: function () { self.setAdminTab(o[0]) },
+  // Palcos pendientes de verificación (recién registrados o reenviados).
+  var pendingPalcos = ALL_PALCOS.filter(function (p) { return self.statusOf(p) === 'pendiente' })
+  var pendingCount = pendingPalcos.length
+  var adminPending = pendingPalcos.map(function (p) {
+    var stt = stad(p.stadium)
+    var docs = p.payout ? ['idFront', 'idBack', 'proofOfAddress', 'propertyTitle'].filter(function (k) { return p.payout[k] }).length : 0
+    return {
+      id: p.id, title: p.title, host: p.host, stadiumName: stt.name, country: p.country || stt.country || '—',
+      seats: String(p.seats), parking: (p.parking.has ? ('Estac. x' + p.parking.n) : 'Sin estac.'),
+      amenities: String((p.amenities || []).length), coOwners: String((p.coOwners || []).length),
+      photos: String((p.images || []).length), docs: docs + '/4',
+      resubmitted: !!p.review,
+      review: function () { self.openPalcoReview(p.id) },
+    }
+  })
+
+  var adminTabs = [['dashboard', 'Dashboard'], ['eventos', 'Eventos'], ['estadios', 'Estadios'], ['palcos', 'Palcos'], ['verificacion', 'Verificación'], ['clientes', 'Clientes'], ['reservas', 'Reservas'], ['finanzas', 'Finanzas']].map(function (o) { var on = s.adminTab === o[0]; return { id: o[0], label: o[1], active: on, badge: (o[0] === 'verificacion' && pendingCount > 0) ? String(pendingCount) : '', pick: function () { self.setAdminTab(o[0]) },
     style: { display: 'flex', alignItems: 'center', gap: '10px', width: '100%', textAlign: 'left', padding: '11px 13px', borderRadius: '10px', cursor: 'pointer', border: 'none', fontFamily: 'Archivo', fontWeight: '700', fontSize: '14px', background: (on ? 'var(--primary,#C9A24B)' : 'transparent'), color: (on ? 'var(--primary-foreground,#1A1407)' : 'var(--muted-foreground,#9AA6B2)') } } })
 
   return {
@@ -107,6 +123,7 @@ export function useAdminVM(): any {
     adminTabClientes: s.adminTab === 'clientes',
     adminTabReservas: s.adminTab === 'reservas',
     adminTabPalcos: s.adminTab === 'palcos',
+    adminTabVerificacion: s.adminTab === 'verificacion',
     adminTabFinanzas: s.adminTab === 'finanzas',
     // dashboard
     adminKpis: adminKpis,
@@ -126,6 +143,9 @@ export function useAdminVM(): any {
     openStadModal: function () { self.openStadModal() },
     // palcos
     adminPalcos: adminPalcos,
+    // verificación
+    adminPending: adminPending,
+    pendingCount: pendingCount,
     // clientes
     adminClients: adminClients,
     // reservas

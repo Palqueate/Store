@@ -2,6 +2,9 @@
 import { useFacade } from '@/shared/ui/vm/facade'
 import { bnS } from '@/shared/ui/vm/helpers'
 import { COUNTRY_OPTIONS } from '@/shared/domain/countries'
+import { PALCO_REVIEW_FIELDS } from '@/modules/palcos/domain/Palco'
+
+const PAYOUT_DOC_KEYS = { 'payout.idFront': 'idFront', 'payout.idBack': 'idBack', 'payout.proofOfAddress': 'proofOfAddress', 'payout.propertyTitle': 'propertyTitle' }
 
 export function useOverlaysVM(): any {
   const self = useFacade()
@@ -17,7 +20,68 @@ export function useOverlaysVM(): any {
   const evStadList = STAD_LIST.filter(function (st) { return (st.country || '') === s.evDraft.country })
   const stadOptions = evStadList.map(function (st) { return { value: st.id, label: st.name } })
 
+  // ── PalcoReviewModal (verificación de palcos) ──
+  const reviewP = s.palcoReviewId ? self.byId(s.palcoReviewId) : null
+  let palcoReview = null
+  if (reviewP) {
+    const pay = reviewP.payout || {}
+    const stadName = (s.stadiums[reviewP.stadium] || {}).name || reviewP.stadium
+    const valueFor = function (key) {
+      switch (key) {
+        case 'country': return reviewP.country || '—'
+        case 'stadium': return stadName
+        case 'map': return reviewP.map ? ('x ' + Math.round(reviewP.map.x) + '% · y ' + Math.round(reviewP.map.y) + '%') : '—'
+        case 'seats': return (reviewP.seats || 0) + ' asientos'
+        case 'parking': return reviewP.parking && reviewP.parking.has ? ('Sí · ' + reviewP.parking.n + ' lugares') : 'No incluye'
+        case 'amenities': return (reviewP.amenities || []).join(', ') || '—'
+        case 'images': return (reviewP.images || []).length + ' fotos'
+        case 'coOwners': return (reviewP.coOwners || []).length ? reviewP.coOwners.map(function (c) { return c.name + ' (' + c.email + ')' }).join(' · ') : 'Ninguno'
+        case 'payout.country': return pay.country || '—'
+        case 'payout.swift': return pay.swift || '—'
+        case 'payout.bank': return pay.bank || '—'
+        case 'payout.beneficiary': return pay.beneficiary || '—'
+        case 'payout.accountNumber': return pay.accountNumber || '—'
+        case 'payout.branch': return pay.branch || '—'
+        default: return '—'
+      }
+    }
+    const flags = s.palcoReviewFlags || {}
+    const prevFields = (reviewP.review && reviewP.review.fields) || []
+    const fields = PALCO_REVIEW_FIELDS.map(function (f) {
+      const docField = PAYOUT_DOC_KEYS[f.key]
+      const fl = flags[f.key]
+      const prev = prevFields.find(function (x) { return x.key === f.key })
+      return {
+        key: f.key, label: f.label,
+        value: docField ? '' : valueFor(f.key),
+        image: docField ? (pay[docField] || '') : '',
+        isDoc: !!docField,
+        flagged: !!(fl && fl.on),
+        reason: (fl && fl.reason) || '',
+        ownerReply: (prev && prev.ownerReply) || '',
+        toggle: function () { self.togglePalcoReviewFlag(f.key, f.label) },
+        setReason: function (v) { self.setPalcoReviewFlagReason(f.key, f.label, v) },
+      }
+    })
+    palcoReview = {
+      id: reviewP.id, title: reviewP.title, host: reviewP.host, stadiumName: stadName,
+      images: reviewP.images || [],
+      resubmitted: reviewP.status === 'pendiente' && !!reviewP.review,
+      reason: s.palcoReviewReason,
+      setReason: function (v) { self.setPalcoReviewReason(v) },
+      fields: fields,
+      flaggedCount: fields.filter(function (f) { return f.flagged }).length,
+      approve: function () { self.approvePalcoReview() },
+      reject: function () { self.rejectPalcoReview() },
+    }
+  }
+
   return {
+    // ── PalcoReviewModal ──
+    palcoReviewOpen: !!s.palcoReviewId,
+    palcoReview: palcoReview,
+    closePalcoReview: function () { self.closePalcoReview() },
+
     // ── BottomNav ──
     showMobileNav: mobile,
     bottomNavStyle: 'position:fixed; left:0; right:0; bottom:0; z-index:70; ' + (mobile ? 'display:grid;' : 'display:none;') + ' grid-template-columns:repeat(4,1fr); align-items:center; padding:8px 8px 10px; background:color-mix(in srgb, var(--background,#0E1116) 90%, transparent); backdrop-filter:blur(16px); border-top:1px solid var(--border,rgba(255,255,255,.1));',
