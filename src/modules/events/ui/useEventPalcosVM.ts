@@ -54,6 +54,7 @@ export function useEventPalcosVM(): any {
   var epMarkers = selOccId ? epA.palcos.map(function (p) {
     var free = self.eventFreeSeats(p, selOccId)
     return {
+      id: p.id, title: p.title,
       x: p.map.x, y: p.map.y, kind: free > 0 ? 'open' : 'full', badge: free > 0 ? free : null,
       click: free > 0 ? function () { self.openDetailEvent(p.id, epEvent.id, selOccId) } : null,
     }

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { css } from '@/shared/ui/css'
 import { Card, EmptyState, Btn, Rating, Stack, Divider, Carousel } from '@/lib'
 import StadiumMap from '@/shared/ui/components/StadiumMap'
@@ -5,6 +6,13 @@ import { useEventPalcosVM } from './useEventPalcosVM'
 
 export default function EventPalcos() {
   const vals = useEventPalcosVM()
+  // Palco resaltado al pasar el mouse: enlaza el listado con su marcador en el mapa.
+  const [hoverId, setHoverId] = useState<string | null>(null)
+  const mapMarkers = (vals.epMarkers || []).map((m: any) => ({
+    ...m,
+    highlight: m.id != null && m.id === hoverId,
+    hover: (on: boolean) => setHoverId(on ? m.id : null),
+  }))
   return (
     <div style={{ maxWidth: '1240px', margin: '0 auto', padding: 'clamp(14px,2vw,24px) clamp(16px,4vw,40px) 64px' }}>
 
@@ -141,12 +149,21 @@ export default function EventPalcos() {
           {vals.ep.hasAvail ? (
             <div style={css(vals.epListGrid)}>
               {(vals.epList || []).map((p: any, i: number) => (
-                <Card
+                <div
                   key={i}
+                  onMouseEnter={() => setHoverId(p.id)}
+                  onMouseLeave={() => setHoverId(null)}
+                >
+                <Card
                   hover
+                  accent={hoverId === p.id}
                   onClick={p.open}
                   padding="16px"
-                  style={{ display: 'flex', gap: '14px', alignItems: 'stretch' }}
+                  style={{
+                    display: 'flex', gap: '14px', alignItems: 'stretch',
+                    transition: 'box-shadow .16s ease',
+                    boxShadow: hoverId === p.id ? '0 10px 30px -12px color-mix(in srgb, var(--primary,#C9A24B) 45%, transparent)' : undefined,
+                  }}
                 >
                   {/* Palco thumbnail */}
                   <div style={{
@@ -190,6 +207,7 @@ export default function EventPalcos() {
                     />
                   </Stack>
                 </Card>
+                </div>
               ))}
             </div>
           ) : null}
@@ -213,7 +231,7 @@ export default function EventPalcos() {
             <p style={{ margin: '0 0 14px', fontSize: '12.5px', color: 'var(--muted-foreground,#9AA6B2)' }}>
               Tocá un palco disponible para ver sus asientos.
             </p>
-            <StadiumMap stadium={vals.ep.stadium} name={vals.ep.stadiumName} mapImage={vals.ep.stadiumMap} markers={vals.epMarkers} />
+            <StadiumMap stadium={vals.ep.stadium} name={vals.ep.stadiumName} mapImage={vals.ep.stadiumMap} markers={mapMarkers} />
             <div style={{ margin: '14px 0 10px' }}><Divider /></div>
             <Stack direction="row" gap={16} style={{ fontFamily: "'Space Mono'", fontSize: '11px', color: 'var(--muted-foreground,#9AA6B2)' }}>
               <Stack direction="row" align="center" gap={6}>
