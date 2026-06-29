@@ -26,7 +26,7 @@ export function evCardVM(self, ev) {
   return { id: ev.id, stadium: ev.stadium, day: first.day, month: first.month, dow: first.dow, time: first.time, comp: ev.comp, round: ev.round, opp: ev.opp, tag: ev.tag, images: ev.images || [], image: (ev.images || [])[0] || '',
     stadiumShort: STADIUMS[ev.stadium].short, stadiumName: STADIUMS[ev.stadium].name, tagStyle: evTagStyle(ev.tag),
     multiDate: multiDate, datesCount: occs.length, timeText: multiDate ? 'Varias funciones' : (first.time + ' hs'),
-    boxes: a.boxes, soldOut: so, maxFree: a.maxFree, freeTotal: a.freeTotal, minPriceNum: a.minPrice,
+    boxes: a.boxes, soldOut: so, maxFree: a.maxFree,
     availTxt: so ? 'Sin disponibilidad' : (a.boxes + ' palco' + (a.boxes > 1 ? 's' : '') + ' · ' + a.freeTotal + ' asientos'),
     dotStyle: 'width:8px; height:8px; border-radius:50%; flex:0 0 auto; background:' + (so ? 'var(--subtle-foreground)' : 'var(--success)') + ';',
     priceTxt: a.minPrice > 0 ? self.money(a.minPrice) : '—', priceLabel: a.minPrice > 0 ? 'DESDE · ASIENTO' : 'SIN CUPO',

@@ -9,10 +9,7 @@ export const createFiltersSlice = () => ({
   sort: 'rel',
   evStadium: 'all',
   evComp: 'all',
+  evClub: 'all',
   evSeats: 0,
-  // Buscador de eventos: texto libre, orden y "solo con cupo".
-  evQuery: '',
-  evSort: 'next',
-  evOnlyAvail: false,
   statPid: 'all',
 })
