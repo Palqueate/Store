@@ -1,5 +1,5 @@
 import { css } from '@/shared/ui/css'
-import { Card, Chip, Select, EmptyState, Btn } from '@/lib'
+import { Card, Chip, Select, EmptyState, Btn, SearchInput, MultiSelect } from '@/lib'
 import EventCard from '@/shared/ui/components/EventCard'
 import { useEventsVM } from './useEventsVM'
 
@@ -12,7 +12,15 @@ export default function Events() {
         <h1 style={{ margin: '0 0 4px', fontFamily: "'Archivo'", fontWeight: 800, fontStretch: '110%', letterSpacing: '-.03em', fontSize: 'clamp(28px,4.5vw,44px)', color: 'var(--foreground,#F4EFE6)' }}>
           <span style={{ color: 'var(--primary,#C9A24B)' }}>{vals.eventsCount}</span> eventos
         </h1>
-        <p style={{ margin: 0, color: 'var(--muted-foreground,#9AA6B2)', fontSize: '15px' }}>Filtrá por estadio, competición, rival o cuántos asientos juntos querés, y entrá para ver los palcos disponibles.</p>
+        <p style={{ margin: '0 0 16px', color: 'var(--muted-foreground,#9AA6B2)', fontSize: '15px' }}>Buscá o filtrá por estadio, tipo de evento, competición, rival o cuántos asientos juntos querés, y entrá para ver los palcos disponibles.</p>
+        <div style={{ maxWidth: '520px' }}>
+          <SearchInput
+            value={vals.query}
+            placeholder="Buscar evento, competición, rival o sede…"
+            onInput={vals.setQuery}
+            onClear={() => vals.setQuery('')}
+          />
+        </div>
       </div>
 
       <div style={css(vals.eventsWrap)}>
@@ -33,11 +41,22 @@ export default function Events() {
               </button>
             </div>
 
-            {/* Stadium chips */}
+            {/* Stadium multiselect */}
             <div>
               <div style={{ fontFamily: "'Space Mono'", fontSize: '10px', letterSpacing: '.1em', color: 'var(--subtle-foreground,#6B7480)', marginBottom: '11px' }}>ESTADIO</div>
+              <MultiSelect
+                options={vals.evStadiumOptions || []}
+                value={vals.evStadiumValue || []}
+                onChange={vals.setEvStadiums}
+                placeholder="Todos los estadios"
+              />
+            </div>
+
+            {/* Event-type chips */}
+            <div>
+              <div style={{ fontFamily: "'Space Mono'", fontSize: '10px', letterSpacing: '.1em', color: 'var(--subtle-foreground,#6B7480)', marginBottom: '11px' }}>TIPO DE EVENTO</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '7px' }}>
-                {(vals.evStadiumChips || []).map((c: any, i: number) => (
+                {(vals.evTypeChips || []).map((c: any, i: number) => (
                   <Chip key={i} active={c.active} onClick={c.pick}>{c.label}</Chip>
                 ))}
               </div>
@@ -45,7 +64,7 @@ export default function Events() {
 
             {/* Competition chips */}
             <div>
-              <div style={{ fontFamily: "'Space Mono'", fontSize: '10px', letterSpacing: '.1em', color: 'var(--subtle-foreground,#6B7480)', marginBottom: '11px' }}>TIPO DE EVENTO</div>
+              <div style={{ fontFamily: "'Space Mono'", fontSize: '10px', letterSpacing: '.1em', color: 'var(--subtle-foreground,#6B7480)', marginBottom: '11px' }}>COMPETICIÓN</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '7px' }}>
                 {(vals.evCompChips || []).map((c: any, i: number) => (
                   <Chip key={i} active={c.active} onClick={c.pick}>{c.label}</Chip>

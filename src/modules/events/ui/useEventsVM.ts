@@ -9,17 +9,32 @@ export function useEventsVM(): any {
   var mobile = s.vw < 860
   var EVENTS = s.events
 
+  var evStadiums = s.evStadiums || []
+  var q = (s.evQuery || '').trim().toLowerCase()
+
   var eventCards = EVENTS.map(function (ev) { return evCardVM(self, ev) })
   var eventCardsF = eventCards.filter(function (c) {
-    if (s.evStadium !== 'all' && c.stadium !== s.evStadium) return false
+    if (evStadiums.length && evStadiums.indexOf(c.stadium) < 0) return false
+    if (s.evType !== 'all' && c.type !== s.evType) return false
     if (s.evComp !== 'all' && c.comp !== s.evComp) return false
     if (s.evClub !== 'all' && c.opp !== s.evClub) return false
     if (s.evSeats > 0 && c.maxFree < s.evSeats) return false
+    if (q) {
+      var hay = [c.comp, c.round, c.opp, c.label, c.stadiumName].filter(Boolean).join(' ').toLowerCase()
+      if (hay.indexOf(q) < 0) return false
+    }
     return true
   })
 
-  var evStadiumChips = [['all', 'Todos'], ['gpc', 'GPC'], ['cds', 'CDS']].map(function (o) {
-    return { label: o[1], active: s.evStadium === o[0], style: chipS(s.evStadium === o[0]), pick: function () { self.setState({ evStadium: o[0] }) } }
+  // Estadios multiselect, derivados de los estadios con eventos.
+  var stadiumIds = []; EVENTS.forEach(function (e) { if (stadiumIds.indexOf(e.stadium) < 0) stadiumIds.push(e.stadium) })
+  var evStadiumOptions = stadiumIds.map(function (id) { var st = s.stadiums[id]; return { value: id, label: st ? (st.short + ' · ' + st.name) : id } })
+
+  // Tipo de evento (Fútbol / Basket / Show…) según los tipos presentes.
+  var typesPresent = []; eventCards.forEach(function (c) { if (typesPresent.indexOf(c.type) < 0) typesPresent.push(c.type) })
+  var TYPE_LABELS = {}; (s.eventTypes || []).forEach(function (t) { TYPE_LABELS[t.id] = t.name })
+  var evTypeChips = [{ v: 'all', l: 'Todos' }].concat(typesPresent.map(function (t) { return { v: t, l: TYPE_LABELS[t] || (t.charAt(0).toUpperCase() + t.slice(1)) } })).map(function (o) {
+    return { label: o.l, active: s.evType === o.v, style: chipS(s.evType === o.v), pick: function () { self.setState({ evType: o.v }) } }
   })
 
   var COMPS = []; EVENTS.forEach(function (e) { if (COMPS.indexOf(e.comp) < 0) COMPS.push(e.comp) })
@@ -34,7 +49,7 @@ export function useEventsVM(): any {
     return { label: o[1], active: s.evSeats === o[0], style: chipS(s.evSeats === o[0]), pick: function () { self.setState({ evSeats: o[0] }) } }
   })
 
-  var evFiltersActive = (s.evStadium !== 'all' ? 1 : 0) + (s.evComp !== 'all' ? 1 : 0) + (s.evClub !== 'all' ? 1 : 0) + (s.evSeats > 0 ? 1 : 0)
+  var evFiltersActive = (q ? 1 : 0) + (evStadiums.length ? 1 : 0) + (s.evType !== 'all' ? 1 : 0) + (s.evComp !== 'all' ? 1 : 0) + (s.evClub !== 'all' ? 1 : 0) + (s.evSeats > 0 ? 1 : 0)
 
   return {
     eventsCount: eventCardsF.length,
@@ -45,13 +60,18 @@ export function useEventsVM(): any {
     hasEvents: eventCardsF.length > 0,
     noEvents: eventCardsF.length === 0,
     eventCardsF: eventCardsF,
-    evStadiumChips: evStadiumChips,
+    query: s.evQuery,
+    setQuery: function (v) { self.setState({ evQuery: v }) },
+    evStadiumOptions: evStadiumOptions,
+    evStadiumValue: evStadiums,
+    setEvStadiums: function (vals) { self.setState({ evStadiums: vals }) },
+    evTypeChips: evTypeChips,
     evCompChips: evCompChips,
     evClubOptions: evClubOptions,
     evClubVal: s.evClub,
     setEvClub: function (e) { self.setState({ evClub: e.target.value }) },
     evSeatsChips: evSeatsChips,
     evFiltersActive: evFiltersActive || null,
-    clearEvFilters: function () { self.setState({ evStadium: 'all', evComp: 'all', evClub: 'all', evSeats: 0 }) },
+    clearEvFilters: function () { self.setState({ evQuery: '', evStadiums: [], evType: 'all', evComp: 'all', evClub: 'all', evSeats: 0 }) },
   }
 }

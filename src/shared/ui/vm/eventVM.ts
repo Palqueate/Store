@@ -23,7 +23,7 @@ export function evCardVM(self, ev) {
   var a = evAvail(self, ev); var so = a.boxes === 0
   var occs = eventOccurrences(ev); var multiDate = occs.length > 1
   var first = occs[0] || ev
-  return { id: ev.id, stadium: ev.stadium, day: first.day, month: first.month, dow: first.dow, time: first.time, comp: ev.comp, round: ev.round, opp: ev.opp, tag: ev.tag, images: ev.images || [], image: (ev.images || [])[0] || '',
+  return { id: ev.id, stadium: ev.stadium, day: first.day, month: first.month, dow: first.dow, time: first.time, comp: ev.comp, round: ev.round, opp: ev.opp, tag: ev.tag, type: ev.type || 'futbol', label: ev.label || '', images: ev.images || [], image: (ev.images || [])[0] || '',
     stadiumShort: STADIUMS[ev.stadium].short, stadiumName: STADIUMS[ev.stadium].name, tagStyle: evTagStyle(ev.tag),
     multiDate: multiDate, datesCount: occs.length, timeText: multiDate ? 'Varias funciones' : (first.time + ' hs'),
     boxes: a.boxes, soldOut: so, maxFree: a.maxFree,

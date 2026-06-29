@@ -1,15 +1,27 @@
 // @ts-nocheck
 // Search / events filter state. Mutations happen via the generic setState in
 // the view-model (chips toggle these keys directly), so this slice is state-only.
+//
+// Estadios son multiselect: `fStadiums` / `evStadiums` son arrays de ids; un
+// array vacío significa "todos". El rango de precios (`fMinPrice`/`fMaxPrice`)
+// y las búsquedas de texto (`fQuery`/`evQuery`) usan 0 / '' como "sin filtro".
 export const createFiltersSlice = () => ({
-  fStadium: 'all',
+  // --- Palcos (explorar) ---
+  fQuery: '',
+  fStadiums: [],
   fType: 'all',
   fParking: false,
   fMinSeats: 0,
+  fMinPrice: 0,
+  fMaxPrice: 0,
   sort: 'rel',
-  evStadium: 'all',
+  // --- Eventos (agenda) ---
+  evQuery: '',
+  evStadiums: [],
+  evType: 'all',
   evComp: 'all',
   evClub: 'all',
   evSeats: 0,
+  // --- Métricas (owner) ---
   statPid: 'all',
 })
