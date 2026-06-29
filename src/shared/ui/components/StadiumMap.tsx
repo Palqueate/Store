@@ -13,12 +13,31 @@ interface Marker {
 
 interface StadiumMapProps {
   stadium?: string
+  /** Stadium display name for the name plate. Falls back to the legacy id map. */
+  name?: string
+  /** Geometry driver from the stadium's domain data: 'rect' | 'bowl' | 'oval' | 'round'. */
+  shape?: string
   markers?: Marker[]
   interactive?: boolean
   onPick?: (x: number, y: number) => void
 }
 
-export default function StadiumMap({ stadium = 'gpc', markers = [], interactive = false, onPick }: StadiumMapProps) {
+// Plan geometry per stadium shape. Any unknown shape renders as a generic
+// rectangular pitch, so new stadiums work without touching this component.
+const SHAPE_GEO: Record<string, { aspect: string; radius: string; inset: string }> = {
+  rect: { aspect: '1.22', radius: '16px', inset: '22% 18%' },
+  bowl: { aspect: '1.06', radius: '34% / 26%', inset: '24% 21%' },
+  oval: { aspect: '1.10', radius: '46% / 34%', inset: '26% 22%' },
+  round: { aspect: '1', radius: '50%', inset: '24% 24%' },
+}
+
+// Legacy fallback for the two seed stadiums when callers still pass only an id.
+const LEGACY: Record<string, { name: string; shape: string }> = {
+  gpc: { name: 'Gran Parque Central', shape: 'rect' },
+  cds: { name: 'Campeón del Siglo', shape: 'bowl' },
+}
+
+export default function StadiumMap({ stadium = 'gpc', name, shape, markers = [], interactive = false, onPick }: StadiumMapProps) {
   const elRef = useRef<HTMLDivElement | null>(null)
 
   function onField(e: React.MouseEvent) {
@@ -31,9 +50,11 @@ export default function StadiumMap({ stadium = 'gpc', markers = [], interactive 
     onPick(Math.max(5, Math.min(95, x)), Math.max(7, Math.min(93, y)))
   }
 
-  const geo = stadium === 'cds'
-    ? { aspect: '1.06', radius: '34% / 26%', name: 'Campeón del Siglo', inset: '24% 21%' }
-    : { aspect: '1.22', radius: '16px', name: 'Gran Parque Central', inset: '22% 18%' }
+  const legacy = LEGACY[stadium]
+  const resolvedShape = shape || (legacy ? legacy.shape : 'rect')
+  const plateName = name || (legacy ? legacy.name : 'Estadio')
+  const g = SHAPE_GEO[resolvedShape] || SHAPE_GEO.rect
+  const geo = { aspect: g.aspect, radius: g.radius, inset: g.inset, name: plateName }
 
   const built = (markers || []).map((m) => {
     const kind = m.kind || (m.active ? 'sel' : 'open')

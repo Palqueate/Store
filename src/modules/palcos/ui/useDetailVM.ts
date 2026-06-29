@@ -11,7 +11,7 @@ export function useDetailVM(): any {
   if (dvm) {
     var dp = dvm.p
     det.title = dp.title; det.sector = dp.sector; det.stadiumName = STADIUMS[dp.stadium].name; det.rating = dp.rating.toFixed(1)
-    det.host = dp.host; det.seatsN = dp.seats; det.stadium = dp.stadium; det.markers = dvm.markers; det.photos = dp.photos; det.images = dp.images || []
+    det.host = dp.host; det.seatsN = dp.seats; det.stadium = dp.stadium; det.stadiumShape = (STADIUMS[dp.stadium] || {}).shape || 'rect'; det.markers = dvm.markers; det.photos = dp.photos; det.images = dp.images || []
     det.parkLabel = dp.parking.has ? (dp.parking.n + (dp.parking.n > 1 ? ' autos' : ' auto')) : 'No incluye'
     det.parkHas = dp.parking.has
     det.modeCards = dvm.modeDefs.filter(function (m) { return m.on }).map(function (m) {

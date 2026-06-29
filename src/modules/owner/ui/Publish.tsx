@@ -111,6 +111,8 @@ export default function Publish() {
             <div style={css(vals.wizMapCol)}>
               <StadiumMap
                 stadium={vals.wiz.stadium}
+                name={vals.wiz.stadiumName}
+                shape={vals.wiz.stadiumShape}
                 markers={vals.wiz.markers}
                 interactive={true}
                 onPick={vals.wiz.onPick}

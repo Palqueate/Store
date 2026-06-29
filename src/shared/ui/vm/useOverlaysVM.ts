@@ -86,6 +86,7 @@ export function useOverlaysVM(): any {
     stadSurface: s.stadDraft.surface,
     stadLevels: s.stadDraft.levels,
     stadRoof: s.stadDraft.roof,
+    stadShape: s.stadDraft.shape,
     setStadName: function (e) { self.setStadDraft('name', e.target.value) },
     setStadShort: function (e) { self.setStadDraft('short', e.target.value) },
     setStadCity: function (e) { self.setStadDraft('city', e.target.value) },
@@ -95,6 +96,13 @@ export function useOverlaysVM(): any {
     setStadSurface: function (e) { self.setStadDraft('surface', e.target.value) },
     setStadLevels: function (e) { self.setStadDraft('levels', e.target.value) },
     setStadRoof: function (e) { self.setStadDraft('roof', e.target.value) },
+    setStadShape: function (e) { self.setStadDraft('shape', e.target.value) },
+    shapeOptions: [
+      { value: 'rect', label: 'Rectangular' },
+      { value: 'bowl', label: 'Cuenco / bowl' },
+      { value: 'oval', label: 'Ovalado' },
+      { value: 'round', label: 'Circular' },
+    ],
     surfaceOptions: [
       { value: 'Césped natural', label: 'Césped natural' },
       { value: 'Césped híbrido', label: 'Césped híbrido' },

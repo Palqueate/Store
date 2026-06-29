@@ -197,6 +197,10 @@ export function StadiumModal() {
             <Select value={vals.stadRoof} options={vals.roofOptions} onChange={(v) => vals.setStadRoof({ target: { value: v } })} />
           </div>
         </div>
+        <div>
+          <label style={css("display:block; font-family:'Space Mono'; font-size:10px; letter-spacing:.08em; color:var(--subtle-foreground,#6B7480); margin-bottom:6px;")}>FORMA DEL PLANO</label>
+          <Select value={vals.stadShape} options={vals.shapeOptions} onChange={(v) => vals.setStadShape({ target: { value: v } })} />
+        </div>
       </div>
     </Modal>
   )
