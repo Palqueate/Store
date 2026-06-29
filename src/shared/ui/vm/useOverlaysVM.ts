@@ -12,7 +12,10 @@ export function useOverlaysVM(): any {
   const EVENT_TYPES = s.eventTypes
 
   const evTypeOptions = EVENT_TYPES.map(function (t) { return { value: t.id, label: t.name } })
-  const stadOptions = STAD_LIST.map(function (st) { return { value: st.id, label: st.name } })
+  // Stadium options for the event modal are scoped to the chosen country:
+  // pick the country first, then only its stadiums are selectable.
+  const evStadList = STAD_LIST.filter(function (st) { return (st.country || '') === s.evDraft.country })
+  const stadOptions = evStadList.map(function (st) { return { value: st.id, label: st.name } })
 
   return {
     // ── BottomNav ──
@@ -60,6 +63,7 @@ export function useOverlaysVM(): any {
     evDtype: s.evDraft.type,
     evStadiumSel: s.evDraft.stadium,
     evCountry: s.evDraft.country,
+    evHasStadiums: evStadList.length > 0,
     evDate: s.evDraft.date,
     evTime: s.evDraft.time,
     evComp: s.evDraft.comp,
@@ -70,7 +74,7 @@ export function useOverlaysVM(): any {
     removeEvImage: function (i) { self.adminRemoveEventImage(i) },
     setEvType: function (e) { self.setEvDraft('type', e.target.value) },
     setEvStadiumSel: function (e) { self.setEvStadium(e.target.value) },
-    setEvCountry: function (e) { self.setEvDraft('country', e.target.value) },
+    setEvCountry: function (e) { self.setEvCountry(e.target.value) },
     setEvDate: function (e) { self.setEvDraft('date', e.target.value) },
     setEvTime: function (e) { self.setEvDraft('time', e.target.value) },
     setEvComp: function (e) { self.setEvDraft('comp', e.target.value) },

@@ -31,15 +31,28 @@ export const createAdminSlice = (set, get) => ({
   },
   setEvDraft: (k, v) => set({ evDraft: { ...get().evDraft, [k]: v } }),
   setStadDraft: (k, v) => set({ stadDraft: { ...get().stadDraft, [k]: v } }),
-  // Selecting a stadium also adopts that stadium's country (still overridable).
-  setEvStadium: (id) => {
-    const st = get().stadiums[id]
-    set({ evDraft: { ...get().evDraft, stadium: id, country: (st && st.country) || get().evDraft.country || DEFAULT_COUNTRY } })
+  // Stadiums (ids) located in a given country.
+  _stadiumsInCountry: (country) => {
+    const stadiums = get().stadiums
+    return Object.keys(stadiums).filter((k) => (stadiums[k].country || '') === country)
+  },
+  setEvStadium: (id) => set({ evDraft: { ...get().evDraft, stadium: id } }),
+  // The event country drives the stadium list: pick the country first, then
+  // only stadiums in it are selectable. Changing country re-selects the first
+  // stadium of that country (or clears it when the country has none yet).
+  setEvCountry: (country) => {
+    const inCountry = get()._stadiumsInCountry(country)
+    const cur = get().evDraft.stadium
+    const stadium = inCountry.indexOf(cur) >= 0 ? cur : (inCountry[0] || '')
+    set({ evDraft: { ...get().evDraft, country, stadium } })
   },
   openEvModal: () => {
-    const firstId = Object.keys(get().stadiums)[0] || 'gpc'
+    const firstId = Object.keys(get().stadiums)[0] || ''
     const firstStad = get().stadiums[firstId]
-    set({ adminEvModal: true, evDraft: { type: 'liga', stadium: firstId, country: (firstStad && firstStad.country) || DEFAULT_COUNTRY, date: '', time: '17:00', comp: '', round: '', opp: '', images: [] } })
+    const country = (firstStad && firstStad.country) || DEFAULT_COUNTRY
+    const inCountry = get()._stadiumsInCountry(country)
+    const stadium = inCountry.indexOf(firstId) >= 0 ? firstId : (inCountry[0] || '')
+    set({ adminEvModal: true, evDraft: { type: 'liga', stadium, country, date: '', time: '17:00', comp: '', round: '', opp: '', images: [] } })
   },
   adminAddEventImages: async (files) => {
     if (!files || !files.length) return
@@ -71,6 +84,7 @@ export const createAdminSlice = (set, get) => ({
   adminCreateEvent: () => {
     const d = get().evDraft
     if (!d.date) return get().flash('Elegí la fecha del evento')
+    if (!d.stadium) return get().flash('Agregá un estadio en ese país primero')
     if (!(d.opp || '').trim()) return get().flash('Ingresá el rival o título del evento')
     const fd = get()._fmtDate(d.date); if (!fd) return get().flash('Fecha inválida')
     const et = get().eventTypes.find((t) => t.id === d.type) || get().eventTypes[0]

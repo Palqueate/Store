@@ -114,13 +114,19 @@ export function EventModal() {
             <Select value={vals.evDtype} options={vals.evTypeOptions} onChange={(v) => vals.setEvType({ target: { value: v } })} />
           </div>
           <div>
-            <label style={css("display:block; font-family:'Space Mono'; font-size:10px; letter-spacing:.08em; color:var(--subtle-foreground,#6B7480); margin-bottom:6px;")}>ESTADIO</label>
-            <Select value={vals.evStadiumSel} options={vals.stadOptions} onChange={(v) => vals.setEvStadiumSel({ target: { value: v } })} />
+            <label style={css("display:block; font-family:'Space Mono'; font-size:10px; letter-spacing:.08em; color:var(--subtle-foreground,#6B7480); margin-bottom:6px;")}>PAÍS</label>
+            <Combobox value={vals.evCountry} options={vals.countryOptions} placeholder="Elegí o buscá…" onChange={(v) => vals.setEvCountry({ target: { value: v } })} />
           </div>
         </div>
         <div>
-          <label style={css("display:block; font-family:'Space Mono'; font-size:10px; letter-spacing:.08em; color:var(--subtle-foreground,#6B7480); margin-bottom:6px;")}>PAÍS</label>
-          <Combobox value={vals.evCountry} options={vals.countryOptions} placeholder="Elegí o buscá…" onChange={(v) => vals.setEvCountry({ target: { value: v } })} />
+          <label style={css("display:block; font-family:'Space Mono'; font-size:10px; letter-spacing:.08em; color:var(--subtle-foreground,#6B7480); margin-bottom:6px;")}>ESTADIO</label>
+          {vals.evHasStadiums ? (
+            <Select value={vals.evStadiumSel} options={vals.stadOptions} onChange={(v) => vals.setEvStadiumSel({ target: { value: v } })} />
+          ) : (
+            <div style={css("display:flex; align-items:center; gap:8px; padding:11px 13px; border-radius:11px; background:var(--muted,#1F2530); border:1px solid var(--border,rgba(255,255,255,.12)); font-size:13px; color:var(--muted-foreground,#9AA6B2);")}>
+              No hay estadios en {vals.evCountry}. Agregá uno desde la pestaña Estadios.
+            </div>
+          )}
         </div>
         <div style={css("display:grid; grid-template-columns:1fr 1fr; gap:12px;")}>
           <Field label="FECHA" type="date" value={vals.evDate} onInput={vals.setEvDate} />
