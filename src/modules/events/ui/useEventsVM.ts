@@ -13,11 +13,27 @@ export function useEventsVM(): any {
   var q = (s.evQuery || '').trim().toLowerCase()
 
   var eventCards = EVENTS.map(function (ev) { return evCardVM(self, ev) })
+
+  // Rango de precios "desde" (precio del asiento más barato de cada evento con
+  // cupo). Igual que en palcos: si el usuario no movió un extremo, queda en el
+  // borde (lo / hi) y el filtro no se aplica (guardado como 0).
+  var evPrices = eventCards.map(function (c) { return c.minPrice }).filter(function (v) { return v > 0 })
+  var pbLo = evPrices.length ? Math.floor(Math.min.apply(null, evPrices) / 500) * 500 : 0
+  var pbHi = evPrices.length ? Math.ceil(Math.max.apply(null, evPrices) / 500) * 500 : 0
+  var evPriceBounds = { lo: pbLo, hi: pbHi > pbLo ? pbHi : pbLo + 500, step: 500 }
+  var evPriceMin = s.evMinPrice > 0 ? s.evMinPrice : evPriceBounds.lo
+  var evPriceMax = s.evMaxPrice > 0 ? s.evMaxPrice : evPriceBounds.hi
+  function setEvMinPrice(v) { var nv = Math.min(v, evPriceMax); self.setState({ evMinPrice: nv <= evPriceBounds.lo ? 0 : nv }) }
+  function setEvMaxPrice(v) { var nv = Math.max(v, evPriceMin); self.setState({ evMaxPrice: nv >= evPriceBounds.hi ? 0 : nv }) }
+  var evPriceActive = s.evMinPrice > 0 || s.evMaxPrice > 0
+
   var eventCardsF = eventCards.filter(function (c) {
     if (evStadiums.length && evStadiums.indexOf(c.stadium) < 0) return false
     if (s.evType !== 'all' && c.type !== s.evType) return false
     if (s.evClub !== 'all' && c.opp !== s.evClub) return false
     if (s.evSeats > 0 && c.maxFree < s.evSeats) return false
+    if (s.evMinPrice > 0 && (c.minPrice <= 0 || c.minPrice < s.evMinPrice)) return false
+    if (s.evMaxPrice > 0 && (c.minPrice <= 0 || c.minPrice > s.evMaxPrice)) return false
     if (q) {
       var hay = [c.comp, c.round, c.opp, c.label, c.stadiumName].filter(Boolean).join(' ').toLowerCase()
       if (hay.indexOf(q) < 0) return false
@@ -43,7 +59,7 @@ export function useEventsVM(): any {
     return { label: o[1], active: s.evSeats === o[0], style: chipS(s.evSeats === o[0]), pick: function () { self.setState({ evSeats: o[0] }) } }
   })
 
-  var evFiltersActive = (q ? 1 : 0) + (evStadiums.length ? 1 : 0) + (s.evType !== 'all' ? 1 : 0) + (s.evClub !== 'all' ? 1 : 0) + (s.evSeats > 0 ? 1 : 0)
+  var evFiltersActive = (q ? 1 : 0) + (evStadiums.length ? 1 : 0) + (s.evType !== 'all' ? 1 : 0) + (s.evClub !== 'all' ? 1 : 0) + (s.evSeats > 0 ? 1 : 0) + (evPriceActive ? 1 : 0)
 
   return {
     eventsCount: eventCardsF.length,
@@ -64,7 +80,14 @@ export function useEventsVM(): any {
     evClubVal: s.evClub,
     setEvClub: function (e) { self.setState({ evClub: e.target.value }) },
     evSeatsChips: evSeatsChips,
+    evPriceBounds: evPriceBounds,
+    evPriceMin: evPriceMin,
+    evPriceMax: evPriceMax,
+    evPriceActive: evPriceActive,
+    evPriceLabel: self.money(evPriceMin) + ' — ' + self.money(evPriceMax),
+    setEvMinPrice: setEvMinPrice,
+    setEvMaxPrice: setEvMaxPrice,
     evFiltersActive: evFiltersActive || null,
-    clearEvFilters: function () { self.setState({ evQuery: '', evStadiums: [], evType: 'all', evClub: 'all', evSeats: 0 }) },
+    clearEvFilters: function () { self.setState({ evQuery: '', evStadiums: [], evType: 'all', evClub: 'all', evSeats: 0, evMinPrice: 0, evMaxPrice: 0 }) },
   }
 }
