@@ -3,6 +3,7 @@
 // by Home, Events and EventPalcos. Takes the facade `self`.
 import { evTagStyle } from './helpers'
 import { eventOccurrences } from '@/modules/events/domain/Event'
+import { fallbackPoster } from '@/shared/lib/promoPosters'
 
 // Disponibilidad de un evento. Si `occId` viene, se calcula para esa función
 // (fecha + hora) concreta. Si no, se resume el evento completo tomando, por
@@ -23,7 +24,10 @@ export function evCardVM(self, ev) {
   var a = evAvail(self, ev); var so = a.boxes === 0
   var occs = eventOccurrences(ev); var multiDate = occs.length > 1
   var first = occs[0] || ev
-  return { id: ev.id, stadium: ev.stadium, day: first.day, month: first.month, dow: first.dow, time: first.time, comp: ev.comp, round: ev.round, opp: ev.opp, tag: ev.tag, type: ev.type || 'futbol', label: ev.label || '', images: ev.images || [], image: (ev.images || [])[0] || '',
+  // La tarjeta siempre muestra un banner: si el evento no tiene imagen
+  // promocional cargada, usamos un póster de respaldo (degradado + monograma).
+  var promoImg = (ev.images || [])[0] || fallbackPoster(ev)
+  return { id: ev.id, stadium: ev.stadium, day: first.day, month: first.month, dow: first.dow, time: first.time, comp: ev.comp, round: ev.round, opp: ev.opp, tag: ev.tag, type: ev.type || 'futbol', label: ev.label || '', images: ev.images || [], image: promoImg,
     stadiumShort: STADIUMS[ev.stadium].short, stadiumName: STADIUMS[ev.stadium].name, tagStyle: evTagStyle(ev.tag),
     multiDate: multiDate, datesCount: occs.length, timeText: multiDate ? 'Varias funciones' : (first.time + ' hs'),
     boxes: a.boxes, soldOut: so, maxFree: a.maxFree,

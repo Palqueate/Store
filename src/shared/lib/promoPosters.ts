@@ -35,6 +35,35 @@ function monogram(name: string): string {
   return xml(letters.toUpperCase())
 }
 
+// Paletas para los pósters de respaldo. Cuando un evento no tiene imagen
+// promocional cargada, se le asigna una de estas de forma determinística (por
+// id/rival) para que todas las tarjetas tengan banner y se vean parejas.
+const FALLBACK_PALETTES: Array<{ from: string; to: string; accent: string }> = [
+  { from: '#10243A', to: '#0B1622', accent: '#C9A24B' }, // azul noche · dorado
+  { from: '#1C2330', to: '#0B0F16', accent: '#7FB2FF' }, // pizarra · celeste
+  { from: '#0C2A22', to: '#08130F', accent: '#34D17E' }, // verde
+  { from: '#2A1530', to: '#120A18', accent: '#E0A6FF' }, // violeta
+  { from: '#2E1A12', to: '#160B07', accent: '#E5A94D' }, // tierra · ámbar
+]
+
+/** Hash entero estable de un string (para elegir paleta sin azar). */
+function hashStr(s: string): number {
+  let h = 0
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0
+  return h
+}
+
+/**
+ * Póster de respaldo para un evento sin imagen promocional. Elige una paleta de
+ * marca de forma determinística según su id/rival, así el mismo evento siempre
+ * obtiene el mismo look. Acepta lo mínimo de un evento para no acoplar tipos.
+ */
+export function fallbackPoster(ev: { id?: string; opp?: string; comp?: string }): string {
+  const seed = ev.id || ev.opp || ev.comp || 'evento'
+  const pal = FALLBACK_PALETTES[hashStr(seed) % FALLBACK_PALETTES.length]
+  return promoPoster({ title: ev.opp || ev.comp || 'Evento', ...pal })
+}
+
 /** Devuelve un póster promocional abstracto como data-URL SVG (ratio 16:9). */
 export function promoPoster(o: PosterOpts): string {
   const accent = o.accent || '#C9A24B'
