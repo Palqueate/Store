@@ -51,7 +51,7 @@ export default function EventPalcos() {
               showDots
               height={150}
               slides={vals.ep.images.map((src: string, i: number) => (
-                <img key={i} src={src} alt={'vs ' + (vals.ep.opp || '') + ' · ' + (i + 1)} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                <img key={i} src={src} alt={(vals.ep.opp || '') + ' · ' + (i + 1)} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
               ))}
             />
           </div>

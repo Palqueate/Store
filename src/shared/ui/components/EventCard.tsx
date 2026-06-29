@@ -19,7 +19,7 @@ export default function EventCard({ data }: { data: any }) {
         {/* event image thumbnail — only when one was uploaded */}
         {thumb ? (
           <div style={{ flex: '0 0 auto', width: '62px', height: '62px', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border,rgba(255,255,255,.08))' }}>
-            <img src={thumb} alt={'vs ' + (d.opp || '')} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+            <img src={thumb} alt={(d.opp || '')} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
           </div>
         ) : null}
 
