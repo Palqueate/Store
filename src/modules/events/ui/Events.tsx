@@ -1,5 +1,5 @@
 import { css } from '@/shared/ui/css'
-import { Card, Chip, Select, EmptyState, Btn, SearchInput, MultiSelect, Slider } from '@/lib'
+import { Card, Chip, Select, EmptyState, Btn, SearchInput, MultiSelect, RangeSlider } from '@/lib'
 import EventCard from '@/shared/ui/components/EventCard'
 import { useEventsVM } from './useEventsVM'
 
@@ -88,10 +88,14 @@ export default function Events() {
               <div style={{ fontFamily: "'Archivo'", fontWeight: 700, fontSize: '13.5px', color: vals.evPriceActive ? 'var(--primary,#C9A24B)' : 'var(--foreground,#F4EFE6)', marginBottom: '12px' }}>
                 {vals.evPriceLabel}
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <Slider value={vals.evPriceMin} min={vals.evPriceBounds.lo} max={vals.evPriceBounds.hi} step={vals.evPriceBounds.step} label="MÍNIMO" onChange={vals.setEvMinPrice} />
-                <Slider value={vals.evPriceMax} min={vals.evPriceBounds.lo} max={vals.evPriceBounds.hi} step={vals.evPriceBounds.step} label="MÁXIMO" onChange={vals.setEvMaxPrice} />
-              </div>
+              <RangeSlider
+                valueMin={vals.evPriceMin}
+                valueMax={vals.evPriceMax}
+                min={vals.evPriceBounds.lo}
+                max={vals.evPriceBounds.hi}
+                step={vals.evPriceBounds.step}
+                onChange={vals.setEvPriceRange}
+              />
             </div>
           </Card>
         </aside>

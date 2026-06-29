@@ -57,6 +57,7 @@ export { default as SegmentedControl } from './SegmentedControl'
 export { default as QuantityStepper } from './QuantityStepper'
 export { default as SearchInput } from './SearchInput'
 export { default as Slider } from './Slider'
+export { default as RangeSlider } from './RangeSlider'
 export { default as FileDropzone } from './FileDropzone'
 
 // Overlays

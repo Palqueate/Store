@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { DocEntry } from '../types'
 import {
-  Field, Textarea, Select, SearchInput, Slider, Checkbox,
+  Field, Textarea, Select, SearchInput, Slider, RangeSlider, Checkbox,
   RadioGroup, RadioCardGroup, Toggle, QuantityStepper, SegmentedControl, FileDropzone,
 } from '../../index'
 import {
@@ -176,6 +176,23 @@ function SliderStepsDemo() {
 function SliderNoLabelDemo() {
   const [v, setV] = useState(60)
   return <Slider value={v} onChange={setV} />
+}
+
+function RangeSliderDemo() {
+  const [r, setR] = useState({ lo: 2000, hi: 7000 })
+  return (
+    <RangeSlider
+      label="Rango de precio"
+      valueMin={r.lo}
+      valueMax={r.hi}
+      min={0}
+      max={10000}
+      step={100}
+      showValue
+      format={(n) => '$' + n.toLocaleString('es-AR')}
+      onChange={(lo, hi) => setR({ lo, hi })}
+    />
+  )
 }
 
 function CheckboxBasicDemo() {
@@ -636,6 +653,34 @@ const slider: DocEntry = {
   ],
 }
 
+const rangeSlider: DocEntry = {
+  slug: 'range-slider',
+  name: 'RangeSlider',
+  category: 'Inputs',
+  description: 'Slider de rango con dos extremos movibles sobre una sola barra. Los thumbs no se cruzan y comparte el theming del Slider.',
+  importLine: "import { RangeSlider } from './lib'",
+  props: [
+    { name: 'valueMin', type: 'number', default: 'min', description: 'Valor del extremo inferior (controlado).' },
+    { name: 'valueMax', type: 'number', default: 'max', description: 'Valor del extremo superior (controlado).' },
+    { name: 'min', type: 'number', default: '0', description: 'Valor mínimo del rango.' },
+    { name: 'max', type: 'number', default: '100', description: 'Valor máximo del rango.' },
+    { name: 'step', type: 'number', default: '1', description: 'Incremento de cada paso.' },
+    { name: 'label', type: 'string', description: 'Etiqueta visible sobre el slider.' },
+    { name: 'showValue', type: 'boolean', default: 'false', description: 'Muestra "min — max" (formateado) a la derecha del label.' },
+    { name: 'format', type: '(value: number) => string', description: 'Formatea los valores mostrados cuando showValue está activo.' },
+  ],
+  events: [
+    { name: 'onChange', type: '(min: number, max: number) => void', description: 'Recibe el par (min, max) ya acotado en cada movimiento de un thumb.' },
+  ],
+  examples: [
+    {
+      title: 'Rango de precio con formato',
+      node: <RangeSliderDemo />,
+      code: '<RangeSlider label="Rango de precio" valueMin={lo} valueMax={hi} min={0} max={10000} step={100} showValue format={(n) => "$" + n} onChange={(lo, hi) => setRange({ lo, hi })} />',
+    },
+  ],
+}
+
 const checkbox: DocEntry = {
   slug: 'checkbox',
   name: 'Checkbox',
@@ -967,6 +1012,7 @@ const entries: DocEntry[] = [
   select,
   searchInput,
   slider,
+  rangeSlider,
   checkbox,
   radioGroup,
   radioCardGroup,

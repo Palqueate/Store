@@ -23,8 +23,14 @@ export function useEventsVM(): any {
   var evPriceBounds = { lo: pbLo, hi: pbHi > pbLo ? pbHi : pbLo + 500, step: 500 }
   var evPriceMin = s.evMinPrice > 0 ? s.evMinPrice : evPriceBounds.lo
   var evPriceMax = s.evMaxPrice > 0 ? s.evMaxPrice : evPriceBounds.hi
-  function setEvMinPrice(v) { var nv = Math.min(v, evPriceMax); self.setState({ evMinPrice: nv <= evPriceBounds.lo ? 0 : nv }) }
-  function setEvMaxPrice(v) { var nv = Math.max(v, evPriceMin); self.setState({ evMaxPrice: nv >= evPriceBounds.hi ? 0 : nv }) }
+  // Un extremo que vuelve a su borde (lo / hi) desactiva ese lado del filtro
+  // (se guarda como 0). El RangeSlider ya evita que los extremos se crucen.
+  function setEvPriceRange(lo, hi) {
+    self.setState({
+      evMinPrice: lo <= evPriceBounds.lo ? 0 : lo,
+      evMaxPrice: hi >= evPriceBounds.hi ? 0 : hi,
+    })
+  }
   var evPriceActive = s.evMinPrice > 0 || s.evMaxPrice > 0
 
   var eventCardsF = eventCards.filter(function (c) {
@@ -85,8 +91,7 @@ export function useEventsVM(): any {
     evPriceMax: evPriceMax,
     evPriceActive: evPriceActive,
     evPriceLabel: self.money(evPriceMin) + ' — ' + self.money(evPriceMax),
-    setEvMinPrice: setEvMinPrice,
-    setEvMaxPrice: setEvMaxPrice,
+    setEvPriceRange: setEvPriceRange,
     evFiltersActive: evFiltersActive || null,
     clearEvFilters: function () { self.setState({ evQuery: '', evStadiums: [], evType: 'all', evClub: 'all', evSeats: 0, evMinPrice: 0, evMaxPrice: 0 }) },
   }
