@@ -1,34 +1,52 @@
 import { Btn, Card, Stack, Toggle, Stepper, QuantityStepper, Field, FileDropzone, SearchInput, VirtualList, EmptyState, Combobox } from '@/lib'
 import { css } from '@/shared/ui/css'
 import StadiumMap from '@/shared/ui/components/StadiumMap'
+import { isImageDataUrl, fileTypeLabel } from '@/shared/lib/readImages'
 import { usePublishVM } from './usePublishVM'
 
-/** Slot de subida de un documento único (imagen). Muestra la vista previa con
- *  un botón para quitarla, o una zona de subida cuando todavía no hay archivo. */
+/** Slot de subida de un documento único (imagen o PDF). Muestra la vista previa
+ *  —miniatura si es imagen, tarjeta de archivo si no— con un botón para
+ *  quitarla, o una zona de subida cuando todavía no hay archivo. */
 function DocSlot({ label, hint, value, onFiles, onRemove }: any) {
+  const removeBtn = (
+    <button
+      onClick={onRemove}
+      aria-label="Quitar documento"
+      style={{
+        position: 'absolute', top: '8px', right: '8px', width: '26px', height: '26px',
+        display: 'grid', placeItems: 'center', borderRadius: '50%', cursor: 'pointer',
+        border: 'none', background: 'color-mix(in srgb, var(--background,#0E1116) 70%, transparent)',
+        color: 'var(--foreground,#F4EFE6)', fontFamily: "'Archivo'", fontWeight: 800, fontSize: '16px', lineHeight: 1,
+      }}
+    >
+      ×
+    </button>
+  )
   return (
     <div>
       <div style={{ fontFamily: "'Space Mono'", fontSize: '11px', letterSpacing: '.08em', color: 'var(--subtle-foreground,#6B7480)', marginBottom: '8px' }}>
         {label}
       </div>
       {value ? (
-        <div style={{ position: 'relative', borderRadius: '13px', overflow: 'hidden', border: '1px solid var(--border,rgba(255,255,255,.12))', background: 'var(--card,#171B22)' }}>
-          <img src={value} alt={label} style={{ width: '100%', maxHeight: '200px', objectFit: 'cover', display: 'block' }} />
-          <button
-            onClick={onRemove}
-            aria-label="Quitar documento"
-            style={{
-              position: 'absolute', top: '8px', right: '8px', width: '26px', height: '26px',
-              display: 'grid', placeItems: 'center', borderRadius: '50%', cursor: 'pointer',
-              border: 'none', background: 'color-mix(in srgb, var(--background,#0E1116) 70%, transparent)',
-              color: 'var(--foreground,#F4EFE6)', fontFamily: "'Archivo'", fontWeight: 800, fontSize: '16px', lineHeight: 1,
-            }}
-          >
-            ×
-          </button>
-        </div>
+        isImageDataUrl(value) ? (
+          <div style={{ position: 'relative', borderRadius: '13px', overflow: 'hidden', border: '1px solid var(--border,rgba(255,255,255,.12))', background: 'var(--card,#171B22)' }}>
+            <img src={value} alt={label} style={{ width: '100%', maxHeight: '200px', objectFit: 'contain', background: 'var(--background,#0E1116)', display: 'block' }} />
+            {removeBtn}
+          </div>
+        ) : (
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 44px 14px 14px', borderRadius: '13px', border: '1px solid var(--border,rgba(255,255,255,.12))', background: 'var(--card,#171B22)' }}>
+            <span style={{ flex: '0 0 auto', display: 'grid', placeItems: 'center', width: '40px', height: '40px', borderRadius: '9px', background: 'var(--muted,#1F2530)', color: 'var(--primary,#C9A24B)' }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /></svg>
+            </span>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontFamily: "'Archivo'", fontWeight: 700, fontSize: '14px', color: 'var(--foreground,#F4EFE6)' }}>Archivo {fileTypeLabel(value)} cargado</div>
+              <div style={{ fontSize: '12px', color: 'var(--muted-foreground,#9AA6B2)' }}>Se podrá descargar en la revisión</div>
+            </div>
+            {removeBtn}
+          </div>
+        )
       ) : (
-        <FileDropzone accept="image/*" hint={hint || 'Subir imagen'} onFiles={onFiles} />
+        <FileDropzone accept="image/*,application/pdf" hint={hint || 'Subir imagen o PDF'} onFiles={onFiles} />
       )}
     </div>
   )

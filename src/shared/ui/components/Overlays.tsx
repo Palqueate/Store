@@ -2,12 +2,9 @@ import { useState } from 'react'
 import { css } from '@/shared/ui/css'
 import { Modal, Btn, Field, Select, Combobox, FileDropzone, Textarea } from '@/lib'
 import { useOverlaysVM } from '@/shared/ui/vm/useOverlaysVM'
+import { dataUrlExt, isImageDataUrl, fileTypeLabel } from '@/shared/lib/readImages'
 
-// Extensión de archivo a partir del data URL (jpeg→jpg, fallback jpg).
-function attExt(url: string) {
-  const m = /^data:[a-zA-Z]+\/([a-zA-Z0-9.+-]+)[;,]/.exec(url || '')
-  return m ? m[1].toLowerCase().replace('jpeg', 'jpg') : 'jpg'
-}
+const attExt = dataUrlExt
 // Slug seguro para nombres de archivo (sin acentos ni símbolos).
 function attSlug(s: string) {
   return (s || 'adjunto').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'adjunto'
@@ -346,10 +343,22 @@ export function PalcoReviewModal() {
                     <div style={{ fontFamily: "'Space Mono'", fontSize: '10px', letterSpacing: '.06em', color: 'var(--subtle-foreground,#6B7480)', marginBottom: '4px' }}>{f.label}</div>
                     {f.isDoc ? (
                       f.image ? (
-                        <div>
-                          <img src={f.image} alt={f.label} onClick={() => setZoom(f.image)} title="Ver en grande" style={{ maxWidth: '160px', maxHeight: '110px', objectFit: 'contain', background: 'var(--background,#0E1116)', borderRadius: '8px', border: '1px solid var(--border,rgba(255,255,255,.12))', display: 'block', cursor: 'zoom-in' }} />
-                          <DownloadLink href={f.image} name={attSlug(r.title) + '-' + attSlug(f.label) + '.' + attExt(f.image)} />
-                        </div>
+                        isImageDataUrl(f.image) ? (
+                          <div>
+                            <img src={f.image} alt={f.label} onClick={() => setZoom(f.image)} title="Ver en grande" style={{ maxWidth: '160px', maxHeight: '110px', objectFit: 'contain', background: 'var(--background,#0E1116)', borderRadius: '8px', border: '1px solid var(--border,rgba(255,255,255,.12))', display: 'block', cursor: 'zoom-in' }} />
+                            <DownloadLink href={f.image} name={attSlug(r.title) + '-' + attSlug(f.label) + '.' + attExt(f.image)} />
+                          </div>
+                        ) : (
+                          <div>
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderRadius: '9px', background: 'var(--background,#0E1116)', border: '1px solid var(--border,rgba(255,255,255,.12))' }}>
+                              <span style={{ flex: '0 0 auto', display: 'grid', placeItems: 'center', width: '34px', height: '34px', borderRadius: '8px', background: 'var(--muted,#1F2530)', color: 'var(--primary,#C9A24B)' }}>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /></svg>
+                              </span>
+                              <span style={{ fontFamily: "'Archivo'", fontWeight: 700, fontSize: '13px', color: 'var(--foreground,#F4EFE6)' }}>Archivo {fileTypeLabel(f.image)}</span>
+                            </div>
+                            <DownloadLink href={f.image} name={attSlug(r.title) + '-' + attSlug(f.label) + '.' + attExt(f.image)} />
+                          </div>
+                        )
                       ) : (
                         <span style={{ fontSize: '13px', color: 'var(--destructive,#E5604D)' }}>Sin documento</span>
                       )
