@@ -65,7 +65,6 @@ export const createAdminSlice = (set, get) => ({
         comp: ev.comp || '', round: ev.round || '', opp: ev.opp || '', images: (ev.images || []).slice(),
       },
     })
-  }
   },
   adminAddEventImages: async (files) => {
     if (!files || !files.length) return
