@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { css } from '@/shared/ui/css'
-import { Card, EmptyState, Btn, Rating, Stack, Divider, Carousel, Select } from '@/lib'
+import { Card, EmptyState, Btn, Stack, Divider, Carousel, Select } from '@/lib'
 import StadiumMap from '@/shared/ui/components/StadiumMap'
 import { useEventPalcosVM } from './useEventPalcosVM'
 
@@ -217,7 +217,12 @@ export default function EventPalcos() {
                       <h3 style={{ margin: 0, fontFamily: "'Archivo'", fontWeight: 800, fontSize: '17px', color: 'var(--foreground,#F4EFE6)' }}>
                         {p.title}
                       </h3>
-                      <Rating value={parseFloat(p.rating) || 0} editable={false} size={11} />
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', flex: '0 0 auto' }}>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="var(--primary,#C9A24B)" stroke="var(--primary,#C9A24B)" strokeWidth="1.5" strokeLinejoin="round">
+                          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                        </svg>
+                        <span style={{ fontFamily: "'Space Mono'", fontSize: '12px', fontWeight: 700, color: 'var(--foreground,#F4EFE6)' }}>{p.rating}</span>
+                      </span>
                     </Stack>
                     <div style={{ fontSize: '12.5px', color: 'var(--muted-foreground,#9AA6B2)' }}>
                       {p.sector} · {p.parking}
