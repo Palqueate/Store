@@ -10,6 +10,7 @@ import { listAccounts } from '@/modules/accounts/application/use-cases/accountUs
 import { listOrders } from '@/modules/orders/application/use-cases/orderUseCases'
 import { getSession } from '@/modules/accounts/application/use-cases/accountUseCases'
 import { publishPalco as publishPalcoUseCase } from '@/modules/palcos/application/use-cases/publishPalco'
+import { updatePalco as updatePalcoUseCase } from '@/modules/palcos/application/use-cases/updatePalco'
 import { EVENT_TYPES } from '@/shared/infrastructure/in-memory/db'
 
 export const createCatalogSlice = (set, get) => ({
@@ -90,4 +91,5 @@ export const createCatalogSlice = (set, get) => ({
     get().flash(ns === 'pausado' ? 'Publicación pausada' : 'Publicación reactivada')
   },
   publishPalcoEntity: (np) => publishPalcoUseCase(container.palcos, np),
+  updatePalcoEntity: (np) => updatePalcoUseCase(container.palcos, np),
 })

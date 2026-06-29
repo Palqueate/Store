@@ -16,6 +16,11 @@ export class InMemoryPalcoRepository implements PalcoRepository {
     PALCOS.push(palco)
   }
 
+  async update(palco: Palco): Promise<void> {
+    const i = PALCOS.findIndex((p) => p.id === palco.id)
+    if (i >= 0) PALCOS[i] = palco
+  }
+
   async setStatus(id: string, status: PalcoStatus): Promise<void> {
     const palco = PALCOS.find((p) => p.id === id)
     if (palco) palco.status = status

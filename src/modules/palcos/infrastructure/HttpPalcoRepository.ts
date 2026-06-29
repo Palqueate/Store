@@ -15,6 +15,9 @@ export class HttpPalcoRepository implements PalcoRepository {
   async publish(palco: Palco): Promise<void> {
     await this.http.post<void>('/palcos', palco)
   }
+  async update(palco: Palco): Promise<void> {
+    await this.http.put<void>(`/palcos/${palco.id}`, palco)
+  }
   async setStatus(id: string, status: PalcoStatus): Promise<void> {
     await this.http.put<void>(`/palcos/${id}/status`, { status })
   }

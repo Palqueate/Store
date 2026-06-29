@@ -5,5 +5,6 @@ export interface PalcoRepository {
   list(): Promise<Palco[]>
   findById(id: string): Promise<Palco | null>
   publish(palco: Palco): Promise<void>
+  update(palco: Palco): Promise<void>
   setStatus(id: string, status: PalcoStatus): Promise<void>
 }

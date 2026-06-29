@@ -12,8 +12,10 @@ export function usePublishVM(): any {
   var wiz: any = null
 
   if (w) {
+    var editing = !!w.editId
     var stepNames = ['Estadio', 'Ubicación', 'Asientos', 'Fotos', 'Estacionamiento', 'Precios']
     wiz = {
+      editing: editing,
       step: w.step, stepName: stepNames[w.step], progress: Math.round(((w.step + 1) / stepNames.length) * 100),
       steps: stepNames.map(function (nm, i) {
         return {
@@ -36,7 +38,7 @@ export function usePublishVM(): any {
       pricePalcoTxt: self.money(w.pricePalco), priceSeatYTxt: self.money(w.priceSeatY), priceSeatETxt: self.money(w.priceSeatE),
       markers: (w.x != null) ? [{ x: w.x, y: w.y, active: true, label: 'Acá' }] : [],
       locTxt: (w.x != null ? 'Ubicación marcada ✓' : 'Tocá el plano para marcar'),
-      nextLabel: w.step >= 5 ? 'Publicar palco' : 'Continuar',
+      nextLabel: w.step >= 5 ? (editing ? 'Guardar cambios' : 'Publicar palco') : 'Continuar',
       gpcSel: w.stadium === 'gpc', cdsSel: w.stadium === 'cds',
       pickGpc: function () { self.wzSet({ stadium: 'gpc' }) },
       pickCds: function () { self.wzSet({ stadium: 'cds' }) },

@@ -71,6 +71,7 @@ export default function Owner() {
                 </div>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <Btn label="Ver" variant="secondary" onClick={o.view} />
+                  <Btn label="Editar" variant="secondary" onClick={o.edit} />
                   <Btn
                     label={o.toggleLabel}
                     variant={o.isPaused ? 'primary' : 'ghost'}

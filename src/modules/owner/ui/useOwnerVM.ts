@@ -18,6 +18,7 @@ export function useOwnerVM(): any {
       statusLabel: b.lbl, statusStyle: b.style, isPaused: st === 'pausado', modes: modes,
       priceTxt: self.money(fp.v), priceLabel: fp.l, toggleLabel: st === 'pausado' ? 'Reanudar' : 'Pausar',
       toggle: function () { self.togglePublish(p.id) }, view: function () { self.openDetail(p.id) },
+      edit: function () { self.startEditWizard(p.id) },
     }
   })
 

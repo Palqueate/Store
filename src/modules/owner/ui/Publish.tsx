@@ -34,6 +34,12 @@ export default function Publish() {
             />
           </div>
 
+          {vals.wiz.editing ? (
+            <div style={{ fontFamily: "'Space Mono'", fontSize: '11px', letterSpacing: '.12em', color: 'var(--primary,#C9A24B)', marginBottom: '8px' }}>
+              EDITANDO PALCO
+            </div>
+          ) : null}
+
           <h1 style={{ margin: '0 0 20px', fontFamily: "'Archivo'", fontWeight: 900, fontStretch: '112%', letterSpacing: '-.03em', fontSize: 'clamp(26px,4.5vw,40px)', color: 'var(--foreground,#F4EFE6)' }}>
             {vals.wiz.stepName}
           </h1>
