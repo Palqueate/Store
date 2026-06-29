@@ -19,7 +19,6 @@ export const createFiltersSlice = () => ({
   evQuery: '',
   evStadiums: [],
   evType: 'all',
-  evComp: 'all',
   evClub: 'all',
   evSeats: 0,
   // --- Métricas (owner) ---

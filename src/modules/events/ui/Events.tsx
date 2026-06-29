@@ -12,11 +12,11 @@ export default function Events() {
         <h1 style={{ margin: '0 0 4px', fontFamily: "'Archivo'", fontWeight: 800, fontStretch: '110%', letterSpacing: '-.03em', fontSize: 'clamp(28px,4.5vw,44px)', color: 'var(--foreground,#F4EFE6)' }}>
           <span style={{ color: 'var(--primary,#C9A24B)' }}>{vals.eventsCount}</span> eventos
         </h1>
-        <p style={{ margin: '0 0 16px', color: 'var(--muted-foreground,#9AA6B2)', fontSize: '15px' }}>Buscá o filtrá por estadio, tipo de evento, competición, rival o cuántos asientos juntos querés, y entrá para ver los palcos disponibles.</p>
+        <p style={{ margin: '0 0 16px', color: 'var(--muted-foreground,#9AA6B2)', fontSize: '15px' }}>Buscá o filtrá por estadio, tipo de evento, rival o cuántos asientos juntos querés, y entrá para ver los palcos disponibles.</p>
         <div style={{ maxWidth: '520px' }}>
           <SearchInput
             value={vals.query}
-            placeholder="Buscar evento, competición, rival o sede…"
+            placeholder="Buscar evento, rival o sede…"
             onInput={vals.setQuery}
             onClear={() => vals.setQuery('')}
           />
@@ -62,16 +62,6 @@ export default function Events() {
               </div>
             </div>
 
-            {/* Competition chips */}
-            <div>
-              <div style={{ fontFamily: "'Space Mono'", fontSize: '10px', letterSpacing: '.1em', color: 'var(--subtle-foreground,#6B7480)', marginBottom: '11px' }}>COMPETICIÓN</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '7px' }}>
-                {(vals.evCompChips || []).map((c: any, i: number) => (
-                  <Chip key={i} active={c.active} onClick={c.pick}>{c.label}</Chip>
-                ))}
-              </div>
-            </div>
-
             {/* Club select */}
             <div>
               <div style={{ fontFamily: "'Space Mono'", fontSize: '10px', letterSpacing: '.1em', color: 'var(--subtle-foreground,#6B7480)', marginBottom: '11px' }}>RIVAL / CLUB</div>
@@ -106,7 +96,7 @@ export default function Events() {
           {vals.noEvents ? (
             <EmptyState
               title="Sin eventos con esos filtros"
-              description="Probá cambiar el rival, la competición o la cantidad de asientos."
+              description="Probá cambiar el rival o la cantidad de asientos."
               action={<Btn label="Limpiar filtros" onClick={vals.clearEvFilters} />}
             />
           ) : null}

@@ -16,7 +16,6 @@ export function useEventsVM(): any {
   var eventCardsF = eventCards.filter(function (c) {
     if (evStadiums.length && evStadiums.indexOf(c.stadium) < 0) return false
     if (s.evType !== 'all' && c.type !== s.evType) return false
-    if (s.evComp !== 'all' && c.comp !== s.evComp) return false
     if (s.evClub !== 'all' && c.opp !== s.evClub) return false
     if (s.evSeats > 0 && c.maxFree < s.evSeats) return false
     if (q) {
@@ -37,11 +36,6 @@ export function useEventsVM(): any {
     return { label: o.l, active: s.evType === o.v, style: chipS(s.evType === o.v), pick: function () { self.setState({ evType: o.v }) } }
   })
 
-  var COMPS = []; EVENTS.forEach(function (e) { if (COMPS.indexOf(e.comp) < 0) COMPS.push(e.comp) })
-  var evCompChips = [{ v: 'all', l: 'Todas' }].concat(COMPS.map(function (c) { return { v: c, l: c } })).map(function (o) {
-    return { label: o.l, active: s.evComp === o.v, style: chipS(s.evComp === o.v), pick: function () { self.setState({ evComp: o.v }) } }
-  })
-
   var CLUBS = []; EVENTS.forEach(function (e) { if (CLUBS.indexOf(e.opp) < 0) CLUBS.push(e.opp) }); CLUBS.sort()
   var evClubOptions = [{ value: 'all', label: 'Todos los rivales' }].concat(CLUBS.map(function (c) { return { value: c, label: c } }))
 
@@ -49,7 +43,7 @@ export function useEventsVM(): any {
     return { label: o[1], active: s.evSeats === o[0], style: chipS(s.evSeats === o[0]), pick: function () { self.setState({ evSeats: o[0] }) } }
   })
 
-  var evFiltersActive = (q ? 1 : 0) + (evStadiums.length ? 1 : 0) + (s.evType !== 'all' ? 1 : 0) + (s.evComp !== 'all' ? 1 : 0) + (s.evClub !== 'all' ? 1 : 0) + (s.evSeats > 0 ? 1 : 0)
+  var evFiltersActive = (q ? 1 : 0) + (evStadiums.length ? 1 : 0) + (s.evType !== 'all' ? 1 : 0) + (s.evClub !== 'all' ? 1 : 0) + (s.evSeats > 0 ? 1 : 0)
 
   return {
     eventsCount: eventCardsF.length,
@@ -66,12 +60,11 @@ export function useEventsVM(): any {
     evStadiumValue: evStadiums,
     setEvStadiums: function (vals) { self.setState({ evStadiums: vals }) },
     evTypeChips: evTypeChips,
-    evCompChips: evCompChips,
     evClubOptions: evClubOptions,
     evClubVal: s.evClub,
     setEvClub: function (e) { self.setState({ evClub: e.target.value }) },
     evSeatsChips: evSeatsChips,
     evFiltersActive: evFiltersActive || null,
-    clearEvFilters: function () { self.setState({ evQuery: '', evStadiums: [], evType: 'all', evComp: 'all', evClub: 'all', evSeats: 0 }) },
+    clearEvFilters: function () { self.setState({ evQuery: '', evStadiums: [], evType: 'all', evClub: 'all', evSeats: 0 }) },
   }
 }
