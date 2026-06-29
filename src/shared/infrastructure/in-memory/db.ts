@@ -28,12 +28,9 @@ export const EVENTS: Ev[] = [
 ]
 
 export const EVENT_TYPES: EventType[] = [
-  { id: 'liga', name: 'Partido de liga', tag: 'Local' },
-  { id: 'copa', name: 'Copa nacional', tag: 'Copa' },
-  { id: 'internacional', name: 'Copa internacional', tag: 'Copa' },
-  { id: 'clasico', name: 'Clásico', tag: 'Destacado' },
-  { id: 'amistoso', name: 'Amistoso', tag: 'Local' },
-  { id: 'show', name: 'Show / Recital', tag: 'Destacado' },
+  { id: 'futbol', name: 'Fútbol', tag: 'Local' },
+  { id: 'basketball', name: 'Basketball', tag: 'Local' },
+  { id: 'show', name: 'Show', tag: 'Destacado' },
 ]
 
 export const PALCOS: Palco[] = [
