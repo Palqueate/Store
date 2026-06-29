@@ -1,0 +1,11 @@
+/* ============================================================
+   PALQUEATE · ELEVATION
+   Deep, soft, downward shadows on dark surfaces. Used sparingly —
+   floating panels, popovers, toasts, the booking sidebar.
+   ============================================================ */
+:root {
+  --shadow-card:  0 30px 70px -40px rgba(0,0,0,.7);
+  --shadow-pop:   0 24px 50px -20px rgba(0,0,0,.7);
+  --shadow-toast: 0 20px 50px -15px rgba(0,0,0,.6);
+  --shadow-lift:  0 8px 20px -6px rgba(0,0,0,.55);
+}

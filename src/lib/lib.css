@@ -1,0 +1,58 @@
+/* ============================================================
+   PALQUEATE · component library — CSS hooks
+   Only what inline styles can't express: keyframes + a few
+   stateful pseudo-classes. Everything reads the theme's short
+   CSS vars (--primary, --card, --foreground, ...) so it reacts to the
+   active theme by inheritance, exactly like the app does.
+   ============================================================ */
+
+@keyframes pq-lib-spin { to { transform: rotate(360deg); } }
+
+@keyframes pq-lib-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes pq-lib-fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pq-lib-pop-in {
+  from { opacity: 0; transform: scale(.96) translateY(8px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes pq-lib-drawer-right {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+
+@keyframes pq-lib-drawer-left {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(0); }
+}
+
+/* Interactive card lift — same gesture as the app's .pq-card. */
+.pq-lib-clickable { transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease; }
+.pq-lib-clickable:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--primary, #C9A24B) 50%, transparent) !important;
+}
+
+/* Chip hover — warm the border on the way past. */
+.pq-lib-chip { transition: background .15s ease, border-color .15s ease, color .15s ease; }
+.pq-lib-chip:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--primary, #C9A24B) 45%, transparent) !important;
+}
+
+/* Inputs (Select/Textarea) — border switches to gold on focus, like .pq-input. */
+.pq-lib-input:focus { border-color: var(--primary, #C9A24B) !important; }
+
+/* Tooltip surface — popover elevation. */
+.pq-lib-tip {
+  animation: pq-lib-fade-in .12s ease both;
+}
+
+/* Modal/Drawer surface entrance. */
+.pq-lib-pop { animation: pq-lib-pop-in .18s cubic-bezier(.2, .8, .2, 1) both; }

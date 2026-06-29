@@ -1,0 +1,70 @@
+import { TrashIcon } from '@heroicons/react/24/outline'
+import { Btn, Card, EmptyState, IconButton, Tag, DescriptionList } from '@/lib'
+import { css } from '@/shared/ui/css'
+import { useCartVM } from './useCartVM'
+
+export default function Cart() {
+  const vals = useCartVM()
+  return (
+    <div style={css("max-width:1060px; margin:0 auto; padding:clamp(18px,3vw,32px) clamp(16px,4vw,40px) 60px;")}>
+      <h1 style={css("margin:0 0 22px; font-family:'Archivo'; font-weight:800; font-stretch:110%; letter-spacing:-.03em; font-size:clamp(28px,4.5vw,42px); color:var(--foreground,#F4EFE6);")}>Tu carrito</h1>
+
+      {vals.cartEmpty ? (
+        <EmptyState
+          icon={<><circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" /><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" /></>}
+          title="Tu carrito está vacío"
+          description="Buscá un palco y reservá tu lugar para la temporada o el próximo evento."
+          action={<Btn label="Explorar palcos" onClick={vals.goExplore} />}
+        />
+      ) : null}
+
+      {vals.hasCartItems ? (
+        <div style={css(vals.cartCol)}>
+          <div style={css("display:flex; flex-direction:column; gap:12px;")}>
+            {(vals.cartItems || []).map((it: any, i: number) => (
+              <Card key={i} padding="15px">
+                <div style={css("display:flex; gap:14px;")}>
+                  <div style={css("flex:0 0 auto; width:84px; height:84px; border-radius:11px; background:repeating-linear-gradient(135deg, var(--muted,#1F2530) 0 10px, var(--card,#171B22) 10px 20px); display:grid; place-items:center; font-family:'Space Mono'; font-size:9px; color:var(--subtle-foreground,#6B7480);")}>PALCO</div>
+                  <div style={css("flex:1; min-width:0;")}>
+                    <div style={css("display:flex; align-items:center; gap:8px; margin-bottom:5px;")}>
+                      <Tag>{it.tag}</Tag>
+                      <span style={css("font-size:12px; color:var(--subtle-foreground,#6B7480);")}>{it.stadiumName}</span>
+                    </div>
+                    <h3 style={css("margin:0 0 3px; font-family:'Archivo'; font-weight:800; font-size:17px; color:var(--foreground,#F4EFE6);")}>{it.title}</h3>
+                    <div style={css("font-size:13px; color:var(--muted-foreground,#9AA6B2);")}>{it.modeLabel}</div>
+                    <div style={css("font-size:12.5px; color:var(--muted-foreground,#9AA6B2);")}>{it.seatsText} · {it.meta}</div>
+                  </div>
+                  <div style={css("display:flex; flex-direction:column; align-items:flex-end; justify-content:space-between;")}>
+                    <IconButton aria-label="Quitar" variant="ghost" size="sm" onClick={it.remove}>
+                      <TrashIcon />
+                    </IconButton>
+                    <div style={css("font-family:'Archivo'; font-weight:800; font-size:18px; color:var(--foreground,#F4EFE6); white-space:nowrap;")}>{it.price}</div>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+
+          <aside style={css(vals.stickySum)}>
+            <Card padding="18px">
+              <div style={css("font-family:'Archivo'; font-weight:800; font-size:16px; color:var(--foreground,#F4EFE6); margin-bottom:16px;")}>Resumen</div>
+              <DescriptionList
+                items={[
+                  { term: 'Subtotal', value: vals.cartSub },
+                  { term: 'Comisión de servicio', value: vals.cartFee },
+                ]}
+              />
+              <div style={css("display:flex; justify-content:space-between; align-items:baseline; margin-top:16px; padding-top:14px; border-top:1px solid var(--border,rgba(255,255,255,.1));")}>
+                <span style={css("font-family:'Archivo'; font-weight:700; font-size:15px; color:var(--foreground,#F4EFE6);")}>Total</span>
+                <span style={css("font-family:'Archivo'; font-weight:900; font-size:24px; letter-spacing:-.02em; color:var(--foreground,#F4EFE6);")}>{vals.cartTotal}</span>
+              </div>
+              <div style={css("margin-top:18px;")}>
+                <Btn label="Ir a pagar" icon="arrow" block={true} size="lg" onClick={vals.goCheckout} />
+              </div>
+            </Card>
+          </aside>
+        </div>
+      ) : null}
+    </div>
+  )
+}

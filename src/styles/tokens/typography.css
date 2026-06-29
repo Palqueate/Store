@@ -1,0 +1,38 @@
+/* ============================================================
+   PALQUEATE · TYPOGRAPHY TOKENS
+   Archivo for everything visible (headings use expanded width +
+   tight tracking); Space Mono for micro-labels, codes, stats.
+   ============================================================ */
+:root {
+  --font-display: 'Archivo', system-ui, -apple-system, sans-serif;
+  --font-sans:    'Archivo', system-ui, -apple-system, sans-serif;
+  --font-mono:    'Space Mono', ui-monospace, 'SFMono-Regular', monospace;
+
+  /* weights */
+  --fw-regular: 400;
+  --fw-medium:  500;
+  --fw-semibold:600;
+  --fw-bold:    700;
+  --fw-extra:   800;
+  --fw-black:   900;
+
+  /* display headings — expanded + tight, big and confident */
+  --fs-display:  clamp(40px, 8vw, 86px);
+  --fs-h1:       clamp(28px, 4.5vw, 44px);
+  --fs-h2:       clamp(24px, 3.4vw, 36px);
+  --fs-h3:       18px;
+  --fs-body-lg:  16px;
+  --fs-body:     14px;
+  --fs-small:    13px;
+  --fs-micro:    11px;   /* mono labels */
+
+  --tracking-display: -.04em;  /* headings pull in */
+  --tracking-tight:   -.02em;
+  --tracking-label:   .08em;   /* mono uppercase labels open up */
+  --stretch-display:  125%;    /* Archivo expanded for hero */
+  --stretch-heading:  110%;
+
+  --leading-tight: .96;
+  --leading-snug:  1.2;
+  --leading-body:  1.5;
+}

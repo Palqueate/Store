@@ -1,0 +1,13 @@
+/* ============================================================
+   PALQUEATE · CORNER RADII
+   Tight-to-soft scale; cards are softly rounded, pills fully round.
+   ============================================================ */
+:root {
+  --radius-chip:    9px;
+  --radius-control: 11px;   /* inputs */
+  --radius-button:  12px;
+  --radius-card:    16px;
+  --radius-panel:   18px;
+  --radius-xl:      20px;
+  --radius-pill:    100px;
+}
