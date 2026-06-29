@@ -2,6 +2,8 @@
 export interface Ev {
   id: string
   stadium: string
+  /** País del evento. Por defecto coincide con el del estadio sede. */
+  country?: string
   comp: string
   round: string
   opp: string

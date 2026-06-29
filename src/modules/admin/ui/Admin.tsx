@@ -150,7 +150,12 @@ export default function Admin() {
                   {
                     key: 'estadio',
                     header: 'ESTADIO',
-                    render: (ev: any) => ev.stadiumName,
+                    render: (ev: any) => (
+                      <div>
+                        <div style={{ fontSize: '13px', color: 'var(--foreground,#F4EFE6)' }}>{ev.stadiumName}</div>
+                        <div style={{ fontSize: '11.5px', color: 'var(--subtle-foreground,#6B7480)' }}>{ev.country}</div>
+                      </div>
+                    ),
                   },
                   {
                     key: 'hora',
@@ -175,7 +180,7 @@ export default function Admin() {
                   <Card key={i} padding="18px">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '11px', marginBottom: '14px' }}>
                       <span style={{ width: '46px', height: '46px', borderRadius: '11px', background: 'repeating-linear-gradient(135deg, var(--muted,#1F2530) 0 7px, var(--card,#171B22) 7px 14px)', display: 'grid', placeItems: 'center', fontFamily: "'Archivo'", fontWeight: 800, fontSize: '13px', color: 'var(--primary,#C9A24B)' }}>{st.short}</span>
-                      <div style={{ minWidth: 0 }}><div style={{ fontFamily: "'Archivo'", fontWeight: 800, fontSize: '16px', color: 'var(--foreground,#F4EFE6)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{st.name}</div><div style={{ fontSize: '12px', color: 'var(--subtle-foreground,#6B7480)' }}>{st.city} · {st.address}</div></div>
+                      <div style={{ minWidth: 0 }}><div style={{ fontFamily: "'Archivo'", fontWeight: 800, fontSize: '16px', color: 'var(--foreground,#F4EFE6)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{st.name}</div><div style={{ fontSize: '12px', color: 'var(--subtle-foreground,#6B7480)' }}>{st.city}, {st.country} · {st.address}</div></div>
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginBottom: '13px' }}>
                       <div style={{ padding: '9px 11px', borderRadius: '9px', background: 'var(--background,#0E1116)' }}><div style={{ fontFamily: "'Archivo'", fontWeight: 800, fontSize: '15px', color: 'var(--foreground,#F4EFE6)' }}>{st.capacity}</div><div style={{ fontFamily: "'Space Mono'", fontSize: '9px', color: 'var(--subtle-foreground,#6B7480)' }}>AFORO</div></div>

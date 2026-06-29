@@ -3,6 +3,8 @@ export interface Stadium {
   name: string
   short: string
   city: string
+  /** País donde se ubica el estadio. */
+  country?: string
   shape: string
   capacity?: number
   year?: number | null

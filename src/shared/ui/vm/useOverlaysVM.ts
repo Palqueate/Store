@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { useFacade } from '@/shared/ui/vm/facade'
 import { bnS } from '@/shared/ui/vm/helpers'
+import { COUNTRY_OPTIONS } from '@/shared/domain/countries'
 
 export function useOverlaysVM(): any {
   const self = useFacade()
@@ -55,8 +56,10 @@ export function useOverlaysVM(): any {
     adminCreateEvent: function () { self.adminCreateEvent() },
     evTypeOptions: evTypeOptions,
     stadOptions: stadOptions,
+    countryOptions: COUNTRY_OPTIONS,
     evDtype: s.evDraft.type,
     evStadiumSel: s.evDraft.stadium,
+    evCountry: s.evDraft.country,
     evDate: s.evDraft.date,
     evTime: s.evDraft.time,
     evComp: s.evDraft.comp,
@@ -66,7 +69,8 @@ export function useOverlaysVM(): any {
     addEvImages: function (files) { self.adminAddEventImages(files) },
     removeEvImage: function (i) { self.adminRemoveEventImage(i) },
     setEvType: function (e) { self.setEvDraft('type', e.target.value) },
-    setEvStadiumSel: function (e) { self.setEvDraft('stadium', e.target.value) },
+    setEvStadiumSel: function (e) { self.setEvStadium(e.target.value) },
+    setEvCountry: function (e) { self.setEvDraft('country', e.target.value) },
     setEvDate: function (e) { self.setEvDraft('date', e.target.value) },
     setEvTime: function (e) { self.setEvDraft('time', e.target.value) },
     setEvComp: function (e) { self.setEvDraft('comp', e.target.value) },
@@ -81,6 +85,7 @@ export function useOverlaysVM(): any {
     stadName: s.stadDraft.name,
     stadShort: s.stadDraft.short,
     stadCity: s.stadDraft.city,
+    stadCountry: s.stadDraft.country,
     stadAddress: s.stadDraft.address,
     stadCapacity: s.stadDraft.capacity,
     stadYear: s.stadDraft.year,
@@ -91,6 +96,7 @@ export function useOverlaysVM(): any {
     setStadName: function (e) { self.setStadDraft('name', e.target.value) },
     setStadShort: function (e) { self.setStadDraft('short', e.target.value) },
     setStadCity: function (e) { self.setStadDraft('city', e.target.value) },
+    setStadCountry: function (e) { self.setStadDraft('country', e.target.value) },
     setStadAddress: function (e) { self.setStadDraft('address', e.target.value) },
     setStadCapacity: function (e) { self.setStadDraft('capacity', e.target.value) },
     setStadYear: function (e) { self.setStadDraft('year', e.target.value) },

@@ -5,6 +5,7 @@ import { createEvent } from '@/modules/events/application/use-cases/createEvent'
 import { createStadium } from '@/modules/stadiums/application/use-cases/createStadium'
 import { updateStadium } from '@/modules/stadiums/application/use-cases/updateStadium'
 import { readImagesAsDataUrls } from '@/shared/lib/readImages'
+import { DEFAULT_COUNTRY } from '@/shared/domain/countries'
 
 const scrollTop = () => { if (typeof window !== 'undefined') { try { window.scrollTo(0, 0) } catch (e) {} } }
 const MONTHS = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SET', 'OCT', 'NOV', 'DIC']
@@ -16,8 +17,8 @@ export const createAdminSlice = (set, get) => ({
   adminEvModal: false,
   adminStadModal: false,
   stadEditId: null,
-  evDraft: { type: 'liga', stadium: 'gpc', date: '', time: '17:00', comp: '', round: '', opp: '', images: [] },
-  stadDraft: { name: '', short: '', city: 'Montevideo', address: '', capacity: '', year: '', surface: '', levels: '2', roof: 'no', mapImage: '' },
+  evDraft: { type: 'liga', stadium: 'gpc', country: DEFAULT_COUNTRY, date: '', time: '17:00', comp: '', round: '', opp: '', images: [] },
+  stadDraft: { name: '', short: '', city: 'Montevideo', country: DEFAULT_COUNTRY, address: '', capacity: '', year: '', surface: '', levels: '2', roof: 'no', mapImage: '' },
 
   isAdmin: () => !!(get().user && get().user.admin),
   openAdmin: (tab) => { if (!get().isAdmin()) return get().flash('Acceso solo para administradores'); set({ adminTab: tab || 'dashboard', acctMenu: false }); get().go('admin') },
@@ -30,7 +31,16 @@ export const createAdminSlice = (set, get) => ({
   },
   setEvDraft: (k, v) => set({ evDraft: { ...get().evDraft, [k]: v } }),
   setStadDraft: (k, v) => set({ stadDraft: { ...get().stadDraft, [k]: v } }),
-  openEvModal: () => set({ adminEvModal: true, evDraft: { type: 'liga', stadium: Object.keys(get().stadiums)[0] || 'gpc', date: '', time: '17:00', comp: '', round: '', opp: '', images: [] } }),
+  // Selecting a stadium also adopts that stadium's country (still overridable).
+  setEvStadium: (id) => {
+    const st = get().stadiums[id]
+    set({ evDraft: { ...get().evDraft, stadium: id, country: (st && st.country) || get().evDraft.country || DEFAULT_COUNTRY } })
+  },
+  openEvModal: () => {
+    const firstId = Object.keys(get().stadiums)[0] || 'gpc'
+    const firstStad = get().stadiums[firstId]
+    set({ adminEvModal: true, evDraft: { type: 'liga', stadium: firstId, country: (firstStad && firstStad.country) || DEFAULT_COUNTRY, date: '', time: '17:00', comp: '', round: '', opp: '', images: [] } })
+  },
   adminAddEventImages: async (files) => {
     if (!files || !files.length) return
     const urls = await readImagesAsDataUrls(Array.from(files))
@@ -38,13 +48,13 @@ export const createAdminSlice = (set, get) => ({
   },
   adminRemoveEventImage: (index) => get().setEvDraft('images', get().evDraft.images.filter((_, i) => i !== index)),
   closeEvModal: () => set({ adminEvModal: false }),
-  openStadModal: () => set({ adminStadModal: true, stadEditId: null, stadDraft: { name: '', short: '', city: 'Montevideo', address: '', capacity: '', year: '', surface: '', levels: '2', roof: 'no', mapImage: '' } }),
+  openStadModal: () => set({ adminStadModal: true, stadEditId: null, stadDraft: { name: '', short: '', city: 'Montevideo', country: DEFAULT_COUNTRY, address: '', capacity: '', year: '', surface: '', levels: '2', roof: 'no', mapImage: '' } }),
   openStadModalEdit: (id) => {
     const st = get().stadiums[id]; if (!st) return
     set({
       adminStadModal: true, stadEditId: id,
       stadDraft: {
-        name: st.name || '', short: st.short || '', city: st.city || '', address: st.address || '',
+        name: st.name || '', short: st.short || '', city: st.city || '', country: st.country || DEFAULT_COUNTRY, address: st.address || '',
         capacity: st.capacity ? String(st.capacity) : '', year: st.year ? String(st.year) : '',
         surface: st.surface || '', levels: st.levels ? String(st.levels) : '1',
         roof: st.roof ? 'si' : 'no', mapImage: st.mapImage || '',
@@ -65,7 +75,9 @@ export const createAdminSlice = (set, get) => ({
     const fd = get()._fmtDate(d.date); if (!fd) return get().flash('Fecha inválida')
     const et = get().eventTypes.find((t) => t.id === d.type) || get().eventTypes[0]
     const comp = (d.comp || '').trim() || et.name
-    const ev = { id: 'e' + Date.now(), stadium: d.stadium, type: d.type, comp, round: (d.round || '').trim(), opp: (d.opp || '').trim(), month: fd.month, day: fd.day, dow: fd.dow, iso: d.date, time: d.time || '17:00', tag: et.tag, label: comp + ((d.round || '').trim() ? (' · ' + d.round.trim()) : ''), images: d.images || [] }
+    const stadCountry = (get().stadiums[d.stadium] || {}).country
+    const country = (d.country || stadCountry || DEFAULT_COUNTRY)
+    const ev = { id: 'e' + Date.now(), stadium: d.stadium, country, type: d.type, comp, round: (d.round || '').trim(), opp: (d.opp || '').trim(), month: fd.month, day: fd.day, dow: fd.dow, iso: d.date, time: d.time || '17:00', tag: et.tag, label: comp + ((d.round || '').trim() ? (' · ' + d.round.trim()) : ''), images: d.images || [] }
     createEvent(container.events, ev)
     set({ events: get().events.concat([ev]), adminEvModal: false }); get().flash('Evento creado')
   },
@@ -75,7 +87,7 @@ export const createAdminSlice = (set, get) => ({
     const short = ((d.short || '').trim() || d.name.trim().slice(0, 3)).toUpperCase().slice(0, 4)
     const editId = get().stadEditId
     const base = {
-      name: d.name.trim(), short, city: (d.city || '').trim(), shape: 'rect',
+      name: d.name.trim(), short, city: (d.city || '').trim(), country: (d.country || '').trim() || DEFAULT_COUNTRY, shape: 'rect',
       address: (d.address || '').trim(),
       capacity: parseInt((d.capacity || '').toString().replace(/[^0-9]/g, ''), 10) || 0,
       year: parseInt((d.year || '').toString().replace(/[^0-9]/g, ''), 10) || null,

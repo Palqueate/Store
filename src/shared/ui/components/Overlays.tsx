@@ -118,6 +118,10 @@ export function EventModal() {
             <Select value={vals.evStadiumSel} options={vals.stadOptions} onChange={(v) => vals.setEvStadiumSel({ target: { value: v } })} />
           </div>
         </div>
+        <div>
+          <label style={css("display:block; font-family:'Space Mono'; font-size:10px; letter-spacing:.08em; color:var(--subtle-foreground,#6B7480); margin-bottom:6px;")}>PAÍS</label>
+          <Combobox value={vals.evCountry} options={vals.countryOptions} placeholder="Elegí o buscá…" onChange={(v) => vals.setEvCountry({ target: { value: v } })} />
+        </div>
         <div style={css("display:grid; grid-template-columns:1fr 1fr; gap:12px;")}>
           <Field label="FECHA" type="date" value={vals.evDate} onInput={vals.setEvDate} />
           <Field label="HORA" type="text" value={vals.evTime} onInput={vals.setEvTime} placeholder="17:00" />
@@ -180,6 +184,10 @@ export function StadiumModal() {
         <div style={css("display:grid; grid-template-columns:1fr 1.4fr; gap:12px;")}>
           <Field label="SIGLA" value={vals.stadShort} onInput={vals.setStadShort} placeholder="EC" />
           <Field label="CIUDAD" value={vals.stadCity} onInput={vals.setStadCity} />
+        </div>
+        <div>
+          <label style={css("display:block; font-family:'Space Mono'; font-size:10px; letter-spacing:.08em; color:var(--subtle-foreground,#6B7480); margin-bottom:6px;")}>PAÍS</label>
+          <Combobox value={vals.stadCountry} options={vals.countryOptions} placeholder="Elegí o buscá…" onChange={(v) => vals.setStadCountry({ target: { value: v } })} />
         </div>
         <Field label="DIRECCIÓN" value={vals.stadAddress} onInput={vals.setStadAddress} placeholder="Calle y número" />
         <div style={css("display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px;")}>
