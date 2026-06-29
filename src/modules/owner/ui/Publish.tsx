@@ -1,7 +1,38 @@
-import { Btn, Card, Stack, Toggle, Stepper, QuantityStepper, Field, FileDropzone, SearchInput, VirtualList, EmptyState } from '@/lib'
+import { Btn, Card, Stack, Toggle, Stepper, QuantityStepper, Field, FileDropzone, SearchInput, VirtualList, EmptyState, Combobox } from '@/lib'
 import { css } from '@/shared/ui/css'
 import StadiumMap from '@/shared/ui/components/StadiumMap'
 import { usePublishVM } from './usePublishVM'
+
+/** Slot de subida de un documento único (imagen). Muestra la vista previa con
+ *  un botón para quitarla, o una zona de subida cuando todavía no hay archivo. */
+function DocSlot({ label, hint, value, onFiles, onRemove }: any) {
+  return (
+    <div>
+      <div style={{ fontFamily: "'Space Mono'", fontSize: '11px', letterSpacing: '.08em', color: 'var(--subtle-foreground,#6B7480)', marginBottom: '8px' }}>
+        {label}
+      </div>
+      {value ? (
+        <div style={{ position: 'relative', borderRadius: '13px', overflow: 'hidden', border: '1px solid var(--border,rgba(255,255,255,.12))', background: 'var(--card,#171B22)' }}>
+          <img src={value} alt={label} style={{ width: '100%', maxHeight: '200px', objectFit: 'cover', display: 'block' }} />
+          <button
+            onClick={onRemove}
+            aria-label="Quitar documento"
+            style={{
+              position: 'absolute', top: '8px', right: '8px', width: '26px', height: '26px',
+              display: 'grid', placeItems: 'center', borderRadius: '50%', cursor: 'pointer',
+              border: 'none', background: 'color-mix(in srgb, var(--background,#0E1116) 70%, transparent)',
+              color: 'var(--foreground,#F4EFE6)', fontFamily: "'Archivo'", fontWeight: 800, fontSize: '16px', lineHeight: 1,
+            }}
+          >
+            ×
+          </button>
+        </div>
+      ) : (
+        <FileDropzone accept="image/*" hint={hint || 'Subir imagen'} onFiles={onFiles} />
+      )}
+    </div>
+  )
+}
 
 export default function Publish() {
   const vals = usePublishVM()
@@ -44,8 +75,29 @@ export default function Publish() {
             {vals.wiz.stepName}
           </h1>
 
-          {/* STEP 0 — Estadio */}
+          {/* STEP 0 — País */}
           {vals.wiz.s0 ? (
+            <Stack gap={14} style={{ maxWidth: '520px' }}>
+              <p style={{ margin: 0, color: 'var(--muted-foreground,#9AA6B2)', fontSize: '15px' }}>
+                ¿En qué país está tu palco? Después vas a elegir el estadio dentro de ese país.
+              </p>
+              <Combobox
+                label="PAÍS"
+                options={vals.wiz.countryOptions}
+                value={vals.wiz.country}
+                onChange={vals.wiz.setCountry}
+                placeholder="Elegí un país…"
+              />
+              <div style={{ fontFamily: "'Space Mono'", fontSize: '11px', letterSpacing: '.08em', color: 'var(--subtle-foreground,#6B7480)' }}>
+                {vals.wiz.stadiumTotal === 0
+                  ? 'Todavía no hay estadios cargados en este país'
+                  : `${vals.wiz.stadiumTotal} ${vals.wiz.stadiumTotal === 1 ? 'estadio disponible' : 'estadios disponibles'}`}
+              </div>
+            </Stack>
+          ) : null}
+
+          {/* STEP 1 — Estadio */}
+          {vals.wiz.s1 ? (
             <Stack gap={14}>
               <p style={{ margin: 0, color: 'var(--muted-foreground,#9AA6B2)', fontSize: '15px' }}>
                 ¿En qué estadio está tu palco? Buscalo por nombre o ciudad.
@@ -67,7 +119,7 @@ export default function Publish() {
               {vals.wiz.stadiumNoResults ? (
                 <EmptyState
                   title="No encontramos estadios"
-                  description="Probá con otro nombre o ciudad."
+                  description="Probá con otro nombre o ciudad, o elegí otro país."
                 />
               ) : (
                 <VirtualList
@@ -106,8 +158,8 @@ export default function Publish() {
             </Stack>
           ) : null}
 
-          {/* STEP 1 — Ubicación */}
-          {vals.wiz.s1 ? (
+          {/* STEP 2 — Ubicación */}
+          {vals.wiz.s2 ? (
             <div style={css(vals.wizMapCol)}>
               <StadiumMap
                 stadium={vals.wiz.stadium}
@@ -132,8 +184,8 @@ export default function Publish() {
             </div>
           ) : null}
 
-          {/* STEP 2 — Asientos */}
-          {vals.wiz.s2 ? (
+          {/* STEP 3 — Asientos */}
+          {vals.wiz.s3 ? (
             <Stack gap={20} style={{ maxWidth: '520px' }}>
               <Field
                 label="NOMBRE DE LA PUBLICACIÓN"
@@ -159,44 +211,6 @@ export default function Publish() {
                   />
                 </Card>
               </div>
-            </Stack>
-          ) : null}
-
-          {/* STEP 3 — Fotos */}
-          {vals.wiz.s3 ? (
-            <Stack gap={18} style={{ maxWidth: '620px' }}>
-              <p style={{ margin: 0, color: 'var(--muted-foreground,#9AA6B2)', fontSize: '15px' }}>
-                Sumá fotos del palco: la vista desde los asientos, el interior, el bar. Es opcional, pero ayuda a que los hinchas se decidan más rápido.
-              </p>
-
-              <FileDropzone
-                accept="image/*"
-                multiple
-                hint="Arrastrá fotos o hacé clic para subir"
-                onFiles={vals.wiz.addImages}
-              />
-
-              {(vals.wiz.images || []).length > 0 ? (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(108px,1fr))', gap: '12px' }}>
-                  {(vals.wiz.images || []).map((src: string, i: number) => (
-                    <div key={i} style={{ position: 'relative', borderRadius: '13px', overflow: 'hidden', border: '1px solid var(--border,rgba(255,255,255,.12))', background: 'var(--card,#171B22)', aspectRatio: '1 / 1' }}>
-                      <img src={src} alt={'Foto ' + (i + 1)} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                      <button
-                        onClick={() => vals.wiz.removeImage(i)}
-                        aria-label="Quitar foto"
-                        style={{
-                          position: 'absolute', top: '6px', right: '6px', width: '24px', height: '24px',
-                          display: 'grid', placeItems: 'center', borderRadius: '50%', cursor: 'pointer',
-                          border: 'none', background: 'color-mix(in srgb, var(--background,#0E1116) 70%, transparent)',
-                          color: 'var(--foreground,#F4EFE6)', fontFamily: "'Archivo'", fontWeight: 800, fontSize: '15px', lineHeight: 1,
-                        }}
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              ) : null}
             </Stack>
           ) : null}
 
@@ -254,8 +268,173 @@ export default function Publish() {
             </>
           ) : null}
 
-          {/* STEP 5 — Modalidad y precios */}
+          {/* STEP 5 — Comodidades */}
           {vals.wiz.s5 ? (
+            <Stack gap={18} style={{ maxWidth: '620px' }}>
+              <p style={{ margin: 0, color: 'var(--muted-foreground,#9AA6B2)', fontSize: '15px' }}>
+                Marcá todo lo que tiene el palco. Podés sumar las comodidades que quieras.
+              </p>
+
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                {(vals.wiz.amenityChips || []).map((a: any) => (
+                  <button
+                    key={a.name}
+                    onClick={a.toggle}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '8px',
+                      padding: '9px 14px', borderRadius: '999px', cursor: 'pointer',
+                      fontFamily: "'Archivo'", fontWeight: 700, fontSize: '14px',
+                      background: a.selected ? 'color-mix(in srgb, var(--primary,#C9A24B) 18%, transparent)' : 'var(--background,#0E1116)',
+                      border: '1.5px solid ' + (a.selected ? 'var(--primary,#C9A24B)' : 'var(--border,rgba(255,255,255,.14))'),
+                      color: a.selected ? 'var(--foreground,#F4EFE6)' : 'var(--muted-foreground,#9AA6B2)',
+                    }}
+                  >
+                    <span style={{ width: '16px', height: '16px', borderRadius: '50%', display: 'grid', placeItems: 'center', background: a.selected ? 'var(--primary,#C9A24B)' : 'transparent', border: a.selected ? 'none' : '1.5px solid var(--border,rgba(255,255,255,.2))' }}>
+                      {a.selected ? (
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--primary-foreground,#1A1407)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
+                      ) : null}
+                    </span>
+                    {a.name}
+                  </button>
+                ))}
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                <div style={{ flex: 1, minWidth: '220px' }}>
+                  <Field
+                    label="AGREGAR OTRA COMODIDAD"
+                    value={vals.wiz.amenityDraft}
+                    onInput={vals.wiz.setAmenityDraft}
+                    placeholder="Ej. Sommelier, Calefacción radiante…"
+                  />
+                </div>
+                <Btn label="Agregar" variant="secondary" size="lg" onClick={vals.wiz.addAmenity} />
+              </div>
+
+              <div style={{ fontFamily: "'Space Mono'", fontSize: '11px', letterSpacing: '.08em', color: 'var(--subtle-foreground,#6B7480)' }}>
+                {vals.wiz.amenityCount} {vals.wiz.amenityCount === 1 ? 'comodidad elegida' : 'comodidades elegidas'}
+              </div>
+            </Stack>
+          ) : null}
+
+          {/* STEP 6 — Fotos */}
+          {vals.wiz.s6 ? (
+            <Stack gap={18} style={{ maxWidth: '620px' }}>
+              <p style={{ margin: 0, color: 'var(--muted-foreground,#9AA6B2)', fontSize: '15px' }}>
+                Subí al menos <strong style={{ color: 'var(--foreground,#F4EFE6)' }}>{vals.wiz.photosMin} fotos</strong> del palco: la vista desde los asientos, el interior, el bar. Cuantas más sumes, más rápido se deciden los hinchas.
+              </p>
+
+              <FileDropzone
+                accept="image/*"
+                multiple
+                hint="Arrastrá fotos o hacé clic para subir"
+                onFiles={vals.wiz.addImages}
+              />
+
+              <div style={{ fontFamily: "'Space Mono'", fontSize: '11px', letterSpacing: '.08em', color: vals.wiz.photosEnough ? 'var(--success,#5BBF8A)' : 'var(--subtle-foreground,#6B7480)' }}>
+                {vals.wiz.photosEnough
+                  ? `${vals.wiz.photosCount} fotos ✓`
+                  : `${vals.wiz.photosCount} de ${vals.wiz.photosMin} · faltan ${vals.wiz.photosLeft}`}
+              </div>
+
+              {(vals.wiz.images || []).length > 0 ? (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(108px,1fr))', gap: '12px' }}>
+                  {(vals.wiz.images || []).map((src: string, i: number) => (
+                    <div key={i} style={{ position: 'relative', borderRadius: '13px', overflow: 'hidden', border: '1px solid var(--border,rgba(255,255,255,.12))', background: 'var(--card,#171B22)', aspectRatio: '1 / 1' }}>
+                      <img src={src} alt={'Foto ' + (i + 1)} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                      <button
+                        onClick={() => vals.wiz.removeImage(i)}
+                        aria-label="Quitar foto"
+                        style={{
+                          position: 'absolute', top: '6px', right: '6px', width: '24px', height: '24px',
+                          display: 'grid', placeItems: 'center', borderRadius: '50%', cursor: 'pointer',
+                          border: 'none', background: 'color-mix(in srgb, var(--background,#0E1116) 70%, transparent)',
+                          color: 'var(--foreground,#F4EFE6)', fontFamily: "'Archivo'", fontWeight: 800, fontSize: '15px', lineHeight: 1,
+                        }}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </Stack>
+          ) : null}
+
+          {/* STEP 7 — Co-propietarios */}
+          {vals.wiz.s7 ? (
+            <Stack gap={16} style={{ maxWidth: '620px' }}>
+              <p style={{ margin: 0, color: 'var(--muted-foreground,#9AA6B2)', fontSize: '15px' }}>
+                ¿El palco tiene más dueños? Sumá a cada co-propietario con su nombre y email. Es opcional.
+              </p>
+
+              {(vals.wiz.coOwners || []).length > 0 ? (
+                <Stack gap={12}>
+                  {(vals.wiz.coOwners || []).map((c: any, i: number) => (
+                    <Card key={i} padding="16px 18px">
+                      <Stack direction="row" justify="space-between" align="center" style={{ marginBottom: '12px' }}>
+                        <div style={{ fontFamily: "'Space Mono'", fontSize: '11px', letterSpacing: '.08em', color: 'var(--subtle-foreground,#6B7480)' }}>
+                          CO-PROPIETARIO {i + 1}
+                        </div>
+                        <button
+                          onClick={c.remove}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--destructive,#E5604D)', fontFamily: "'Archivo'", fontWeight: 700, fontSize: '13px' }}
+                        >
+                          Quitar
+                        </button>
+                      </Stack>
+                      <Stack gap={12}>
+                        <Field label="NOMBRE" value={c.name} onInput={c.setName} placeholder="Nombre y apellido" />
+                        <Field label="EMAIL" type="email" value={c.email} onInput={c.setEmail} placeholder="email@ejemplo.com" />
+                      </Stack>
+                    </Card>
+                  ))}
+                </Stack>
+              ) : null}
+
+              <div>
+                <Btn label="Agregar co-propietario" variant="secondary" size="lg" onClick={vals.wiz.addCoOwner} />
+              </div>
+            </Stack>
+          ) : null}
+
+          {/* STEP 8 — Cobro */}
+          {vals.wiz.s8 ? (
+            <Stack gap={20} style={{ maxWidth: '620px' }}>
+              <p style={{ margin: 0, color: 'var(--muted-foreground,#9AA6B2)', fontSize: '15px' }}>
+                Necesitamos los datos de la cuenta donde vas a cobrar y la documentación que respalda la titularidad del palco.
+              </p>
+
+              <Stack gap={14}>
+                <Combobox
+                  label="PAÍS DE LA CUENTA BANCARIA"
+                  options={vals.wiz.countryOptions}
+                  value={vals.wiz.payout.country}
+                  onChange={vals.wiz.payout.setCountry}
+                  placeholder="Elegí un país…"
+                />
+                <Field label="SWIFT / BIC (OPCIONAL)" value={vals.wiz.payout.swift} onInput={vals.wiz.payout.setSwift} placeholder="Ej. BROUUYMM" />
+                <Field label="BANCO" value={vals.wiz.payout.bank} onInput={vals.wiz.payout.setBank} placeholder="Nombre del banco" />
+                <Field label="NOMBRE COMPLETO DEL BENEFICIARIO" value={vals.wiz.payout.beneficiary} onInput={vals.wiz.payout.setBeneficiary} placeholder="Titular de la cuenta" />
+                <Field label="NÚMERO DE CUENTA BANCARIA" value={vals.wiz.payout.accountNumber} onInput={vals.wiz.payout.setAccountNumber} placeholder="Nº de cuenta" />
+                <Field label="SUCURSAL DEL BANCO" value={vals.wiz.payout.branch} onInput={vals.wiz.payout.setBranch} placeholder="Sucursal" />
+              </Stack>
+
+              <div style={{ fontFamily: "'Space Mono'", fontSize: '11px', letterSpacing: '.08em', color: 'var(--subtle-foreground,#6B7480)' }}>
+                DOCUMENTACIÓN
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: '16px' }}>
+                <DocSlot label="DOCUMENTO DE IDENTIDAD · ANVERSO" hint="Subir anverso" value={vals.wiz.payout.idFront} onFiles={vals.wiz.payout.addIdFront} onRemove={vals.wiz.payout.removeIdFront} />
+                <DocSlot label="DOCUMENTO DE IDENTIDAD · REVERSO" hint="Subir reverso" value={vals.wiz.payout.idBack} onFiles={vals.wiz.payout.addIdBack} onRemove={vals.wiz.payout.removeIdBack} />
+                <DocSlot label="COMPROBANTE DE DOMICILIO (≤ 3 MESES)" hint="Subir comprobante" value={vals.wiz.payout.proofOfAddress} onFiles={vals.wiz.payout.addProofOfAddress} onRemove={vals.wiz.payout.removeProofOfAddress} />
+                <DocSlot label="TÍTULO DE PROPIEDAD DEL PALCO" hint="Subir título" value={vals.wiz.payout.propertyTitle} onFiles={vals.wiz.payout.addPropertyTitle} onRemove={vals.wiz.payout.removePropertyTitle} />
+              </div>
+            </Stack>
+          ) : null}
+
+          {/* STEP 9 — Modalidad y precios */}
+          {vals.wiz.s9 ? (
             <>
               <p style={{ margin: '0 0 18px', color: 'var(--muted-foreground,#9AA6B2)', fontSize: '15px' }}>
                 Activá las modalidades de alquiler y poné su precio. Podés combinar varias.

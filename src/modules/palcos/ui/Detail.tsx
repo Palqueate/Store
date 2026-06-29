@@ -70,6 +70,23 @@ export default function Detail() {
             <StatTile data={{ label: 'RATING DE HUÉSPEDES', value: vals.det.rating, icon: 'star', accent: true }} />
           </div>
 
+          {/* Amenities */}
+          {(vals.det.amenities || []).length > 0 ? (
+            <div>
+              <h3 style={{ margin: '0 0 12px', fontFamily: 'Archivo', fontWeight: 800, fontSize: '20px', letterSpacing: '-.02em', color: 'var(--foreground,#F4EFE6)' }}>
+                Comodidades
+              </h3>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '9px' }}>
+                {(vals.det.amenities || []).map((a: string, i: number) => (
+                  <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', padding: '8px 13px', borderRadius: '999px', background: 'var(--card,#171B22)', border: '1px solid var(--border,rgba(255,255,255,.12))', fontFamily: 'Archivo', fontWeight: 600, fontSize: '13.5px', color: 'var(--foreground,#F4EFE6)' }}>
+                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--primary,#C9A24B)' }} />
+                    {a}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
           {/* Stadium map */}
           <div>
             <h3 style={{ margin: '0 0 6px', fontFamily: 'Archivo', fontWeight: 800, fontSize: '20px', letterSpacing: '-.02em', color: 'var(--foreground,#F4EFE6)' }}>

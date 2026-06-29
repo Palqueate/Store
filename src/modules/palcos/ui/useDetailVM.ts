@@ -14,6 +14,7 @@ export function useDetailVM(): any {
     det.host = dp.host; det.seatsN = dp.seats; det.stadium = dp.stadium; det.stadiumMap = (STADIUMS[dp.stadium] || {}).mapImage || ''; det.markers = dvm.markers; det.photos = dp.photos; det.images = dp.images || []
     det.parkLabel = dp.parking.has ? (dp.parking.n + (dp.parking.n > 1 ? ' autos' : ' auto')) : 'No incluye'
     det.parkHas = dp.parking.has
+    det.amenities = dp.amenities || []
     det.modeCards = dvm.modeDefs.filter(function (m) { return m.on }).map(function (m) {
       var on = s.mode === m.key
       return { key: m.key, title: m.title, sub: m.sub, term: m.term, price: self.money(m.price), check: on, pick: function () { self.setMode(m.key) },

@@ -1,21 +1,51 @@
 // @ts-nocheck
 // Owner publish wizard state + flow.
 import { readImagesAsDataUrls } from '@/shared/lib/readImages'
+import { DEFAULT_COUNTRY } from '@/shared/domain/countries'
 
 const scrollTop = () => { if (typeof window !== 'undefined') { try { window.scrollTo(0, 0) } catch (e) {} } }
 
-// Wizard step indices: 0 Estadio · 1 Ubicación · 2 Asientos · 3 Fotos ·
-// 4 Estacionamiento · 5 Precios. Fotos (3) is optional; Precios (5) is final.
+// Comodidades sugeridas. El palquista puede sumar las suyas además de estas.
+export const DEFAULT_AMENITIES = ['Wi-Fi', 'Cocina', 'Heladera', 'Televisión', 'Baño', 'Aire acondicionado', 'Calefacción', 'Bar', 'Parrillero']
+
+const MIN_PHOTOS = 3
+
+const emptyPayout = () => ({ country: DEFAULT_COUNTRY, swift: '', bank: '', beneficiary: '', accountNumber: '', branch: '', idFront: '', idBack: '', proofOfAddress: '', propertyTitle: '' })
+
+const isEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((v || '').trim())
+
+// Wizard step indices: 0 País · 1 Estadio · 2 Ubicación · 3 Asientos ·
+// 4 Estacionamiento · 5 Comodidades · 6 Fotos · 7 Co-propietarios ·
+// 8 Cobro · 9 Precios. Precios (9) es el paso final que publica.
+const LAST_STEP = 9
+
 export const createOwnerSlice = (set, get) => ({
   wz: null,
 
-  startWizard: () => { set({ wz: { editId: null, step: 0, stadium: 'gpc', x: null, y: null, title: '', seats: 10, images: [], parkHas: true, parkN: 2, mPalco: true, pricePalco: 1200000, mSeatY: true, priceSeatY: 95000, mSeatE: true, priceSeatE: 6500 } }); get().go('publish') },
+  // Stadiums (ids) located in a given country.
+  _wzStadiumsInCountry: (country) => {
+    const st = get().stadiums
+    return Object.keys(st).filter((k) => (st[k].country || '') === country)
+  },
+
+  startWizard: () => {
+    const country = DEFAULT_COUNTRY
+    const inCountry = get()._wzStadiumsInCountry(country)
+    const stadium = inCountry.indexOf('gpc') >= 0 ? 'gpc' : (inCountry[0] || '')
+    set({ wz: { editId: null, step: 0, country, stadium, x: null, y: null, title: '', seats: 10, parkHas: true, parkN: 2, amenities: [], coOwners: [], images: [], payout: emptyPayout(), mPalco: true, pricePalco: 1200000, mSeatY: true, priceSeatY: 95000, mSeatE: true, priceSeatE: 6500 } })
+    get().go('publish')
+  },
   startEditWizard: (id) => {
     const p = get().byId(id); if (!p) return
+    const stadCountry = (get().stadiums[p.stadium] || {}).country || DEFAULT_COUNTRY
     set({ wz: {
-      editId: p.id, step: 0, stadium: p.stadium, x: p.map.x, y: p.map.y, title: p.title,
-      seats: p.seats, images: (p.images || []).slice(),
+      editId: p.id, step: 0, country: p.country || stadCountry, stadium: p.stadium, x: p.map.x, y: p.map.y, title: p.title,
+      seats: p.seats,
       parkHas: p.parking.has, parkN: p.parking.n || 1,
+      amenities: (p.amenities || []).slice(),
+      coOwners: (p.coOwners || []).map((c) => ({ name: c.name, email: c.email })),
+      images: (p.images || []).slice(),
+      payout: { ...emptyPayout(), ...(p.payout || {}) },
       mPalco: p.modes.palcoYear.on, pricePalco: p.modes.palcoYear.price,
       mSeatY: p.modes.seatYear.on, priceSeatY: p.modes.seatYear.price,
       mSeatE: p.modes.seatEvent.on, priceSeatE: p.modes.seatEvent.price,
@@ -23,11 +53,88 @@ export const createOwnerSlice = (set, get) => ({
     get().go('publish')
   },
   wzSet: (patch) => set({ wz: { ...get().wz, ...patch } }),
+
+  // País: al cambiarlo, re-seleccionamos un estadio de ese país (o lo limpiamos
+  // si todavía no hay ninguno cargado allí).
+  wzSetCountry: (country) => {
+    const w = get().wz; if (!w) return
+    const inCountry = get()._wzStadiumsInCountry(country)
+    const stadium = inCountry.indexOf(w.stadium) >= 0 ? w.stadium : (inCountry[0] || '')
+    get().wzSet({ country, stadium })
+  },
+
+  // Comodidades: alterna una de la lista o de las agregadas.
+  wzToggleAmenity: (name) => {
+    const w = get().wz; if (!w) return
+    const cur = w.amenities || []
+    get().wzSet({ amenities: cur.indexOf(name) >= 0 ? cur.filter((a) => a !== name) : cur.concat([name]) })
+  },
+  wzAddAmenity: (name) => {
+    const w = get().wz; if (!w) return
+    const clean = (name || '').trim(); if (!clean) return
+    const cur = w.amenities || []
+    if (cur.some((a) => a.toLowerCase() === clean.toLowerCase())) return
+    get().wzSet({ amenities: cur.concat([clean]) })
+  },
+
+  // Co-propietarios: lista de { name, email }.
+  wzAddCoOwner: () => {
+    const w = get().wz; if (!w) return
+    get().wzSet({ coOwners: (w.coOwners || []).concat([{ name: '', email: '' }]) })
+  },
+  wzSetCoOwner: (index, key, value) => {
+    const w = get().wz; if (!w) return
+    get().wzSet({ coOwners: (w.coOwners || []).map((c, i) => (i === index ? { ...c, [key]: value } : c)) })
+  },
+  wzRemoveCoOwner: (index) => {
+    const w = get().wz; if (!w) return
+    get().wzSet({ coOwners: (w.coOwners || []).filter((_, i) => i !== index) })
+  },
+
+  // Datos de cobro.
+  wzSetPayout: (key, value) => {
+    const w = get().wz; if (!w) return
+    get().wzSet({ payout: { ...(w.payout || emptyPayout()), [key]: value } })
+  },
+  wzAddPayoutDoc: async (key, files) => {
+    const list = Array.from(files || []); if (!list.length) return
+    const urls = await readImagesAsDataUrls(list)
+    const w = get().wz; if (!w || !urls.length) return
+    get().wzSet({ payout: { ...(w.payout || emptyPayout()), [key]: urls[0] } })
+  },
+  wzRemovePayoutDoc: (key) => {
+    const w = get().wz; if (!w) return
+    get().wzSet({ payout: { ...(w.payout || emptyPayout()), [key]: '' } })
+  },
+
   wzNext: () => {
     const w = get().wz; if (!w) return
-    if (w.step === 1 && w.x == null) return get().flash('Tocá el plano para ubicar el palco')
-    if (w.step === 2 && (!w.seats || w.seats < 1)) return get().flash('Indicá cuántos asientos tiene')
-    if (w.step === 5) { if (!(w.mPalco || w.mSeatY || w.mSeatE)) return get().flash('Activá al menos una modalidad'); return get().publishPalco() }
+    if (w.step === 0 && !w.stadium) return get().flash('Agregá o elegí un estadio en ese país')
+    if (w.step === 1 && !w.stadium) return get().flash('Elegí el estadio donde está tu palco')
+    if (w.step === 2 && w.x == null) return get().flash('Tocá el plano para ubicar el palco')
+    if (w.step === 3 && (!w.seats || w.seats < 1)) return get().flash('Indicá cuántos asientos tiene')
+    if (w.step === 5 && (!(w.amenities || []).length)) return get().flash('Elegí al menos una comodidad')
+    if (w.step === 6 && (w.images || []).length < MIN_PHOTOS) return get().flash('Subí al menos ' + MIN_PHOTOS + ' fotos del palco')
+    if (w.step === 7) {
+      const co = w.coOwners || []
+      for (let i = 0; i < co.length; i++) {
+        if (!(co[i].name || '').trim()) return get().flash('Completá el nombre del co-propietario ' + (i + 1))
+        if (!isEmail(co[i].email)) return get().flash('Ingresá un email válido para el co-propietario ' + (i + 1))
+      }
+    }
+    if (w.step === 8) {
+      const p = w.payout || {}
+      if (!(p.country || '').trim()) return get().flash('Indicá el país de la cuenta bancaria')
+      if (!(p.bank || '').trim()) return get().flash('Indicá el banco')
+      if (!(p.beneficiary || '').trim()) return get().flash('Indicá el nombre del beneficiario bancario')
+      if (!(p.accountNumber || '').trim()) return get().flash('Indicá el número de cuenta bancaria')
+      if (!(p.branch || '').trim()) return get().flash('Indicá la sucursal del banco')
+      if (!p.idFront) return get().flash('Subí el anverso del documento de identidad')
+      if (!p.idBack) return get().flash('Subí el reverso del documento de identidad')
+      if (!p.proofOfAddress) return get().flash('Subí el comprobante de domicilio')
+      if (!p.propertyTitle) return get().flash('Subí el título de propiedad del palco')
+    }
+    if (w.step === LAST_STEP) { if (!(w.mPalco || w.mSeatY || w.mSeatE)) return get().flash('Activá al menos una modalidad'); return get().publishPalco() }
     get().wzSet({ step: w.step + 1 }); scrollTop()
   },
   wzBack: () => { const w = get().wz; if (!w) return; if (w.step === 0) return get().go('owner'); get().wzSet({ step: w.step - 1 }); scrollTop() },
@@ -44,16 +151,21 @@ export const createOwnerSlice = (set, get) => ({
   publishPalco: () => {
     const w = get().wz
     const imgs = w.images || []
+    const country = (get().stadiums[w.stadium] || {}).country || w.country || DEFAULT_COUNTRY
+    const amenities = (w.amenities || []).slice()
+    const coOwners = (w.coOwners || []).filter((c) => (c.name || '').trim() && (c.email || '').trim()).map((c) => ({ name: c.name.trim(), email: c.email.trim() }))
+    const payout = { ...emptyPayout(), ...(w.payout || {}) }
     if (w.editId) {
       const prev = get().byId(w.editId); if (!prev) { set({ wz: null }); return get().go('owner') }
       // Preserve identity, reputation and already-rented seats while applying the edits.
       const np = {
         ...prev,
-        stadium: w.stadium, title: (w.title || '').trim() || 'Mi palco',
+        stadium: w.stadium, country, title: (w.title || '').trim() || 'Mi palco',
         sector: get().stadiums[w.stadium].name + ' · Nivel Palcos',
         map: { x: w.x == null ? 50 : w.x, y: w.y == null ? 14 : w.y },
         seats: w.seats || 1,
         parking: { has: w.parkHas, n: w.parkHas ? (w.parkN || 1) : 0 },
+        amenities, coOwners, payout,
         photos: imgs.length, images: imgs,
         modes: {
           palcoYear: { on: w.mPalco, price: w.pricePalco || 0 },
@@ -67,7 +179,7 @@ export const createOwnerSlice = (set, get) => ({
       return
     }
     const id = 'px' + Date.now()
-    const np = { id, stadium: w.stadium, title: (w.title || '').trim() || 'Mi palco', sector: get().stadiums[w.stadium].name + ' · Nivel Palcos', map: { x: w.x == null ? 50 : w.x, y: w.y == null ? 14 : w.y }, seats: w.seats || 1, parking: { has: w.parkHas, n: w.parkHas ? (w.parkN || 1) : 0 }, host: 'Vos (demo)', rating: 5.0, photos: imgs.length, images: imgs, modes: { palcoYear: { on: w.mPalco, price: w.pricePalco || 0 }, seatYear: { on: w.mSeatY, price: w.priceSeatY || 0, taken: [] }, seatEvent: { on: w.mSeatE, price: w.priceSeatE || 0, taken: {} } }, status: 'publicado' }
+    const np = { id, stadium: w.stadium, country, title: (w.title || '').trim() || 'Mi palco', sector: get().stadiums[w.stadium].name + ' · Nivel Palcos', map: { x: w.x == null ? 50 : w.x, y: w.y == null ? 14 : w.y }, seats: w.seats || 1, parking: { has: w.parkHas, n: w.parkHas ? (w.parkN || 1) : 0 }, amenities, coOwners, payout, host: 'Vos (demo)', rating: 5.0, photos: imgs.length, images: imgs, modes: { palcoYear: { on: w.mPalco, price: w.pricePalco || 0 }, seatYear: { on: w.mSeatY, price: w.priceSeatY || 0, taken: [] }, seatEvent: { on: w.mSeatE, price: w.priceSeatE || 0, taken: {} } }, status: 'publicado' }
     get().publishPalcoEntity(np)
     set({ palcos: get().palcos.concat([np]), wz: null }); get().flash('¡Palco publicado!'); get().go('owner')
   },
