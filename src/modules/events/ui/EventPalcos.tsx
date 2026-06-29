@@ -27,37 +27,25 @@ export default function EventPalcos() {
         />
       </div>
 
-      {/* Event header */}
+      {/* Event header — hero: la imagen es protagonista y la info va sobreimpresa */}
       <Card
-        padding="18px"
+        padding="0"
         style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: '16px',
-          alignItems: 'center',
-          background: 'linear-gradient(110deg, var(--card,#171B22), var(--muted,#1F2530))',
+          position: 'relative',
+          overflow: 'hidden',
           marginBottom: '26px',
           borderRadius: '18px',
+          minHeight: 'clamp(240px, 36vw, 380px)',
+          background: 'linear-gradient(125deg, var(--card,#171B22), var(--muted,#1F2530))',
         }}
       >
-        {/* Date badge */}
-        <div style={{
-          flex: '0 0 auto', width: '78px', textAlign: 'center', borderRadius: '13px',
-          background: 'var(--background,#0E1116)', border: '1px solid var(--border,rgba(255,255,255,.1))',
-          padding: '11px 0',
-        }}>
-          <div style={{ fontFamily: "'Space Mono'", fontSize: '11px', letterSpacing: '.1em', color: 'var(--subtle-foreground,#6B7480)' }}>{vals.ep.dow}</div>
-          <div style={{ fontFamily: "'Archivo'", fontWeight: 900, fontSize: '32px', lineHeight: 1, letterSpacing: '-.03em', color: 'var(--foreground,#F4EFE6)', margin: '2px 0' }}>{vals.ep.day}</div>
-          <div style={{ fontFamily: "'Space Mono'", fontSize: '11px', letterSpacing: '.1em', color: 'var(--primary,#C9A24B)' }}>{vals.ep.month}</div>
-        </div>
-
-        {/* Event images — inline carousel, only when at least one was uploaded */}
+        {/* Capa de fondo: imagen(es) del evento a todo el ancho */}
         {(vals.ep.images || []).length > 0 ? (
-          <div style={{ flex: '0 0 auto', width: 'clamp(200px, 32vw, 280px)', height: '150px', borderRadius: '13px', overflow: 'hidden', border: '1px solid var(--border,rgba(255,255,255,.1))' }}>
+          <div style={{ position: 'absolute', inset: 0 }}>
             <Carousel
               showArrows
               showDots
-              height={150}
+              height="100%"
               slides={vals.ep.images.map((src: string, i: number) => (
                 <img key={i} src={src} alt={(vals.ep.opp || '') + ' · ' + (i + 1)} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
               ))}
@@ -65,28 +53,44 @@ export default function EventPalcos() {
           </div>
         ) : null}
 
-        {/* Event info */}
-        <div style={{ flex: 1, minWidth: '200px' }}>
-          <Stack direction="row" align="center" gap={8} style={{ marginBottom: '6px' }}>
+        {/* Degradados para que el texto sobreimpreso sea legible sobre cualquier imagen */}
+        <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'linear-gradient(180deg, rgba(8,10,14,0) 0%, rgba(8,10,14,.25) 42%, rgba(8,10,14,.92) 100%)' }} />
+        <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'linear-gradient(96deg, rgba(8,10,14,.6) 0%, rgba(8,10,14,.15) 45%, rgba(8,10,14,0) 70%)' }} />
+
+        {/* Chip de fecha (arriba izquierda) */}
+        <div style={{
+          position: 'absolute', top: '16px', left: '16px', textAlign: 'center', minWidth: '64px',
+          padding: '9px 12px', borderRadius: '13px',
+          background: 'rgba(8,10,14,.5)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+          border: '1px solid rgba(255,255,255,.16)',
+        }}>
+          <div style={{ fontFamily: "'Space Mono'", fontSize: '11px', letterSpacing: '.1em', color: 'rgba(255,255,255,.72)' }}>{vals.ep.dow}</div>
+          <div style={{ fontFamily: "'Archivo'", fontWeight: 900, fontSize: '30px', lineHeight: 1, letterSpacing: '-.03em', color: '#fff', margin: '2px 0' }}>{vals.ep.day}</div>
+          <div style={{ fontFamily: "'Space Mono'", fontSize: '11px', letterSpacing: '.1em', color: 'var(--primary,#C9A24B)' }}>{vals.ep.month}</div>
+        </div>
+
+        {/* Info sobreimpresa (abajo) */}
+        <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: 'clamp(16px,3vw,28px)', pointerEvents: 'none' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
             <span style={css(vals.ep.tagStyle)}>{vals.ep.tag}</span>
-            <span style={{ fontFamily: "'Space Mono'", fontSize: '12px', color: 'var(--muted-foreground,#9AA6B2)' }}>
+            <span style={{ fontFamily: "'Space Mono'", fontSize: '12px', color: 'rgba(255,255,255,.82)' }}>
               {vals.ep.comp}{vals.ep.round ? ' · ' + vals.ep.round : ''} · {vals.ep.multiDate && !vals.ep.hasOccSelected ? 'Varias funciones' : vals.ep.time + ' hs'}
             </span>
-          </Stack>
-          <h1 style={{ margin: '0 0 4px', fontFamily: "'Archivo'", fontWeight: 900, fontStretch: '112%', letterSpacing: '-.03em', fontSize: 'clamp(26px,4.2vw,40px)', color: 'var(--foreground,#F4EFE6)' }}>
+          </div>
+          <h1 style={{ margin: '0 0 6px', fontFamily: "'Archivo'", fontWeight: 900, fontStretch: '112%', letterSpacing: '-.03em', fontSize: 'clamp(30px,5vw,52px)', lineHeight: 1.02, color: '#fff', textShadow: '0 2px 18px rgba(0,0,0,.5)' }}>
             {vals.ep.opp}
           </h1>
-          <Stack direction="row" align="center" gap={6} style={{ fontSize: '14px', color: 'var(--muted-foreground,#9AA6B2)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', color: 'rgba(255,255,255,.9)' }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
               <circle cx="12" cy="10" r="3" />
             </svg>
             {vals.ep.stadiumName}
-          </Stack>
+          </div>
           {vals.ep.obs ? (
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginTop: '12px', padding: '10px 12px', borderRadius: '10px', background: 'color-mix(in srgb, var(--primary,#C9A24B) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--primary,#C9A24B) 30%, transparent)' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginTop: '14px', maxWidth: '560px', padding: '10px 12px', borderRadius: '10px', background: 'rgba(8,10,14,.55)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', border: '1px solid color-mix(in srgb, var(--primary,#C9A24B) 38%, transparent)' }}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--primary,#C9A24B)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flex: '0 0 auto', marginTop: '1px' }}><circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" /></svg>
-              <span style={{ fontSize: '13.5px', lineHeight: 1.45, color: 'var(--foreground,#F4EFE6)' }}>{vals.ep.obs}</span>
+              <span style={{ fontSize: '13.5px', lineHeight: 1.45, color: '#fff' }}>{vals.ep.obs}</span>
             </div>
           ) : null}
         </div>
