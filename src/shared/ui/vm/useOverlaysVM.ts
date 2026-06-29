@@ -134,6 +134,7 @@ export function useOverlaysVM(): any {
     evComp: s.evDraft.comp,
     evRound: s.evDraft.round,
     evOpp: s.evDraft.opp,
+    evObs: s.evDraft.obs,
     evImages: s.evDraft.images,
     addEvImages: function (files) { self.adminAddEventImages(files) },
     removeEvImage: function (i) { self.adminRemoveEventImage(i) },
@@ -145,6 +146,7 @@ export function useOverlaysVM(): any {
     setEvComp: function (e) { self.setEvDraft('comp', e.target.value) },
     setEvRound: function (e) { self.setEvDraft('round', e.target.value) },
     setEvOpp: function (e) { self.setEvDraft('opp', e.target.value) },
+    setEvObs: function (v) { self.setEvDraft('obs', v) },
 
     // ── StadiumModal ──
     adminStadModal: s.adminStadModal,

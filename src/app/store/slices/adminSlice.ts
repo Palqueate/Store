@@ -24,7 +24,7 @@ export const createAdminSlice = (set, get) => ({
   palcoReviewId: null,
   palcoReviewReason: '',
   palcoReviewFlags: {},
-  evDraft: { type: 'futbol', stadium: 'gpc', country: DEFAULT_COUNTRY, date: '', time: '17:00', comp: '', round: '', opp: '', images: [] },
+  evDraft: { type: 'futbol', stadium: 'gpc', country: DEFAULT_COUNTRY, date: '', time: '17:00', comp: '', round: '', opp: '', images: [], obs: '' },
   stadDraft: { name: '', short: '', city: 'Montevideo', country: DEFAULT_COUNTRY, address: '', capacity: '', year: '', surface: '', levels: '2', roof: 'no', mapImage: '' },
 
   isAdmin: () => !!(get().user && get().user.admin),
@@ -59,7 +59,7 @@ export const createAdminSlice = (set, get) => ({
     const country = (firstStad && firstStad.country) || DEFAULT_COUNTRY
     const inCountry = get()._stadiumsInCountry(country)
     const stadium = inCountry.indexOf(firstId) >= 0 ? firstId : (inCountry[0] || '')
-    set({ adminEvModal: true, evEditId: null, evDraft: { type: 'futbol', stadium, country, date: '', time: '17:00', comp: '', round: '', opp: '', images: [] } })
+    set({ adminEvModal: true, evEditId: null, evDraft: { type: 'futbol', stadium, country, date: '', time: '17:00', comp: '', round: '', opp: '', images: [], obs: '' } })
   },
   openEvModalEdit: (id) => {
     const ev = get().events.find((e) => e.id === id); if (!ev) return
@@ -67,7 +67,7 @@ export const createAdminSlice = (set, get) => ({
       adminEvModal: true, evEditId: id,
       evDraft: {
         type: ev.type || 'futbol', stadium: ev.stadium, country: ev.country, date: ev.iso || '', time: ev.time || '17:00',
-        comp: ev.comp || '', round: ev.round || '', opp: ev.opp || '', images: (ev.images || []).slice(),
+        comp: ev.comp || '', round: ev.round || '', opp: ev.opp || '', images: (ev.images || []).slice(), obs: ev.obs || '',
       },
     })
   },
@@ -109,7 +109,7 @@ export const createAdminSlice = (set, get) => ({
     const stadCountry = (get().stadiums[d.stadium] || {}).country
     const country = (d.country || stadCountry || DEFAULT_COUNTRY)
     const editId = get().evEditId
-    const base = { stadium: d.stadium, type: d.type, comp, round: (d.round || '').trim(), opp: (d.opp || '').trim(), month: fd.month, day: fd.day, dow: fd.dow, iso: d.date, time: d.time || '17:00', tag: et.tag, label: comp + ((d.round || '').trim() ? (' · ' + d.round.trim()) : ''), images: d.images || [], country }
+    const base = { stadium: d.stadium, type: d.type, comp, round: (d.round || '').trim(), opp: (d.opp || '').trim(), month: fd.month, day: fd.day, dow: fd.dow, iso: d.date, time: d.time || '17:00', tag: et.tag, label: comp + ((d.round || '').trim() ? (' · ' + d.round.trim()) : ''), images: d.images || [], obs: (d.obs || '').trim(), country }
     if (editId) {
       const ev = { ...base, id: editId }
       updateEvent(container.events, ev)

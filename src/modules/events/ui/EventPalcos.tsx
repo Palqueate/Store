@@ -75,6 +75,12 @@ export default function EventPalcos() {
             </svg>
             {vals.ep.stadiumName}
           </Stack>
+          {vals.ep.obs ? (
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginTop: '12px', padding: '10px 12px', borderRadius: '10px', background: 'color-mix(in srgb, var(--primary,#C9A24B) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--primary,#C9A24B) 30%, transparent)' }}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--primary,#C9A24B)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flex: '0 0 auto', marginTop: '1px' }}><circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" /></svg>
+              <span style={{ fontSize: '13.5px', lineHeight: 1.45, color: 'var(--foreground,#F4EFE6)' }}>{vals.ep.obs}</span>
+            </div>
+          ) : null}
         </div>
       </Card>
 

@@ -170,6 +170,7 @@ export function EventModal() {
           <Field label="COMPETICIÓN" value={vals.evComp} onInput={vals.setEvComp} placeholder="Ej. Torneo Apertura" />
           <Field label="INSTANCIA (OPCIONAL)" value={vals.evRound} onInput={vals.setEvRound} placeholder="Ej. Fecha 7" />
         </div>
+        <Textarea label="OBSERVACIÓN (OPCIONAL)" rows={2} value={vals.evObs} onInput={vals.setEvObs} placeholder="Ej. Apertura de puertas 16hs · evento sujeto a clima…" />
         <div>
           <label style={css("display:block; font-family:'Space Mono'; font-size:10px; letter-spacing:.08em; color:var(--subtle-foreground,#6B7480); margin-bottom:6px;")}>IMÁGENES DEL EVENTO (OPCIONAL)</label>
           <FileDropzone accept="image/*" multiple hint="Arrastrá imágenes o hacé clic para subir" onFiles={vals.addEvImages} />

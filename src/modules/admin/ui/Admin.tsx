@@ -139,6 +139,12 @@ export default function Admin() {
                       <div>
                         <div style={{ fontFamily: "'Archivo'", fontWeight: 700, fontSize: '14px', color: 'var(--foreground,#F4EFE6)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>vs {ev.opp}</div>
                         <div style={{ fontSize: '12px', color: 'var(--muted-foreground,#9AA6B2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ev.comp} · {ev.round}</div>
+                        {ev.obs ? (
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', marginTop: '4px', maxWidth: '260px', fontSize: '11.5px', color: 'var(--primary,#C9A24B)' }} title={ev.obs}>
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" /></svg>
+                            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ev.obs}</span>
+                          </div>
+                        ) : null}
                       </div>
                     ),
                   },

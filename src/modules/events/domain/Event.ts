@@ -16,6 +16,8 @@ export interface Ev {
   type?: string
   iso?: string
   images?: string[]
+  /** Observación opcional del evento (nota libre del administrador). */
+  obs?: string
 }
 
 export interface EventType {

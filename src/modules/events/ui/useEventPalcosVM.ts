@@ -41,7 +41,7 @@ export function useEventPalcosVM(): any {
 
   var ep = epEvent ? {
     day: epEvent.day, month: epEvent.month, dow: epEvent.dow, time: epEvent.time,
-    comp: epEvent.comp, round: epEvent.round, opp: epEvent.opp, images: epEvent.images || [],
+    comp: epEvent.comp, round: epEvent.round, opp: epEvent.opp, obs: epEvent.obs || '', images: epEvent.images || [],
     stadium: epEvent.stadium, stadiumName: STADIUMS[epEvent.stadium].name, stadiumMap: (STADIUMS[epEvent.stadium] || {}).mapImage || '',
     tagStyle: evTagStyle(epEvent.tag), tag: epEvent.tag,
     boxes: epA.boxes, freeTotal: epA.freeTotal,
