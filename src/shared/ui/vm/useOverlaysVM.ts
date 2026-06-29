@@ -130,8 +130,6 @@ export function useOverlaysVM(): any {
     evCountry: s.evDraft.country,
     evHasStadiums: evStadList.length > 0,
     evDates: s.evDraft.dates,
-    evComp: s.evDraft.comp,
-    evRound: s.evDraft.round,
     evOpp: s.evDraft.opp,
     evObs: s.evDraft.obs,
     evImages: s.evDraft.images,
@@ -143,8 +141,6 @@ export function useOverlaysVM(): any {
     addEvDate: function () { self.addEvDate() },
     removeEvDate: function (i) { self.removeEvDate(i) },
     setEvDateAt: function (i, field, v) { self.setEvDateAt(i, field, v) },
-    setEvComp: function (e) { self.setEvDraft('comp', e.target.value) },
-    setEvRound: function (e) { self.setEvDraft('round', e.target.value) },
     setEvOpp: function (e) { self.setEvDraft('opp', e.target.value) },
     setEvObs: function (v) { self.setEvDraft('obs', v) },
 

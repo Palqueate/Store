@@ -111,7 +111,7 @@ export const createAdminSlice = (set, get) => ({
     const rows = (d.dates || []).filter((r) => r && r.date)
     if (!rows.length) return get().flash('Elegí al menos una fecha del evento')
     if (!d.stadium) return get().flash('Agregá un estadio en ese país primero')
-    if (!(d.opp || '').trim()) return get().flash('Ingresá el rival o título del evento')
+    if (!(d.opp || '').trim()) return get().flash('Ingresá el nombre del evento')
     const et = get().eventTypes.find((t) => t.id === d.type) || get().eventTypes[0]
     const comp = (d.comp || '').trim() || et.name
     const stadCountry = (get().stadiums[d.stadium] || {}).country
