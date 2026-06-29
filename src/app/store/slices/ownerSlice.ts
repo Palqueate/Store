@@ -157,8 +157,8 @@ export const createOwnerSlice = (set, get) => ({
     const payout = { ...emptyPayout(), ...(w.payout || {}) }
     if (w.editId) {
       const prev = get().byId(w.editId); if (!prev) { set({ wz: null }); return get().go('owner') }
-      // Editar un palco rechazado o en revisión lo reenvía a verificación.
-      const wasUnderReview = prev.status === 'rechazado' || prev.status === 'pendiente'
+      // Cualquier modificación al palco lo devuelve a verificación: vuelve a
+      // 'pendiente' y sale del catálogo público hasta que el admin lo apruebe.
       // Preserve identity, reputation and already-rented seats while applying the edits.
       const np = {
         ...prev,
@@ -169,7 +169,7 @@ export const createOwnerSlice = (set, get) => ({
         parking: { has: w.parkHas, n: w.parkHas ? (w.parkN || 1) : 0 },
         amenities, coOwners, payout,
         photos: imgs.length, images: imgs,
-        status: wasUnderReview ? 'pendiente' : prev.status,
+        status: 'pendiente',
         modes: {
           palcoYear: { on: w.mPalco, price: w.pricePalco || 0 },
           seatYear: { on: w.mSeatY, price: w.priceSeatY || 0, taken: prev.modes.seatYear.taken || [] },
@@ -178,7 +178,7 @@ export const createOwnerSlice = (set, get) => ({
       }
       get().savePalco(np)
       set({ wz: null })
-      get().flash(wasUnderReview ? 'Cambios enviados a revisión' : '¡Palco actualizado!'); get().go('owner')
+      get().flash('Cambios enviados a revisión'); get().go('owner')
       return
     }
     const id = 'px' + Date.now()
