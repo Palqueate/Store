@@ -19,7 +19,6 @@ export const createFiltersSlice = () => ({
   evQuery: '',
   evStadiums: [],
   evType: 'all',
-  evClub: 'all',
   evSeats: 0,
   evMinPrice: 0,
   evMaxPrice: 0,

@@ -1,5 +1,5 @@
 import { css } from '@/shared/ui/css'
-import { Card, Chip, Select, EmptyState, Btn, SearchInput, MultiSelect, RangeSlider } from '@/lib'
+import { Card, Chip, EmptyState, Btn, SearchInput, MultiSelect, RangeSlider } from '@/lib'
 import EventCard from '@/shared/ui/components/EventCard'
 import { useEventsVM } from './useEventsVM'
 
@@ -12,11 +12,11 @@ export default function Events() {
         <h1 style={{ margin: '0 0 4px', fontFamily: "'Archivo'", fontWeight: 800, fontStretch: '110%', letterSpacing: '-.03em', fontSize: 'clamp(28px,4.5vw,44px)', color: 'var(--foreground,#F4EFE6)' }}>
           <span style={{ color: 'var(--primary,#C9A24B)' }}>{vals.eventsCount}</span> eventos
         </h1>
-        <p style={{ margin: '0 0 16px', color: 'var(--muted-foreground,#9AA6B2)', fontSize: '15px' }}>Buscá o filtrá por estadio, tipo de evento, rival o cuántos asientos juntos querés, y entrá para ver los palcos disponibles.</p>
+        <p style={{ margin: '0 0 16px', color: 'var(--muted-foreground,#9AA6B2)', fontSize: '15px' }}>Buscá o filtrá por estadio, tipo de evento o cuántos asientos juntos querés, y entrá para ver los palcos disponibles.</p>
         <div style={{ maxWidth: '520px' }}>
           <SearchInput
             value={vals.query}
-            placeholder="Buscar evento, rival o sede…"
+            placeholder="Buscar evento o sede…"
             onInput={vals.setQuery}
             onClear={() => vals.setQuery('')}
           />
@@ -62,16 +62,6 @@ export default function Events() {
               </div>
             </div>
 
-            {/* Club select */}
-            <div>
-              <div style={{ fontFamily: "'Space Mono'", fontSize: '10px', letterSpacing: '.1em', color: 'var(--subtle-foreground,#6B7480)', marginBottom: '11px' }}>RIVAL / CLUB</div>
-              <Select
-                value={vals.evClubVal}
-                options={vals.evClubOptions || []}
-                onChange={(v) => vals.setEvClub({ target: { value: v } })}
-              />
-            </div>
-
             {/* Min-seats chips */}
             <div>
               <div style={{ fontFamily: "'Space Mono'", fontSize: '10px', letterSpacing: '.1em', color: 'var(--subtle-foreground,#6B7480)', marginBottom: '11px' }}>ASIENTOS JUNTOS</div>
@@ -112,7 +102,7 @@ export default function Events() {
           {vals.noEvents ? (
             <EmptyState
               title="Sin eventos con esos filtros"
-              description="Probá cambiar el rival o la cantidad de asientos."
+              description="Probá cambiar el tipo de evento o la cantidad de asientos."
               action={<Btn label="Limpiar filtros" onClick={vals.clearEvFilters} />}
             />
           ) : null}
