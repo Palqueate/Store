@@ -70,8 +70,12 @@
 | 20 | PUT | `/palcos/{id}/status` | 🟣 | Pausa / reactiva publicación |
 | 21 | POST | `/palcos/{id}/resubmit` | 🟣 | Guarda respuestas a campos observados **y** reenvía a revisión (1 llamada) |
 | 22 | POST | `/palcos/{id}/review` | 🔴 | Verificación: aprueba **o** rechaza + registra review + notifica al palquista |
-| 23 | POST | `/orders` | 🔵 | Pago: calcula subtotal/comisión/total + genera código + reserva asientos + crea orden |
+| 23 | POST | `/orders` | 🔵 | **Checkout** del carrito del servidor: confirma los holds + calcula subtotal/comisión/total + genera código + marca asientos vendidos + crea orden + vacía carrito |
 | 24 | POST | `/orders/{code}/food` | 🟣 | Agrega botana a una reserva: calcula total + adjunta a la orden |
+| 31 | GET | `/cart` | 🔵 | Carrito del servidor: ítems + estado/TTL de cada hold + totales |
+| 32 | POST | `/cart/items` | 🔵 | Agrega ítem al carrito **y** crea el hold (reserva temporal) de esos asientos |
+| 33 | DELETE | `/cart/items/{uid}` | 🔵 | Quita un ítem del carrito **y** libera su hold |
+| 34 | DELETE | `/cart` | 🔵 | Vacía el carrito y libera todos sus holds |
 | 25 | GET | `/owner/palcos` | 🔵 | Palcos del palquista (todos los estados) |
 | 26 | GET | `/owner/metrics` | 🔵 | Métricas agregadas del palquista (recaudación, ocupación, vistas, por evento) |
 | 27 | GET | `/admin/dashboard` | 🔴 | Todos los KPIs + gráficos del panel en una sola llamada |
@@ -643,49 +647,33 @@ estado, persiste el registro de revisión y **dispara la notificación** al palq
 
 ---
 
-### 23. `POST /orders` 🔵
+### 23. `POST /orders` — checkout 🔵
 
-**El pago.** El front manda el carrito y el contacto; el **backend hace todo**: valida
-disponibilidad, **calcula subtotal + comisión (4%) + total**, **genera el código**,
-**reserva los asientos** (marca `taken` en cada palco/modalidad) y **crea la orden**.
-Una sola llamada en vez de calcular en cliente + crear + refrescar disponibilidad.
+**El pago.** Es el *checkout* del **carrito del servidor**: el front sólo manda el
+contacto y el medio de pago; el **backend hace todo**: toma los ítems del carrito del
+usuario, **valida que sus holds sigan vigentes** (si alguno expiró o fue tomado →
+`409`), **calcula subtotal + comisión (4%) + total**, **genera el código**, **confirma
+los asientos** (convierte los holds en `taken`), **crea la orden** y **vacía el
+carrito**. Una sola llamada, sin enviar ítems ni precios desde el cliente.
 
 **Body**
 
 | Campo | Tipo | Req. | Descripción |
 |-------|------|------|-------------|
-| `items` | array | sí | Ítems del carrito (ver abajo) |
 | `contact` | object | no | `{ name, email }` (default: los del usuario) |
 | `payMethod` | enum | no | `card` \| `transfer` (default `card`) |
-
-Ítem del carrito:
-
-| Campo | Tipo | Notas |
-|-------|------|-------|
-| `palcoId` | string | |
-| `mode` | enum | `palcoYear` \| `seatYear` \| `seatEvent` |
-| `seats` | number[] | vacío para `palcoYear` |
-| `eventId` | string | sólo `seatEvent` |
-| `occurrenceId` | string | sólo `seatEvent` |
+| `idempotencyKey` | string | no | Evita doble cobro si el botón se reenvía |
 
 ```json
 {
-  "items": [
-    {
-      "palcoId": "string",
-      "mode": "'palcoYear' | 'seatYear' | 'seatEvent'",
-      "seats": "number[]",
-      "eventId": "string?",
-      "occurrenceId": "string?"
-    }
-  ],
   "contact": { "name": "string?", "email": "string?" },
-  "payMethod": "'card' | 'transfer'?"
+  "payMethod": "'card' | 'transfer'?",
+  "idempotencyKey": "string?"
 }
 ```
 
-> El front **no** manda precios ni totales: el backend los toma del palco y los recalcula
-> (fuente de verdad del precio, evita manipulación).
+> El front **no** manda ítems, precios ni totales: el backend los toma del carrito y del
+> palco (fuente de verdad del precio, evita manipulación).
 
 **Respuesta `201`:** `Order`.
 
@@ -709,8 +697,8 @@ Una sola llamada en vez de calcular en cliente + crear + refrescar disponibilida
 }
 ```
 
-**Errores:** `409` asiento ya tomado (carrera) → el front refresca disponibilidad ·
-`422` carrito vacío · `401` sin sesión.
+**Errores:** `409` un hold venció o el asiento ya fue tomado (carrera) → el front
+refresca disponibilidad · `422` carrito vacío · `401` sin sesión.
 
 ---
 
@@ -935,7 +923,280 @@ CRM: clientes con sus métricas de compra agregadas (hoy se calcula en cliente e
 
 ---
 
-## 4. Matriz de autenticación / autorización
+### 31. `GET /cart` 🔵
+
+Carrito del servidor del usuario logueado: ítems, **estado y TTL de cada hold** y
+totales calculados en el backend. El front lo pide al entrar al carrito/checkout.
+
+Sin params.
+
+**Respuesta `200`:**
+
+```json
+{
+  "items": [
+    {
+      "uid": "string", "palcoId": "string", "palcoTitle": "string", "stadium": "string",
+      "mode": "'palcoYear' | 'seatYear' | 'seatEvent'", "modeLabel": "string",
+      "seats": "number[]", "term": "string", "qty": "number", "price": "number",
+      "eventId": "string?", "occurrenceId": "string?",
+      "hold": {
+        "id": "string",
+        "status": "'active' | 'expired'",
+        "expiresAt": "string",
+        "secondsLeft": "number"
+      }
+    }
+  ],
+  "subtotal": "number", "fee": "number", "total": "number",
+  "expiresAt": "string"
+}
+```
+
+> `expiresAt` (nivel carrito) = el hold más próximo a vencer. El front muestra el
+> contador; al llegar a 0 refresca con `GET /cart` y los ítems vencidos aparecen
+> `expired`.
+
+---
+
+### 32. `POST /cart/items` 🔵
+
+Agrega un ítem al carrito **y crea el hold** de esos asientos en la misma llamada (al
+click "Agregar al carrito"). El backend valida disponibilidad, **bloquea los asientos**
+con un TTL y recalcula el precio. Si alguien ya los tiene tomados o en hold → `409`.
+
+**Body**
+
+| Campo | Tipo | Req. | Descripción |
+|-------|------|------|-------------|
+| `palcoId` | string | sí | |
+| `mode` | enum | sí | `palcoYear` \| `seatYear` \| `seatEvent` |
+| `seats` | number[] | según modo | vacío en `palcoYear`; ≥ 1 en los de asiento |
+| `eventId` | string | sólo `seatEvent` | |
+| `occurrenceId` | string | sólo `seatEvent` | función (fecha+hora) |
+
+```json
+{
+  "palcoId": "string",
+  "mode": "'palcoYear' | 'seatYear' | 'seatEvent'",
+  "seats": "number[]",
+  "eventId": "string?",
+  "occurrenceId": "string?"
+}
+```
+
+**Respuesta `201`:** el carrito completo (mismo shape que `GET /cart`).
+
+**Errores:** `409` asiento ya tomado o con hold de otro usuario (incluye `conflictSeats`)
+· `422` sin asientos elegidos · `401`.
+
+---
+
+### 33. `DELETE /cart/items/{uid}` 🔵
+
+Quita un ítem del carrito **y libera su hold** (los asientos vuelven a estar
+disponibles de inmediato).
+
+**Path params:** `{ "uid": "string" }`.
+
+**Respuesta `200`:** el carrito actualizado.
+
+**Errores:** `404` ítem inexistente · `403` ítem de otro usuario.
+
+---
+
+### 34. `DELETE /cart` 🔵
+
+Vacía el carrito y libera **todos** sus holds.
+
+**Respuesta `204`:** *(sin cuerpo)*.
+
+---
+
+## 4. Carrito en servidor y sistema de reservas (holds)
+
+Aunque en la UI el carrito "se siente" local, **vive en el servidor**, atado al usuario
+(o a la sesión anónima por token). Esto permite el **sistema de reservas (holds)** que
+evita condiciones de carrera al comprar el mismo asiento.
+
+### Entidad `Hold`
+
+```json
+{
+  "id": "string",
+  "userId": "string",
+  "cartItemUid": "string",
+  "palcoId": "string",
+  "mode": "'palcoYear' | 'seatYear' | 'seatEvent'",
+  "seats": "number[]",
+  "eventId": "string | null",
+  "occurrenceId": "string | null",
+  "status": "'active' | 'consumed' | 'released' | 'expired'",
+  "createdAt": "string",
+  "expiresAt": "string"
+}
+```
+
+### Ciclo de vida
+
+| Paso | Disparador | Efecto en el servidor |
+|------|-----------|-----------------------|
+| **Crear** | `POST /cart/items` | Bloquea los asientos con TTL (sugerido **10 min**). `status: active` |
+| **Renovar** | `GET /cart` / actividad en checkout | Extiende `expiresAt` mientras el usuario sigue en el flujo |
+| **Liberar** | `DELETE /cart/items/{uid}` o `DELETE /cart` | `status: released`; los asientos quedan libres |
+| **Vencer** | TTL alcanzado (job/lazy) | `status: expired`; asientos liberados automáticamente |
+| **Consumir** | `POST /orders` (checkout) | Valida holds vigentes → convierte en `taken` → `status: consumed` y vacía el carrito |
+
+### Reglas de concurrencia
+
+- Un asiento sólo puede tener **un hold activo o estar `taken`**. Cualquier intento
+  concurrente sobre el mismo asiento devuelve **`409 Conflict`** con `conflictSeats`.
+- El bloqueo se hace de forma **atómica** (transacción / `SELECT … FOR UPDATE` o lock
+  por clave `palcoId:occurrenceId:seat`) para que dos `POST /cart/items` simultáneos no
+  reserven el mismo asiento.
+- El checkout **re-valida** los holds dentro de la misma transacción que crea la orden:
+  si alguno venció entre el carrito y el pago, falla con `409` y no cobra.
+- Los asientos en hold de otros usuarios se reportan como **no disponibles** en
+  `GET /palcos/{id}` y `GET /events/{id}/palcos` (disponibilidad = `seats − taken − holds activos ajenos`).
+
+```json
+{
+  "holdPolicy": {
+    "ttlSeconds": 600,
+    "renewOnActivity": true,
+    "lockGranularity": "palcoId:occurrenceId:seat",
+    "expiry": "job + lazy-on-read",
+    "conflictStatus": 409
+  }
+}
+```
+
+---
+
+## 5. Logging y auditoría
+
+**Toda** petición se registra. Se distinguen tres flujos de logs, con datos y
+retención distintos. Los campos sensibles **nunca** se guardan en claro.
+
+### 5.1. Log de acceso (todas las peticiones)
+
+Una entrada por request HTTP.
+
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| `requestId` | string | Id único (correlación request/response y trazas) |
+| `timestamp` | string | ISO‑8601 con ms |
+| `method` | string | Verbo HTTP |
+| `path` | string | Ruta concreta (`/palcos/px123`) |
+| `route` | string | Patrón de ruta (`/palcos/{id}`) — para agregaciones |
+| `query` | object | Query params (saneados) |
+| `status` | number | Código de respuesta |
+| `latencyMs` | number | Tiempo de proceso |
+| `reqBytes` / `resBytes` | number | Tamaño de cuerpos |
+| `userId` | string \| null | Usuario autenticado o `null` si anónimo |
+| `sessionId` | string | Id de sesión / carrito |
+| `role` | string | `guest` \| `user` \| `admin` |
+| `ip` | string | IP de origen (puede anonimizarse el último octeto) |
+| `userAgent` | string | Cliente |
+| `referer` | string \| null | Origen |
+| `apiVersion` | string | `v1` |
+
+```json
+{
+  "requestId": "string", "timestamp": "string",
+  "method": "string", "path": "string", "route": "string", "query": "object",
+  "status": "number", "latencyMs": "number", "reqBytes": "number", "resBytes": "number",
+  "userId": "string | null", "sessionId": "string", "role": "string",
+  "ip": "string", "userAgent": "string", "referer": "string | null", "apiVersion": "string"
+}
+```
+
+### 5.2. Log de auditoría de dominio (mutaciones)
+
+Una entrada por **acción que cambia estado** (no se loguean los `GET`). Da trazabilidad
+de "quién hizo qué y cuándo".
+
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| `auditId` | string | Id del evento de auditoría |
+| `requestId` | string | Enlaza con el log de acceso |
+| `timestamp` | string | ISO‑8601 |
+| `actorId` | string | Usuario que ejecuta |
+| `actorRole` | string | `user` \| `admin` |
+| `action` | string | Verbo de dominio (ver lista) |
+| `entity` | string | `order` \| `palco` \| `event` \| `stadium` \| `account` \| `hold` \| `cart` |
+| `entityId` | string | Id afectado |
+| `before` | object \| null | Estado previo (sólo campos relevantes, saneados) |
+| `after` | object \| null | Estado nuevo (saneado) |
+| `result` | string | `ok` \| `rejected` |
+| `ip` | string | Origen |
+
+```json
+{
+  "auditId": "string", "requestId": "string", "timestamp": "string",
+  "actorId": "string", "actorRole": "string",
+  "action": "string", "entity": "string", "entityId": "string",
+  "before": "object | null", "after": "object | null",
+  "result": "'ok' | 'rejected'", "ip": "string"
+}
+```
+
+**Acciones auditadas** (mapean a los endpoints de mutación):
+`account.register` · `account.login` · `account.update` · `cart.add` · `cart.remove` ·
+`hold.create` · `hold.release` · `hold.expire` · `order.checkout` · `order.add_food` ·
+`palco.publish` · `palco.update` · `palco.status_change` · `palco.resubmit` ·
+`palco.review_approve` · `palco.review_reject` · `event.create` · `event.update` ·
+`stadium.create` · `stadium.update`.
+
+### 5.3. Log de seguridad
+
+Eventos sensibles para detección de abuso/fraude.
+
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| `event` | string | `login_success` \| `login_failed` \| `forbidden` \| `rate_limited` \| `payment_attempt` \| `hold_conflict` |
+| `requestId` | string | Correlación |
+| `timestamp` | string | ISO‑8601 |
+| `userId` | string \| null | Si aplica |
+| `ip` | string | Origen |
+| `detail` | object | Contexto saneado (p. ej. `conflictSeats`, motivo) |
+
+```json
+{
+  "event": "string", "requestId": "string", "timestamp": "string",
+  "userId": "string | null", "ip": "string", "detail": "object"
+}
+```
+
+### 5.4. Datos que NUNCA se loguean (redacción)
+
+| Dato | Tratamiento |
+|------|-------------|
+| `pass` / contraseñas | Nunca; se reemplaza por `"[REDACTED]"` |
+| Token / `Authorization` | Nunca; se loguea sólo un hash o el `sessionId` |
+| Datos de tarjeta (`card`, PAN, CVV) | Nunca; sólo `brand` + `last4` si hace falta |
+| `payout` (cuenta bancaria, SWIFT) | Nunca en claro; sólo referencia |
+| Documentos / imágenes (data URLs: `idFront`, `idBack`, `proofOfAddress`, `propertyTitle`, fotos) | Nunca el contenido; se loguea sólo tamaño/hash |
+| PII (`ci`, `birth`, `address`, `phone`, `email`) | Minimizada; enmascarada en logs de acceso |
+
+```json
+{
+  "redaction": {
+    "drop": ["pass", "authorization", "card.number", "card.cvv", "payout", "idFront", "idBack", "proofOfAddress", "propertyTitle"],
+    "mask": ["email", "phone", "ci", "ip"],
+    "hashOnly": ["token", "dataUrls"]
+  },
+  "retention": {
+    "accessLog": "30d",
+    "auditLog": "365d",
+    "securityLog": "365d"
+  }
+}
+```
+
+---
+
+## 6. Matriz de autenticación / autorización
 
 ```json
 {
@@ -948,13 +1209,15 @@ CRM: clientes con sus métricas de compra agregadas (hoy se calcula en cliente e
   "authenticated": [
     "POST /auth/logout", "GET /me",
     "POST /palcos", "POST /orders",
+    "GET /cart", "POST /cart/items", "DELETE /cart",
     "GET /owner/palcos", "GET /owner/metrics"
   ],
   "owner": [
     "PATCH /accounts/{id}",
     "PUT /palcos/{id}", "PUT /palcos/{id}/status",
     "POST /palcos/{id}/resubmit",
-    "POST /orders/{code}/food"
+    "POST /orders/{code}/food",
+    "DELETE /cart/items/{uid}"
   ],
   "admin": [
     "POST /stadiums", "PUT /stadiums/{id}",
@@ -986,12 +1249,14 @@ CRM: clientes con sus métricas de compra agregadas (hoy se calcula en cliente e
 | `POST /palcos/{id}/review` | Sí | Rol `admin` |
 | `POST /orders` | Sí | — |
 | `POST /orders/{code}/food` | Sí | Titular de la orden |
+| `GET /cart` · `POST /cart/items` · `DELETE /cart` | Sí | Dueño del carrito (token) |
+| `DELETE /cart/items/{uid}` | Sí | Dueño del carrito (token) |
 | `GET /owner/palcos` · `GET /owner/metrics` | Sí | Palquista (sus palcos) |
 | `GET /admin/*` | Sí | Rol `admin` |
 
 ---
 
-## 5. Decisiones de diseño "1 click = 1 llamada"
+## 7. Decisiones de diseño "1 click = 1 llamada"
 
 Resumen de dónde el endpoint absorbe varias acciones de backend para no multiplicar
 llamadas desde el front:
@@ -999,9 +1264,10 @@ llamadas desde el front:
 | Acción del usuario | Antes (varias) | Ahora (1 endpoint) |
 |--------------------|----------------|--------------------|
 | Abrir la app | 8 GET en paralelo (estadios, eventos, palcos, comida×2, cuentas, órdenes, sesión) | `GET /bootstrap` |
+| Agregar al carrito | agregar ítem + reservar/bloquear asientos (hold) | `POST /cart/items` |
 | Registrarse / iniciar sesión | crear cuenta + abrir sesión + cargar pedidos | `POST /auth/register` · `POST /auth/login` |
 | Guardar perfil / preferencias / foto | un PUT por cada cambio | `PATCH /accounts/{id}` (partial) |
-| Pagar el carrito | calcular totales (cliente) + crear orden + reservar asientos | `POST /orders` |
+| Pagar el carrito | calcular totales (cliente) + crear orden + reservar asientos | `POST /orders` (checkout: confirma holds + total + código + vende asientos + vacía carrito) |
 | Agregar botana | armar líneas + recalcular + actualizar orden | `POST /orders/{code}/food` |
 | Publicar / editar palco | crear/editar + (re)setear estado de verificación | `POST /palcos` · `PUT /palcos/{id}` |
 | Reenviar palco rechazado | N respuestas a campos + cambio de estado | `POST /palcos/{id}/resubmit` |
