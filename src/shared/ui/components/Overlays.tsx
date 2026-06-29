@@ -98,12 +98,12 @@ export function EventModal() {
     <Modal
       open={!!vals.adminEvModal}
       onClose={vals.closeEvModal}
-      title="Nuevo evento"
+      title={vals.evEditing ? 'Editar evento' : 'Nuevo evento'}
       width={520}
       footer={
         <>
           <Btn label="Cancelar" variant="ghost" onClick={vals.closeEvModal} />
-          <Btn label="Crear evento" icon="check" onClick={vals.adminCreateEvent} />
+          <Btn label={vals.evEditing ? 'Guardar cambios' : 'Crear evento'} icon="check" onClick={vals.adminCreateEvent} />
         </>
       }
     >

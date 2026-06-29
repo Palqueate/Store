@@ -5,4 +5,5 @@ export interface EventRepository {
   list(): Promise<Ev[]>
   findById(id: string): Promise<Ev | null>
   create(event: Ev): Promise<void>
+  update(event: Ev): Promise<void>
 }

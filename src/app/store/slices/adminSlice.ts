@@ -2,6 +2,7 @@
 // Admin panel: tab/navigation, event & stadium creation drafts and actions.
 import { container } from '@/app/container'
 import { createEvent } from '@/modules/events/application/use-cases/createEvent'
+import { updateEvent } from '@/modules/events/application/use-cases/updateEvent'
 import { createStadium } from '@/modules/stadiums/application/use-cases/createStadium'
 import { updateStadium } from '@/modules/stadiums/application/use-cases/updateStadium'
 import { readImagesAsDataUrls } from '@/shared/lib/readImages'
@@ -15,6 +16,7 @@ export const createAdminSlice = (set, get) => ({
   adminClient: null,
   adminEvModal: false,
   adminStadModal: false,
+  evEditId: null,
   stadEditId: null,
   evDraft: { type: 'liga', stadium: 'gpc', date: '', time: '17:00', comp: '', round: '', opp: '', images: [] },
   stadDraft: { name: '', short: '', city: 'Montevideo', address: '', capacity: '', year: '', surface: '', levels: '2', roof: 'no', mapImage: '' },
@@ -30,14 +32,24 @@ export const createAdminSlice = (set, get) => ({
   },
   setEvDraft: (k, v) => set({ evDraft: { ...get().evDraft, [k]: v } }),
   setStadDraft: (k, v) => set({ stadDraft: { ...get().stadDraft, [k]: v } }),
-  openEvModal: () => set({ adminEvModal: true, evDraft: { type: 'liga', stadium: Object.keys(get().stadiums)[0] || 'gpc', date: '', time: '17:00', comp: '', round: '', opp: '', images: [] } }),
+  openEvModal: () => set({ adminEvModal: true, evEditId: null, evDraft: { type: 'liga', stadium: Object.keys(get().stadiums)[0] || 'gpc', date: '', time: '17:00', comp: '', round: '', opp: '', images: [] } }),
+  openEvModalEdit: (id) => {
+    const ev = get().events.find((e) => e.id === id); if (!ev) return
+    set({
+      adminEvModal: true, evEditId: id,
+      evDraft: {
+        type: ev.type || 'liga', stadium: ev.stadium, date: ev.iso || '', time: ev.time || '17:00',
+        comp: ev.comp || '', round: ev.round || '', opp: ev.opp || '', images: (ev.images || []).slice(),
+      },
+    })
+  },
   adminAddEventImages: async (files) => {
     if (!files || !files.length) return
     const urls = await readImagesAsDataUrls(Array.from(files))
     if (urls.length) get().setEvDraft('images', get().evDraft.images.concat(urls))
   },
   adminRemoveEventImage: (index) => get().setEvDraft('images', get().evDraft.images.filter((_, i) => i !== index)),
-  closeEvModal: () => set({ adminEvModal: false }),
+  closeEvModal: () => set({ adminEvModal: false, evEditId: null }),
   openStadModal: () => set({ adminStadModal: true, stadEditId: null, stadDraft: { name: '', short: '', city: 'Montevideo', address: '', capacity: '', year: '', surface: '', levels: '2', roof: 'no', mapImage: '' } }),
   openStadModalEdit: (id) => {
     const st = get().stadiums[id]; if (!st) return
@@ -65,7 +77,16 @@ export const createAdminSlice = (set, get) => ({
     const fd = get()._fmtDate(d.date); if (!fd) return get().flash('Fecha inválida')
     const et = get().eventTypes.find((t) => t.id === d.type) || get().eventTypes[0]
     const comp = (d.comp || '').trim() || et.name
-    const ev = { id: 'e' + Date.now(), stadium: d.stadium, type: d.type, comp, round: (d.round || '').trim(), opp: (d.opp || '').trim(), month: fd.month, day: fd.day, dow: fd.dow, iso: d.date, time: d.time || '17:00', tag: et.tag, label: comp + ((d.round || '').trim() ? (' · ' + d.round.trim()) : ''), images: d.images || [] }
+    const editId = get().evEditId
+    const base = { stadium: d.stadium, type: d.type, comp, round: (d.round || '').trim(), opp: (d.opp || '').trim(), month: fd.month, day: fd.day, dow: fd.dow, iso: d.date, time: d.time || '17:00', tag: et.tag, label: comp + ((d.round || '').trim() ? (' · ' + d.round.trim()) : ''), images: d.images || [] }
+    if (editId) {
+      const ev = { ...base, id: editId }
+      updateEvent(container.events, ev)
+      set({ events: get().events.map((e) => (e.id === editId ? ev : e)), adminEvModal: false, evEditId: null })
+      get().flash('Evento actualizado')
+      return
+    }
+    const ev = { ...base, id: 'e' + Date.now() }
     createEvent(container.events, ev)
     set({ events: get().events.concat([ev]), adminEvModal: false }); get().flash('Evento creado')
   },

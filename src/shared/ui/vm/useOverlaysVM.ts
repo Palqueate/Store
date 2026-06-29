@@ -51,6 +51,7 @@ export function useOverlaysVM(): any {
 
     // ── EventModal ──
     adminEvModal: s.adminEvModal,
+    evEditing: !!s.evEditId,
     closeEvModal: function () { self.closeEvModal() },
     adminCreateEvent: function () { self.adminCreateEvent() },
     evTypeOptions: evTypeOptions,

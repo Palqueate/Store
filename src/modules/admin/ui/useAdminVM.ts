@@ -65,7 +65,7 @@ export function useAdminVM(): any {
   var topMax = topEvents.reduce(function (m, x) { return Math.max(m, x.rev) }, 1)
   var adminTopEvents = topEvents.map(function (x) { return { opp: x.e.opp, comp: x.e.comp, date: x.e.day + ' ' + x.e.month, val: self.money(x.rev), barStyle: 'height:8px; border-radius:5px; background:var(--success,#34D17E); width:' + Math.max(3, Math.round(x.rev / topMax * 100)) + '%;' } })
 
-  var adminEvents = EVENTS.slice().map(function (ev) { var st = stad(ev.stadium); var tn = (EVENT_TYPES.find(function (t) { return t.id === ev.type }) || {}).name || ev.comp; return { id: ev.id, date: ev.day + ' ' + ev.month, dow: ev.dow, time: ev.time, opp: ev.opp, comp: ev.comp, round: ev.round || '—', stadiumName: st.name, stadiumShort: st.short, tag: ev.tag, tagStyle: evTagStyle(ev.tag), typeName: tn } }).reverse()
+  var adminEvents = EVENTS.slice().map(function (ev) { var st = stad(ev.stadium); var tn = (EVENT_TYPES.find(function (t) { return t.id === ev.type }) || {}).name || ev.comp; return { id: ev.id, date: ev.day + ' ' + ev.month, dow: ev.dow, time: ev.time, opp: ev.opp, comp: ev.comp, round: ev.round || '—', stadiumName: st.name, stadiumShort: st.short, tag: ev.tag, tagStyle: evTagStyle(ev.tag), typeName: tn, edit: function () { self.openEvModalEdit(ev.id) } } }).reverse()
 
   var adminStadiums = STAD_LIST.map(function (st) { return { id: st.id, name: st.name, short: st.short, city: st.city || '—', address: st.address || '—', capacity: st.capacity ? st.capacity.toLocaleString('es-UY') : '—', year: st.year || '—', surface: st.surface || '—', levels: String(st.levels || '—'), roof: (st.roof ? 'Techado' : 'Abierto'), palcos: String(ALL_PALCOS.filter(function (p) { return p.stadium === st.id }).length), events: String(EVENTS.filter(function (e) { return e.stadium === st.id }).length), edit: function () { self.openStadModalEdit(st.id) } } })
 
@@ -120,6 +120,7 @@ export function useAdminVM(): any {
     // eventos
     adminEvents: adminEvents,
     openEvModal: function () { self.openEvModal() },
+    openEvModalEdit: function (id) { self.openEvModalEdit(id) },
     // estadios
     adminStadiums: adminStadiums,
     openStadModal: function () { self.openStadModal() },

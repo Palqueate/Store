@@ -15,4 +15,7 @@ export class HttpEventRepository implements EventRepository {
   async create(event: Ev): Promise<void> {
     await this.http.post<void>('/events', event)
   }
+  async update(event: Ev): Promise<void> {
+    await this.http.put<void>(`/events/${event.id}`, event)
+  }
 }
