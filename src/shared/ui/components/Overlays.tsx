@@ -161,9 +161,31 @@ export function EventModal() {
             </div>
           )}
         </div>
-        <div style={css("display:grid; grid-template-columns:1fr 1fr; gap:12px;")}>
-          <Field label="FECHA" type="date" value={vals.evDate} onInput={vals.setEvDate} />
-          <Field label="HORA" type="text" value={vals.evTime} onInput={vals.setEvTime} placeholder="17:00" />
+        <div>
+          <label style={css("display:block; font-family:'Space Mono'; font-size:10px; letter-spacing:.08em; color:var(--subtle-foreground,#6B7480); margin-bottom:6px;")}>FECHAS Y HORARIOS</label>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {(vals.evDates || []).map((row: any, i: number) => (
+              <div key={i} style={{ display: 'grid', gridTemplateColumns: (vals.evDates.length > 1 ? '1fr 110px 38px' : '1fr 110px'), gap: '10px', alignItems: 'center' }}>
+                <Field type="date" value={row.date} onInput={(e: any) => vals.setEvDateAt(i, 'date', e.target.value)} />
+                <Field type="text" value={row.time} onInput={(e: any) => vals.setEvDateAt(i, 'time', e.target.value)} placeholder="17:00" />
+                {vals.evDates.length > 1 ? (
+                  <button
+                    onClick={() => vals.removeEvDate(i)}
+                    aria-label="Quitar fecha"
+                    style={{ height: '38px', display: 'grid', placeItems: 'center', borderRadius: '10px', cursor: 'pointer', border: '1px solid var(--border,rgba(255,255,255,.12))', background: 'var(--card,#171B22)', color: 'var(--muted-foreground,#9AA6B2)', fontFamily: "'Archivo'", fontWeight: 800, fontSize: '16px', lineHeight: 1 }}
+                  >
+                    ×
+                  </button>
+                ) : null}
+              </div>
+            ))}
+          </div>
+          <button
+            onClick={vals.addEvDate}
+            style={{ marginTop: '10px', display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '7px 12px', borderRadius: '9px', cursor: 'pointer', border: '1px dashed var(--border,rgba(255,255,255,.2))', background: 'transparent', color: 'var(--primary,#C9A24B)', fontFamily: "'Archivo'", fontWeight: 800, fontSize: '12.5px' }}
+          >
+            + Agregar otra fecha
+          </button>
         </div>
         <Field label="RIVAL / TÍTULO DEL EVENTO" value={vals.evOpp} onInput={vals.setEvOpp} placeholder="Ej. Costa FC" />
         <div style={css("display:grid; grid-template-columns:1fr 1fr; gap:12px;")}>

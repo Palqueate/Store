@@ -62,7 +62,7 @@ export default function EventPalcos() {
           <Stack direction="row" align="center" gap={8} style={{ marginBottom: '6px' }}>
             <span style={css(vals.ep.tagStyle)}>{vals.ep.tag}</span>
             <span style={{ fontFamily: "'Space Mono'", fontSize: '12px', color: 'var(--muted-foreground,#9AA6B2)' }}>
-              {vals.ep.comp} · {vals.ep.round} · {vals.ep.time} hs
+              {vals.ep.comp}{vals.ep.round ? ' · ' + vals.ep.round : ''} · {vals.ep.multiDate && !vals.ep.hasOccSelected ? 'Varias funciones' : vals.ep.time + ' hs'}
             </span>
           </Stack>
           <h1 style={{ margin: '0 0 4px', fontFamily: "'Archivo'", fontWeight: 900, fontStretch: '112%', letterSpacing: '-.03em', fontSize: 'clamp(26px,4.2vw,40px)', color: 'var(--foreground,#F4EFE6)' }}>
@@ -84,12 +84,59 @@ export default function EventPalcos() {
         </div>
       </Card>
 
+      {/* Function (date + time) picker — only when the event has more than one */}
+      {vals.ep.multiDate ? (
+        <Card padding="18px" style={{ marginBottom: '26px', borderRadius: '18px' }}>
+          <div style={{ fontFamily: "'Archivo'", fontWeight: 800, fontSize: '17px', letterSpacing: '-.02em', color: 'var(--foreground,#F4EFE6)', marginBottom: '4px' }}>
+            Elegí fecha y hora
+          </div>
+          <p style={{ margin: '0 0 14px', fontSize: '13px', color: 'var(--muted-foreground,#9AA6B2)' }}>
+            Este evento tiene varias funciones. Seleccioná una para ver los palcos disponibles.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(190px,1fr))', gap: '10px' }}>
+            {(vals.epDates || []).map((o: any, i: number) => (
+              <button
+                key={i}
+                onClick={o.pick}
+                disabled={o.soldOut}
+                style={{
+                  textAlign: 'left', cursor: o.soldOut ? 'not-allowed' : 'pointer', padding: '12px 14px', borderRadius: '13px',
+                  display: 'flex', alignItems: 'center', gap: '12px', width: '100%',
+                  border: '1.5px solid ' + (o.selected ? 'var(--primary,#C9A24B)' : 'var(--border,rgba(255,255,255,.1))'),
+                  background: o.selected ? 'color-mix(in srgb, var(--primary,#C9A24B) 12%, var(--card,#171B22))' : 'var(--card,#171B22)',
+                  opacity: o.soldOut ? 0.55 : 1,
+                }}
+              >
+                <span style={{ flex: '0 0 auto', width: '52px', textAlign: 'center', padding: '7px 0', borderRadius: '9px', background: o.selected ? 'var(--primary,#C9A24B)' : 'var(--muted,#1F2530)', color: o.selected ? 'var(--primary-foreground,#1A1407)' : 'var(--foreground,#F4EFE6)' }}>
+                  <span style={{ display: 'block', fontFamily: "'Space Mono'", fontSize: '9px', letterSpacing: '.08em' }}>{o.dow}</span>
+                  <span style={{ display: 'block', fontFamily: "'Archivo'", fontWeight: 900, fontSize: '18px', lineHeight: 1 }}>{o.day}</span>
+                  <span style={{ display: 'block', fontFamily: "'Space Mono'", fontSize: '9px', letterSpacing: '.08em' }}>{o.month}</span>
+                </span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: 'block', fontFamily: "'Archivo'", fontWeight: 800, fontSize: '15px', color: 'var(--foreground,#F4EFE6)' }}>{o.time} hs</span>
+                  <span style={{ display: 'block', fontFamily: "'Space Mono'", fontSize: '11px', color: o.soldOut ? 'var(--subtle-foreground,#6B7480)' : 'var(--success,#34D17E)', marginTop: '2px' }}>{o.availTxt}</span>
+                </span>
+              </button>
+            ))}
+          </div>
+        </Card>
+      ) : null}
+
       <div style={css(vals.epWrap)}>
         {/* Palco list */}
         <div style={{ minWidth: 0 }}>
           <h2 style={{ margin: '0 0 14px', fontFamily: "'Archivo'", fontWeight: 800, fontSize: '20px', letterSpacing: '-.02em', color: 'var(--foreground,#F4EFE6)' }}>
             Palcos con asientos para este evento
           </h2>
+
+          {vals.ep.needsDate ? (
+            <Card padding="0">
+              <EmptyState
+                title="Elegí una fecha y hora"
+                description="Seleccioná una función arriba para ver los palcos con asientos disponibles."
+              />
+            </Card>
+          ) : null}
 
           {vals.ep.hasAvail ? (
             <div style={css(vals.epListGrid)}>

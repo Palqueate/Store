@@ -1,6 +1,7 @@
 // @ts-nocheck
 // Routing + the palco-detail selection state, plus the detail view-model.
 import { routerNavigate, pathForScreen } from '@/app/router/navigation'
+import { eventOccurrences } from '@/modules/events/domain/Event'
 
 const scrollTop = () => { if (typeof window !== 'undefined') { try { window.scrollTo(0, 0) } catch (e) {} } }
 
@@ -9,23 +10,46 @@ export const createNavigationSlice = (set, get) => ({
   pId: null,
   mode: 'palcoYear',
   eventId: 'e1',
+  // Función (fecha + hora) elegida del evento. Para eventos de una sola fecha
+  // coincide con el id del evento.
+  occurrenceId: 'e1',
   seats: [],
   fromEvent: false,
   acctTab: 'compras',
 
+  // Primera función de un evento (o null si el evento no existe).
+  _firstOcc: (eid) => {
+    const ev = get().events.find((e) => e.id === eid)
+    if (!ev) return null
+    const occs = eventOccurrences(ev)
+    return occs[0] ? occs[0].id : null
+  },
+
   go: (screen) => { set({ acctMenu: false }); routerNavigate(pathForScreen(screen, get())); scrollTop() },
   goEvents: () => get().go('events'),
-  openEventPalcos: (id) => { set({ eventId: id }); get().go('eventPalcos') },
+  openEventPalcos: (id) => {
+    // Al entrar a un evento: si tiene una sola función se autoselecciona; si
+    // tiene varias, se deja sin elegir para que el cliente elija fecha y hora.
+    const ev = get().events.find((e) => e.id === id)
+    const occs = ev ? eventOccurrences(ev) : []
+    set({ eventId: id, occurrenceId: occs.length === 1 ? occs[0].id : null, seats: [] })
+    get().go('eventPalcos')
+  },
   selectPalco: (id) => {
     const p = get().byId(id); if (!p) return
     const defMode = (p.modes.palcoYear && p.modes.palcoYear.on) ? 'palcoYear' : (p.modes.seatYear && p.modes.seatYear.on) ? 'seatYear' : 'seatEvent'
     const ev = get().events.filter((e) => e.stadium === p.stadium)
-    set({ pId: id, mode: defMode, eventId: ev[0] ? ev[0].id : get().eventId, seats: [], fromEvent: false })
+    const eid = ev[0] ? ev[0].id : get().eventId
+    set({ pId: id, mode: defMode, eventId: eid, occurrenceId: get()._firstOcc(eid), seats: [], fromEvent: false })
   },
   openDetail: (id) => { get().selectPalco(id); get().go('detail') },
-  openDetailEvent: (pid, eid) => { set({ pId: pid, mode: 'seatEvent', eventId: eid, seats: [], fromEvent: true }); get().go('detail') },
+  openDetailEvent: (pid, eid, occId) => { set({ pId: pid, mode: 'seatEvent', eventId: eid, occurrenceId: occId || get()._firstOcc(eid), seats: [], fromEvent: true }); get().go('detail') },
   setMode: (m) => set({ mode: m, seats: [] }),
-  setEvent: (id) => set({ eventId: id, seats: [] }),
+  setEvent: (id) => set({ eventId: id, occurrenceId: get()._firstOcc(id), seats: [] }),
+  // Elige la función (fecha + hora) dentro del evento actual.
+  setOccurrence: (occId) => set({ occurrenceId: occId, seats: [] }),
+  // Elige evento + función a la vez (selector de funciones en el detalle).
+  setEventOccurrence: (eid, occId) => set({ eventId: eid, occurrenceId: occId, seats: [] }),
   toggleSeat: (n, st) => {
     if (st === 'taken' || get().mode === 'palcoYear') return
     const arr = get().seats.slice(); const i = arr.indexOf(n)
@@ -51,7 +75,7 @@ export const createNavigationSlice = (set, get) => ({
     ]
     let taken = []
     if (s.mode === 'seatYear') taken = p.modes.seatYear.taken || []
-    else if (s.mode === 'seatEvent') taken = (p.modes.seatEvent.taken && p.modes.seatEvent.taken[s.eventId]) || []
+    else if (s.mode === 'seatEvent') taken = (p.modes.seatEvent.taken && p.modes.seatEvent.taken[s.occurrenceId]) || []
     const seats = []
     for (let i = 1; i <= p.seats; i++) {
       ((n) => {
@@ -59,7 +83,14 @@ export const createNavigationSlice = (set, get) => ({
         seats.push({ n, st, click: () => get().toggleSeat(n, st) })
       })(i)
     }
-    const events = get().events.filter((e) => e.stadium === p.stadium).map((e) => Object.assign({}, e, { selected: e.id === s.eventId }))
+    // Un "chip" por función (fecha + hora) de cada evento del estadio. Permite
+    // elegir directamente la función desde el detalle del palco.
+    const events = []
+    get().events.filter((e) => e.stadium === p.stadium).forEach((e) => {
+      eventOccurrences(e).forEach((o) => {
+        events.push({ eventId: e.id, occId: o.id, opp: e.opp, tag: e.tag, day: o.day, month: o.month, dow: o.dow, time: o.time, selected: o.id === s.occurrenceId })
+      })
+    })
     let total = 0, qty = 0
     if (s.mode === 'palcoYear') { total = p.modes.palcoYear.price; qty = 1 }
     else if (s.mode === 'seatYear') { qty = s.seats.length; total = p.modes.seatYear.price * qty }

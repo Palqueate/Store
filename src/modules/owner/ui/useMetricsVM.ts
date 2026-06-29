@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { useFacade } from '@/shared/ui/vm/facade'
 import { statusBadge, chipS } from '@/shared/ui/vm/helpers'
+import { eventOccurrences } from '@/modules/events/domain/Event'
 
 export function useMetricsVM(): any {
   const self = useFacade()
@@ -19,7 +20,11 @@ export function useMetricsVM(): any {
     var stEvents = EVENTS.filter(function (e) { return e.stadium === p.stadium })
     var annualSeats = (p.modes.seatYear.on && p.modes.seatYear.taken) ? p.modes.seatYear.taken.length : 0
     var annualRev = annualSeats * (p.modes.seatYear.on ? p.modes.seatYear.price : 0)
-    var perEvent = stEvents.map(function (e) { var t = (p.modes.seatEvent.taken && p.modes.seatEvent.taken[e.id]) || []; return { ev: e, sold: t.length, rev: t.length * (p.modes.seatEvent.on ? p.modes.seatEvent.price : 0) } })
+    var perEvent = stEvents.map(function (e) {
+      // Suma de butacas vendidas en todas las funciones (fechas) del evento.
+      var sold = eventOccurrences(e).reduce(function (a, o) { var t = (p.modes.seatEvent.taken && p.modes.seatEvent.taken[o.id]) || []; return a + t.length }, 0)
+      return { ev: e, sold: sold, rev: sold * (p.modes.seatEvent.on ? p.modes.seatEvent.price : 0) }
+    })
     var eventTickets = perEvent.reduce(function (a, x) { return a + x.sold }, 0)
     var eventRev = perEvent.reduce(function (a, x) { return a + x.rev }, 0)
     var annualCap = p.modes.seatYear.on ? p.seats : 0

@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { useFacade } from '@/shared/ui/vm/facade'
 import { evTagStyle, statusBadge } from '@/shared/ui/vm/helpers'
+import { eventOccurrences } from '@/modules/events/domain/Event'
 
 export function useAdminVM(): any {
   const self = useFacade()
@@ -59,13 +60,16 @@ export function useAdminVM(): any {
   var adminDonut = { width: '132px', height: '132px', borderRadius: '50%', flex: '0 0 auto', background: 'conic-gradient(var(--primary,#C9A24B) 0 ' + pPalco + '%, var(--success,#34D17E) ' + pPalco + '% ' + (pPalco + pSeatY) + '%, var(--warning,#E5A94D) ' + (pPalco + pSeatY) + '% 100%)' }
   var adminModality = [{ label: 'Palco anual', pct: pPalco + '%', val: self.money(modeRev.palcoYear), dot: { width: '10px', height: '10px', borderRadius: '3px', background: 'var(--primary,#C9A24B)', flex: '0 0 auto' } }, { label: 'Asiento anual', pct: pSeatY + '%', val: self.money(modeRev.seatYear), dot: { width: '10px', height: '10px', borderRadius: '3px', background: 'var(--success,#34D17E)', flex: '0 0 auto' } }, { label: 'Por evento', pct: pSeatE + '%', val: self.money(modeRev.seatEvent), dot: { width: '10px', height: '10px', borderRadius: '3px', background: 'var(--warning,#E5A94D)', flex: '0 0 auto' } }]
 
+  // Mapa función (occurrence id) → evento, para acumular ingresos por evento
+  // aunque la disponibilidad esté indexada por función (fecha + hora).
+  var occToEvent = {}; EVENTS.forEach(function (e) { eventOccurrences(e).forEach(function (o) { occToEvent[o.id] = e.id }) })
   var evRevMap = {}; EVENTS.forEach(function (e) { evRevMap[e.id] = 0 })
-  ALL_PALCOS.forEach(function (p) { if (p.modes.seatEvent && p.modes.seatEvent.taken) { Object.keys(p.modes.seatEvent.taken).forEach(function (eid) { var n = (p.modes.seatEvent.taken[eid] || []).length; if (evRevMap[eid] == null) evRevMap[eid] = 0; evRevMap[eid] += n * p.modes.seatEvent.price }) } })
+  ALL_PALCOS.forEach(function (p) { if (p.modes.seatEvent && p.modes.seatEvent.taken) { Object.keys(p.modes.seatEvent.taken).forEach(function (occId) { var n = (p.modes.seatEvent.taken[occId] || []).length; var eid = occToEvent[occId] || occId; if (evRevMap[eid] == null) evRevMap[eid] = 0; evRevMap[eid] += n * p.modes.seatEvent.price }) } })
   var topEvents = EVENTS.map(function (e) { return { e: e, rev: evRevMap[e.id] || 0 } }).sort(function (a, b) { return b.rev - a.rev }).slice(0, 5)
   var topMax = topEvents.reduce(function (m, x) { return Math.max(m, x.rev) }, 1)
   var adminTopEvents = topEvents.map(function (x) { return { opp: x.e.opp, comp: x.e.comp, date: x.e.day + ' ' + x.e.month, val: self.money(x.rev), barStyle: 'height:8px; border-radius:5px; background:var(--success,#34D17E); width:' + Math.max(3, Math.round(x.rev / topMax * 100)) + '%;' } })
 
-  var adminEvents = EVENTS.slice().map(function (ev) { var st = stad(ev.stadium); var tn = (EVENT_TYPES.find(function (t) { return t.id === ev.type }) || {}).name || ev.comp; return { id: ev.id, date: ev.day + ' ' + ev.month, dow: ev.dow, time: ev.time, opp: ev.opp, comp: ev.comp, round: ev.round || '—', stadiumName: st.name, stadiumShort: st.short, country: ev.country || st.country || '—', tag: ev.tag, tagStyle: evTagStyle(ev.tag), typeName: tn, obs: ev.obs || '', edit: function () { self.openEvModalEdit(ev.id) } } }).reverse()
+  var adminEvents = EVENTS.slice().map(function (ev) { var st = stad(ev.stadium); var tn = (EVENT_TYPES.find(function (t) { return t.id === ev.type }) || {}).name || ev.comp; var occs = eventOccurrences(ev); var first = occs[0] || ev; var multi = occs.length > 1; return { id: ev.id, date: first.day + ' ' + first.month, dow: first.dow, time: multi ? (occs.length + ' funciones') : first.time, datesCount: occs.length, multiDate: multi, opp: ev.opp, comp: ev.comp, round: ev.round || '—', stadiumName: st.name, stadiumShort: st.short, country: ev.country || st.country || '—', tag: ev.tag, tagStyle: evTagStyle(ev.tag), typeName: tn, obs: ev.obs || '', edit: function () { self.openEvModalEdit(ev.id) } } }).reverse()
 
   var adminStadiums = STAD_LIST.map(function (st) { return { id: st.id, name: st.name, short: st.short, city: st.city || '—', country: st.country || '—', address: st.address || '—', capacity: st.capacity ? st.capacity.toLocaleString('es-UY') : '—', year: st.year || '—', surface: st.surface || '—', levels: String(st.levels || '—'), roof: (st.roof ? 'Techado' : 'Abierto'), palcos: String(ALL_PALCOS.filter(function (p) { return p.stadium === st.id }).length), events: String(EVENTS.filter(function (e) { return e.stadium === st.id }).length), edit: function () { self.openStadModalEdit(st.id) } } })
 

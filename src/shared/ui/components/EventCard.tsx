@@ -28,15 +28,18 @@ export default function EventCard({ data }: { data: any }) {
           <div style={{ fontFamily: "'Space Mono'", fontSize: '10px', letterSpacing: '.1em', color: 'var(--subtle-foreground,#6B7480)' }}>{d.dow}</div>
           <div style={{ fontFamily: "'Archivo'", fontWeight: 900, fontSize: '26px', lineHeight: 1, letterSpacing: '-.03em', color: 'var(--foreground,#F4EFE6)', margin: '2px 0' }}>{d.day}</div>
           <div style={{ fontFamily: "'Space Mono'", fontSize: '10px', letterSpacing: '.1em', color: 'var(--primary,#C9A24B)' }}>{d.month}</div>
+          {d.multiDate ? (
+            <div style={{ fontFamily: "'Space Mono'", fontSize: '9px', letterSpacing: '.04em', color: 'var(--subtle-foreground,#6B7480)', marginTop: '3px' }}>+{d.datesCount - 1} fecha{d.datesCount - 1 > 1 ? 's' : ''}</div>
+          ) : null}
         </div>
 
         {/* match info */}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '7px' }}>
             <Badge tone={tagTone}>{d.tag}</Badge>
-            <span style={{ fontFamily: "'Space Mono'", fontSize: '11px', color: 'var(--subtle-foreground,#6B7480)' }}>{d.time} hs</span>
+            <span style={{ fontFamily: "'Space Mono'", fontSize: '11px', color: 'var(--subtle-foreground,#6B7480)' }}>{d.multiDate ? d.timeText : (d.time + ' hs')}</span>
           </div>
-          <div style={{ fontFamily: "'Space Mono'", fontSize: '11px', letterSpacing: '.03em', color: 'var(--muted-foreground,#9AA6B2)', marginBottom: '2px' }}>{d.comp} · {d.round}</div>
+          <div style={{ fontFamily: "'Space Mono'", fontSize: '11px', letterSpacing: '.03em', color: 'var(--muted-foreground,#9AA6B2)', marginBottom: '2px' }}>{d.comp}{d.round ? ' · ' + d.round : ''}</div>
           <h3 style={{ margin: 0, fontFamily: "'Archivo'", fontWeight: 800, fontSize: '19px', letterSpacing: '-.02em', color: 'var(--foreground,#F4EFE6)', lineHeight: 1.1 }}>vs {d.opp}</h3>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px', fontSize: '12.5px', color: 'var(--muted-foreground,#9AA6B2)' }}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>

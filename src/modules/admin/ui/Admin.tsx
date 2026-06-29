@@ -129,6 +129,9 @@ export default function Admin() {
                       <div style={{ textAlign: 'center' }}>
                         <div style={{ fontFamily: "'Archivo'", fontWeight: 800, fontSize: '15px', color: 'var(--foreground,#F4EFE6)', lineHeight: 1 }}>{ev.date}</div>
                         <div style={{ fontFamily: "'Space Mono'", fontSize: '9px', color: 'var(--subtle-foreground,#6B7480)' }}>{ev.dow}</div>
+                        {ev.multiDate ? (
+                          <div style={{ fontFamily: "'Space Mono'", fontSize: '8.5px', color: 'var(--primary,#C9A24B)', marginTop: '2px' }}>+{ev.datesCount - 1}</div>
+                        ) : null}
                       </div>
                     ),
                   },

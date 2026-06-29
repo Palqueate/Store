@@ -5,6 +5,7 @@ import { createEvent } from '@/modules/events/application/use-cases/createEvent'
 import { updateEvent } from '@/modules/events/application/use-cases/updateEvent'
 import { createStadium } from '@/modules/stadiums/application/use-cases/createStadium'
 import { updateStadium } from '@/modules/stadiums/application/use-cases/updateStadium'
+import { eventOccurrences } from '@/modules/events/domain/Event'
 import { readImagesAsDataUrls } from '@/shared/lib/readImages'
 import { DEFAULT_COUNTRY } from '@/shared/domain/countries'
 
@@ -24,7 +25,9 @@ export const createAdminSlice = (set, get) => ({
   palcoReviewId: null,
   palcoReviewReason: '',
   palcoReviewFlags: {},
-  evDraft: { type: 'futbol', stadium: 'gpc', country: DEFAULT_COUNTRY, date: '', time: '17:00', comp: '', round: '', opp: '', images: [], obs: '' },
+  // `dates` son las funciones del evento (fecha + hora). Fútbol suele tener una;
+  // shows y otros eventos pueden tener varias.
+  evDraft: { type: 'futbol', stadium: 'gpc', country: DEFAULT_COUNTRY, dates: [{ date: '', time: '17:00' }], comp: '', round: '', opp: '', images: [], obs: '' },
   stadDraft: { name: '', short: '', city: 'Montevideo', country: DEFAULT_COUNTRY, address: '', capacity: '', year: '', surface: '', levels: '2', roof: 'no', mapImage: '' },
 
   isAdmin: () => !!(get().user && get().user.admin),
@@ -37,6 +40,10 @@ export const createAdminSlice = (set, get) => ({
     return { day: String(d.getDate()).padStart(2, '0'), month: MONTHS[d.getMonth()], dow: DOWS[d.getDay()] }
   },
   setEvDraft: (k, v) => set({ evDraft: { ...get().evDraft, [k]: v } }),
+  // Funciones (fecha + hora) del evento en el draft.
+  addEvDate: () => set({ evDraft: { ...get().evDraft, dates: get().evDraft.dates.concat([{ date: '', time: '17:00' }]) } }),
+  removeEvDate: (i) => { const d = get().evDraft.dates.slice(); if (d.length <= 1) return; d.splice(i, 1); set({ evDraft: { ...get().evDraft, dates: d } }) },
+  setEvDateAt: (i, field, v) => { const d = get().evDraft.dates.map((x) => ({ ...x })); if (!d[i]) return; d[i][field] = v; set({ evDraft: { ...get().evDraft, dates: d } }) },
   setStadDraft: (k, v) => set({ stadDraft: { ...get().stadDraft, [k]: v } }),
   // Stadiums (ids) located in a given country.
   _stadiumsInCountry: (country) => {
@@ -59,14 +66,15 @@ export const createAdminSlice = (set, get) => ({
     const country = (firstStad && firstStad.country) || DEFAULT_COUNTRY
     const inCountry = get()._stadiumsInCountry(country)
     const stadium = inCountry.indexOf(firstId) >= 0 ? firstId : (inCountry[0] || '')
-    set({ adminEvModal: true, evEditId: null, evDraft: { type: 'futbol', stadium, country, date: '', time: '17:00', comp: '', round: '', opp: '', images: [], obs: '' } })
+    set({ adminEvModal: true, evEditId: null, evDraft: { type: 'futbol', stadium, country, dates: [{ date: '', time: '17:00' }], comp: '', round: '', opp: '', images: [], obs: '' } })
   },
   openEvModalEdit: (id) => {
     const ev = get().events.find((e) => e.id === id); if (!ev) return
+    const dates = eventOccurrences(ev).map((o) => ({ date: o.iso || '', time: o.time || '17:00' }))
     set({
       adminEvModal: true, evEditId: id,
       evDraft: {
-        type: ev.type || 'futbol', stadium: ev.stadium, country: ev.country, date: ev.iso || '', time: ev.time || '17:00',
+        type: ev.type || 'futbol', stadium: ev.stadium, country: ev.country, dates: dates.length ? dates : [{ date: '', time: '17:00' }],
         comp: ev.comp || '', round: ev.round || '', opp: ev.opp || '', images: (ev.images || []).slice(), obs: ev.obs || '',
       },
     })
@@ -100,16 +108,26 @@ export const createAdminSlice = (set, get) => ({
   adminRemoveStadMap: () => get().setStadDraft('mapImage', ''),
   adminCreateEvent: () => {
     const d = get().evDraft
-    if (!d.date) return get().flash('Elegí la fecha del evento')
+    const rows = (d.dates || []).filter((r) => r && r.date)
+    if (!rows.length) return get().flash('Elegí al menos una fecha del evento')
     if (!d.stadium) return get().flash('Agregá un estadio en ese país primero')
     if (!(d.opp || '').trim()) return get().flash('Ingresá el rival o título del evento')
-    const fd = get()._fmtDate(d.date); if (!fd) return get().flash('Fecha inválida')
     const et = get().eventTypes.find((t) => t.id === d.type) || get().eventTypes[0]
     const comp = (d.comp || '').trim() || et.name
     const stadCountry = (get().stadiums[d.stadium] || {}).country
     const country = (d.country || stadCountry || DEFAULT_COUNTRY)
     const editId = get().evEditId
-    const base = { stadium: d.stadium, type: d.type, comp, round: (d.round || '').trim(), opp: (d.opp || '').trim(), month: fd.month, day: fd.day, dow: fd.dow, iso: d.date, time: d.time || '17:00', tag: et.tag, label: comp + ((d.round || '').trim() ? (' · ' + d.round.trim()) : ''), images: d.images || [], obs: (d.obs || '').trim(), country }
+    const baseId = editId || ('e' + Date.now())
+    // Construir las funciones (fecha + hora). Para fecha única, el id de la
+    // función coincide con el del evento (compatibilidad de disponibilidad).
+    const occ = []
+    for (let i = 0; i < rows.length; i++) {
+      const fd = get()._fmtDate(rows[i].date); if (!fd) return get().flash('Fecha inválida')
+      occ.push({ id: baseId + '-' + (i + 1), month: fd.month, day: fd.day, dow: fd.dow, time: rows[i].time || '17:00', iso: rows[i].date })
+    }
+    if (occ.length === 1) occ[0].id = baseId
+    const first = occ[0]
+    const base = { stadium: d.stadium, type: d.type, comp, round: (d.round || '').trim(), opp: (d.opp || '').trim(), month: first.month, day: first.day, dow: first.dow, iso: first.iso, time: first.time, dates: occ, tag: et.tag, label: comp + ((d.round || '').trim() ? (' · ' + d.round.trim()) : ''), images: d.images || [], obs: (d.obs || '').trim(), country }
     if (editId) {
       const ev = { ...base, id: editId }
       updateEvent(container.events, ev)
@@ -117,7 +135,7 @@ export const createAdminSlice = (set, get) => ({
       get().flash('Evento actualizado')
       return
     }
-    const ev = { ...base, id: 'e' + Date.now() }
+    const ev = { ...base, id: baseId }
     createEvent(container.events, ev)
     set({ events: get().events.concat([ev]), adminEvModal: false }); get().flash('Evento creado')
   },

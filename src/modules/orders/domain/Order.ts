@@ -10,6 +10,8 @@ export interface OrderItem {
   qty: number
   price: number
   eventId?: string
+  /** Función (fecha + hora) del evento. Coincide con eventId si es de fecha única. */
+  occurrenceId?: string
   eventLabel?: string
   eventOpp?: string
 }

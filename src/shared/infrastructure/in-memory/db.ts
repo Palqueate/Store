@@ -25,6 +25,13 @@ export const EVENTS: Ev[] = [
   { id: 'e3', stadium: 'gpc', country: 'Uruguay', comp: 'Torneo Apertura', round: 'Fecha 11', opp: 'Club Aurora', month: 'AGO', day: '09', dow: 'SÁB', time: '17:30', tag: 'Destacado', label: 'Torneo Apertura · Fecha 11' },
   { id: 'e4', stadium: 'cds', country: 'Uruguay', comp: 'Torneo Apertura', round: 'Fecha 8', opp: 'Deportivo Pradera', month: 'JUL', day: '19', dow: 'SÁB', time: '16:00', tag: 'Local', label: 'Torneo Apertura · Fecha 8' },
   { id: 'e5', stadium: 'cds', country: 'Uruguay', comp: 'Copa Libertadores', round: 'Fase de grupos', opp: 'Estuario FC', month: 'JUL', day: '30', dow: 'MIÉ', time: '21:30', tag: 'Copa', label: 'Copa Libertadores · Grupo' },
+  // Show con varias funciones: el cliente elige fecha y hora antes de ver palcos.
+  { id: 'e6', stadium: 'gpc', country: 'Uruguay', type: 'show', comp: 'Gira Mundial', round: '', opp: 'Banda Aurora', month: 'AGO', day: '22', dow: 'VIE', time: '21:00', tag: 'Destacado', label: 'Gira Mundial',
+    dates: [
+      { id: 'e6-1', month: 'AGO', day: '22', dow: 'VIE', time: '21:00' },
+      { id: 'e6-2', month: 'AGO', day: '23', dow: 'SÁB', time: '21:00' },
+      { id: 'e6-3', month: 'AGO', day: '24', dow: 'DOM', time: '19:00' },
+    ] },
 ]
 
 export const EVENT_TYPES: EventType[] = [
@@ -35,15 +42,15 @@ export const EVENT_TYPES: EventType[] = [
 
 export const PALCOS: Palco[] = [
   { id: 'p1', stadium: 'gpc', title: 'Palco Atilio García', sector: 'Tribuna Atilio García · Nivel Palcos', map: { x: 50, y: 13.5 }, seats: 10, parking: { has: true, n: 2 }, host: 'Familia Méndez', rating: 4.9, photos: 3, images: [],
-    modes: { palcoYear: { on: true, price: 1180000 }, seatYear: { on: true, price: 96000, taken: [3, 4] }, seatEvent: { on: true, price: 6500, taken: { e1: [1, 2], e2: [], e3: [1, 2, 3, 4, 5] } } }, status: 'publicado' },
+    modes: { palcoYear: { on: true, price: 1180000 }, seatYear: { on: true, price: 96000, taken: [3, 4] }, seatEvent: { on: true, price: 6500, taken: { e1: [1, 2], e2: [], e3: [1, 2, 3, 4, 5], 'e6-1': [1, 2, 3], 'e6-2': [], 'e6-3': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] } } }, status: 'publicado' },
   { id: 'p2', stadium: 'cds', title: 'Palco Henderson', sector: 'Tribuna Henderson · Platea Alta', map: { x: 50, y: 12 }, seats: 12, parking: { has: true, n: 3 }, host: 'Grupo Aurinegro SA', rating: 4.8, photos: 4, images: [],
     modes: { palcoYear: { on: true, price: 1450000 }, seatYear: { on: true, price: 108000, taken: [7, 8, 9] }, seatEvent: { on: true, price: 7200, taken: { e4: [1], e5: [1, 2, 3], e6: [] } } }, status: 'publicado' },
   { id: 'p3', stadium: 'gpc', title: 'Palco Esquina Norte', sector: 'Codo Norte · Nivel Palcos', map: { x: 78, y: 24 }, seats: 8, parking: { has: false, n: 0 }, host: 'Vos (demo)', rating: 4.7, photos: 2, images: [],
-    modes: { palcoYear: { on: false, price: 980000 }, seatYear: { on: true, price: 84000, taken: [1, 2, 5] }, seatEvent: { on: true, price: 5400, taken: { e1: [3, 4], e2: [3, 4, 5], e3: [6] } } }, status: 'publicado' },
+    modes: { palcoYear: { on: false, price: 980000 }, seatYear: { on: true, price: 84000, taken: [1, 2, 5] }, seatEvent: { on: true, price: 5400, taken: { e1: [3, 4], e2: [3, 4, 5], e3: [6], 'e6-1': [1], 'e6-2': [3, 4, 5], 'e6-3': [6] } } }, status: 'publicado' },
   { id: 'p4', stadium: 'cds', title: 'Palco Olímpico', sector: 'Tribuna Olímpica · Platea Alta', map: { x: 24, y: 30 }, seats: 10, parking: { has: true, n: 2 }, host: 'Inversiones del Sur', rating: 4.6, photos: 3, images: [],
     modes: { palcoYear: { on: true, price: 1290000 }, seatYear: { on: false, price: 99000, taken: [] }, seatEvent: { on: true, price: 6800, taken: { e4: [5, 6], e5: [], e6: [1, 2] } } }, status: 'publicado' },
   { id: 'p5', stadium: 'gpc', title: 'Palco Abdón Porte', sector: 'Tribuna Abdón Porte · Centro', map: { x: 50, y: 86.5 }, seats: 14, parking: { has: true, n: 4 }, host: 'Estudio Caraballo', rating: 5.0, photos: 5, images: [],
-    modes: { palcoYear: { on: true, price: 1620000 }, seatYear: { on: true, price: 118000, taken: [2] }, seatEvent: { on: true, price: 8200, taken: { e1: [1, 2, 3], e2: [], e3: [] } } }, status: 'publicado' },
+    modes: { palcoYear: { on: true, price: 1620000 }, seatYear: { on: true, price: 118000, taken: [2] }, seatEvent: { on: true, price: 8200, taken: { e1: [1, 2, 3], e2: [], e3: [], 'e6-1': [1, 2], 'e6-2': [], 'e6-3': [1, 2, 3] } } }, status: 'publicado' },
   { id: 'p6', stadium: 'cds', title: 'Palco Palacio', sector: 'Codo Sur · Nivel Palcos', map: { x: 74, y: 74 }, seats: 8, parking: { has: true, n: 1 }, host: 'Vos (demo)', rating: 4.5, photos: 2, images: [],
     modes: { palcoYear: { on: true, price: 1040000 }, seatYear: { on: true, price: 88000, taken: [3, 4, 5, 6] }, seatEvent: { on: true, price: 5900, taken: { e4: [1, 2], e5: [7, 8], e6: [2] } } }, status: 'pausado' },
 ]
@@ -85,5 +92,5 @@ export const SEED_ORDERS: Order[] = [
     items: [{ uid: 'me2a', palcoId: 'p2', palcoTitle: 'Palco Henderson', stadium: 'cds', mode: 'seatYear', modeLabel: 'Asiento anual · 1 año', seats: [4], term: 'Temporada 2026 · 1 año', qty: 1, price: 108000 }] },
   { code: 'PLQ-ME01', userId: 'u_maru', subtotal: 13000, fee: 520, total: 13520, date: '2026-06-10T17:00:00.000Z', contact: { name: 'María Eugenia', email: 'maria.eugenia@palqueate.uy' }, foodTotal: 2620,
     food: [{ id: 'f4', name: 'Chivito al pan', qty: 2, price: 790 }, { id: 'f9', name: 'Cerveza tirada 1L', qty: 2, price: 520 }],
-    items: [{ uid: 'me1a', palcoId: 'p1', palcoTitle: 'Palco Atilio García', stadium: 'gpc', mode: 'seatEvent', modeLabel: 'Asiento · por evento', seats: [5, 6], eventId: 'e1', eventLabel: 'Torneo Apertura · Fecha 7', eventOpp: 'Costa FC', term: '12 JUL · 17:00 hs', qty: 2, price: 13000 }] },
+    items: [{ uid: 'me1a', palcoId: 'p1', palcoTitle: 'Palco Atilio García', stadium: 'gpc', mode: 'seatEvent', modeLabel: 'Asiento · por evento', seats: [5, 6], eventId: 'e1', occurrenceId: 'e1', eventLabel: 'Torneo Apertura · Fecha 7', eventOpp: 'Costa FC', term: '12 JUL · 17:00 hs', qty: 2, price: 13000 }] },
 ]
