@@ -197,18 +197,20 @@ export default function EventPalcos() {
               {epList.map((p: any, i: number) => (
                 <div
                   key={i}
-                  onMouseEnter={() => setHoverId(p.id)}
+                  onMouseEnter={() => { if (!p.soldOut) setHoverId(p.id) }}
                   onMouseLeave={() => setHoverId(null)}
                 >
                 <Card
-                  hover
-                  accent={hoverId === p.id}
-                  onClick={p.open}
+                  hover={!p.soldOut}
+                  accent={!p.soldOut && hoverId === p.id}
+                  onClick={p.soldOut ? undefined : p.open}
                   padding="16px"
                   style={{
                     display: 'flex', gap: '14px', alignItems: 'stretch',
                     transition: 'box-shadow .16s ease',
-                    boxShadow: hoverId === p.id ? '0 10px 30px -12px color-mix(in srgb, var(--primary,#C9A24B) 45%, transparent)' : undefined,
+                    opacity: p.soldOut ? 0.55 : 1,
+                    cursor: p.soldOut ? 'default' : 'pointer',
+                    boxShadow: !p.soldOut && hoverId === p.id ? '0 10px 30px -12px color-mix(in srgb, var(--primary,#C9A24B) 45%, transparent)' : undefined,
                   }}
                 >
                   {/* Palco thumbnail */}
@@ -248,7 +250,8 @@ export default function EventPalcos() {
                     <Btn
                       label={p.ctaLabel}
                       size="sm"
-                      variant="primary"
+                      variant={p.soldOut ? 'secondary' : 'primary'}
+                      disabled={p.soldOut}
                       onClick={p.open}
                     />
                   </Stack>
