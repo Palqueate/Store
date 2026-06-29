@@ -274,7 +274,7 @@ export function PalcoReviewModal() {
           {(r.images || []).length > 0 ? (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(86px,1fr))', gap: '8px' }}>
               {(r.images || []).map((src: string, i: number) => (
-                <img key={i} src={src} alt={'Foto ' + (i + 1)} style={{ width: '100%', aspectRatio: '1 / 1', objectFit: 'cover', borderRadius: '10px', border: '1px solid var(--border,rgba(255,255,255,.12))' }} />
+                <img key={i} src={src} alt={'Foto ' + (i + 1)} style={{ width: '100%', aspectRatio: '1 / 1', objectFit: 'contain', background: 'var(--background,#0E1116)', borderRadius: '10px', border: '1px solid var(--border,rgba(255,255,255,.12))' }} />
               ))}
             </div>
           ) : null}

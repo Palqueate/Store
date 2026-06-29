@@ -52,8 +52,8 @@ export default function Detail() {
               showDots
               height="clamp(240px,38vw,400px)"
               slides={images.map((src, i) => (
-                <div key={i} onClick={() => openLightbox(i)} style={{ width: '100%', height: '100%' }}>
-                  <img src={src} alt={`Foto ${i + 1} del palco`} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', cursor: 'zoom-in' }} />
+                <div key={i} onClick={() => openLightbox(i)} style={{ width: '100%', height: '100%', background: 'var(--muted,#1F2530)' }}>
+                  <img src={src} alt={`Foto ${i + 1} del palco`} style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block', cursor: 'zoom-in' }} />
                 </div>
               ))}
             />

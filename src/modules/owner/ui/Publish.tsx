@@ -341,7 +341,7 @@ export default function Publish() {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(108px,1fr))', gap: '12px' }}>
                   {(vals.wiz.images || []).map((src: string, i: number) => (
                     <div key={i} style={{ position: 'relative', borderRadius: '13px', overflow: 'hidden', border: '1px solid var(--border,rgba(255,255,255,.12))', background: 'var(--card,#171B22)', aspectRatio: '1 / 1' }}>
-                      <img src={src} alt={'Foto ' + (i + 1)} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                      <img src={src} alt={'Foto ' + (i + 1)} style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
                       <button
                         onClick={() => vals.wiz.removeImage(i)}
                         aria-label="Quitar foto"
