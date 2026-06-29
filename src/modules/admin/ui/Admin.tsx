@@ -102,7 +102,7 @@ export default function Admin() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '13px' }}>
                   {(vals.adminTopEvents || []).map((t: any, i: number) => (
                     <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                      <div style={{ flex: '0 0 150px', minWidth: 0 }}><div style={{ fontFamily: "'Archivo'", fontWeight: 700, fontSize: '13.5px', color: 'var(--foreground,#F4EFE6)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>vs {t.opp}</div><div style={{ fontFamily: "'Space Mono'", fontSize: '10px', color: 'var(--subtle-foreground,#6B7480)' }}>{t.date}</div></div>
+                      <div style={{ flex: '0 0 150px', minWidth: 0 }}><div style={{ fontFamily: "'Archivo'", fontWeight: 700, fontSize: '13.5px', color: 'var(--foreground,#F4EFE6)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.opp}</div><div style={{ fontFamily: "'Space Mono'", fontSize: '10px', color: 'var(--subtle-foreground,#6B7480)' }}>{t.date}</div></div>
                       <div style={{ flex: 1, minWidth: 0 }}><div style={css(t.barStyle)}></div></div>
                       <span style={{ flex: '0 0 auto', fontFamily: "'Archivo'", fontWeight: 800, fontSize: '13.5px', color: 'var(--foreground,#F4EFE6)', whiteSpace: 'nowrap' }}>{t.val}</span>
                     </div>
@@ -140,7 +140,7 @@ export default function Admin() {
                     header: 'EVENTO',
                     render: (ev: any) => (
                       <div>
-                        <div style={{ fontFamily: "'Archivo'", fontWeight: 700, fontSize: '14px', color: 'var(--foreground,#F4EFE6)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>vs {ev.opp}</div>
+                        <div style={{ fontFamily: "'Archivo'", fontWeight: 700, fontSize: '14px', color: 'var(--foreground,#F4EFE6)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ev.opp}</div>
                         <div style={{ fontSize: '12px', color: 'var(--muted-foreground,#9AA6B2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ev.comp} · {ev.round}</div>
                         {ev.obs ? (
                           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', marginTop: '4px', maxWidth: '260px', fontSize: '11.5px', color: 'var(--primary,#C9A24B)' }} title={ev.obs}>

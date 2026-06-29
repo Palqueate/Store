@@ -66,7 +66,7 @@ export default function EventPalcos() {
             </span>
           </Stack>
           <h1 style={{ margin: '0 0 4px', fontFamily: "'Archivo'", fontWeight: 900, fontStretch: '112%', letterSpacing: '-.03em', fontSize: 'clamp(26px,4.2vw,40px)', color: 'var(--foreground,#F4EFE6)' }}>
-            vs {vals.ep.opp}
+            {vals.ep.opp}
           </h1>
           <Stack direction="row" align="center" gap={6} style={{ fontSize: '14px', color: 'var(--muted-foreground,#9AA6B2)' }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

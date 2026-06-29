@@ -44,7 +44,7 @@ export function useDetailVM(): any {
     var curOcc = curEv ? eventOccurrence(curEv, s.occurrenceId) : null
     det.fromEvent = !!s.fromEvent && !!curEv
     det.eventName = curEv ? (curEv.comp + (curEv.round ? (' · ' + curEv.round) : '')) : ''
-    det.eventOpp = curEv ? (curEv.opp) : ''
+    det.eventOpp = curEv ? curEv.opp : ''
     det.eventWhen = curOcc ? (curOcc.dow + ' ' + curOcc.day + ' ' + curOcc.month + ' · ' + curOcc.time + ' hs') : ''
     det.backLabel = s.fromEvent ? 'Volver al evento' : 'Volver a palcos'
     // Volver al evento conservando la función (fecha + hora) ya elegida.

@@ -19,7 +19,7 @@ export default function EventCard({ data }: { data: any }) {
         {/* event image thumbnail — only when one was uploaded */}
         {thumb ? (
           <div style={{ flex: '0 0 auto', width: '62px', height: '62px', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border,rgba(255,255,255,.08))' }}>
-            <img src={thumb} alt={(d.opp || '')} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+            <img src={thumb} alt={d.opp || ''} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
           </div>
         ) : null}
 
@@ -40,7 +40,7 @@ export default function EventCard({ data }: { data: any }) {
             <span style={{ fontFamily: "'Space Mono'", fontSize: '11px', color: 'var(--subtle-foreground,#6B7480)' }}>{d.multiDate ? d.timeText : (d.time + ' hs')}</span>
           </div>
           <div style={{ fontFamily: "'Space Mono'", fontSize: '11px', letterSpacing: '.03em', color: 'var(--muted-foreground,#9AA6B2)', marginBottom: '2px' }}>{d.comp}{d.round ? ' · ' + d.round : ''}</div>
-          <h3 style={{ margin: 0, fontFamily: "'Archivo'", fontWeight: 800, fontSize: '19px', letterSpacing: '-.02em', color: 'var(--foreground,#F4EFE6)', lineHeight: 1.1 }}>vs {d.opp}</h3>
+          <h3 style={{ margin: 0, fontFamily: "'Archivo'", fontWeight: 800, fontSize: '19px', letterSpacing: '-.02em', color: 'var(--foreground,#F4EFE6)', lineHeight: 1.1 }}>{d.opp}</h3>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px', fontSize: '12.5px', color: 'var(--muted-foreground,#9AA6B2)' }}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
             {d.stadiumName}
