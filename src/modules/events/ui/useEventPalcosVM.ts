@@ -42,6 +42,7 @@ export function useEventPalcosVM(): any {
       id: p.id, title: p.title, sector: p.sector, rating: p.rating.toFixed(1), stadiumShort: STADIUMS[p.stadium].short,
       free: free, soldOut: so, freeTxt: so ? 'Agotado' : (free + ' de ' + p.seats + ' libres'),
       parking: p.parking.has ? ('Estac. x' + p.parking.n) : 'Sin estac.',
+      price: p.modes.seatEvent.price,
       priceTxt: self.money(p.modes.seatEvent.price),
       rowStyle: 'display:flex; gap:16px; padding:16px; border-radius:15px; background:var(--card,#171B22); border:1px solid var(--border,rgba(255,255,255,.09)); ' + (so ? 'opacity:.6;' : 'cursor:pointer;') + ' transition:border-color .15s ease, transform .15s ease;',
       barStyle: 'height:6px; border-radius:4px; background:var(--muted); overflow:hidden; margin-top:7px; max-width:160px;',
@@ -51,7 +52,8 @@ export function useEventPalcosVM(): any {
       open: so ? function () { self.flash('Sin asientos para esta función') } : function () { self.openDetailEvent(p.id, epEvent.id, selOccId) },
     }
   }) : []
-  epList.sort(function (a, b) { return (a.soldOut ? 1 : 0) - (b.soldOut ? 1 : 0) || b.free - a.free })
+  // Agotados al final; el resto, de más caro a más barato.
+  epList.sort(function (a, b) { return (a.soldOut ? 1 : 0) - (b.soldOut ? 1 : 0) || b.price - a.price })
 
   var epMarkers = selOccId ? epA.palcos.map(function (p) {
     var free = self.eventFreeSeats(p, selOccId)

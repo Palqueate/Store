@@ -8,6 +8,22 @@ export default function EventPalcos() {
   const vals = useEventPalcosVM()
   // Palco resaltado al pasar el mouse: enlaza el listado con su marcador en el mapa.
   const [hoverId, setHoverId] = useState<string | null>(null)
+
+  // Orden del listado de palcos. Los agotados quedan siempre al final.
+  const [sortKey, setSortKey] = useState<'priceDesc' | 'priceAsc' | 'rating'>('priceDesc')
+  const sortOptions: { key: typeof sortKey; label: string }[] = [
+    { key: 'priceDesc', label: 'Mayor precio' },
+    { key: 'priceAsc', label: 'Menor precio' },
+    { key: 'rating', label: 'Mejor rating' },
+  ]
+  const sortCmp: Record<typeof sortKey, (a: any, b: any) => number> = {
+    priceDesc: (a, b) => b.price - a.price,
+    priceAsc: (a, b) => a.price - b.price,
+    rating: (a, b) => (parseFloat(b.rating) || 0) - (parseFloat(a.rating) || 0),
+  }
+  const epList = (vals.epList || []).slice().sort(
+    (a: any, b: any) => (a.soldOut ? 1 : 0) - (b.soldOut ? 1 : 0) || sortCmp[sortKey](a, b)
+  )
   const mapMarkers = (vals.epMarkers || []).map((m: any) => ({
     ...m,
     highlight: m.id != null && m.id === hoverId,
@@ -137,9 +153,35 @@ export default function EventPalcos() {
       <div style={css(vals.epWrap)}>
         {/* Palco list */}
         <div style={{ minWidth: 0 }}>
-          <h2 style={{ margin: '0 0 14px', fontFamily: "'Archivo'", fontWeight: 800, fontSize: '20px', letterSpacing: '-.02em', color: 'var(--foreground,#F4EFE6)' }}>
-            Palcos con asientos para este evento
-          </h2>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', margin: '0 0 14px' }}>
+            <h2 style={{ margin: 0, fontFamily: "'Archivo'", fontWeight: 800, fontSize: '20px', letterSpacing: '-.02em', color: 'var(--foreground,#F4EFE6)' }}>
+              Palcos con asientos para este evento
+            </h2>
+            {vals.ep.hasAvail ? (
+              <div role="group" aria-label="Ordenar palcos" style={{ display: 'inline-flex', padding: '3px', borderRadius: '11px', background: 'var(--muted,#1F2530)', border: '1px solid var(--border,rgba(255,255,255,.09))' }}>
+                {sortOptions.map((o) => {
+                  const active = sortKey === o.key
+                  return (
+                    <button
+                      key={o.key}
+                      onClick={() => setSortKey(o.key)}
+                      aria-pressed={active}
+                      style={{
+                        cursor: 'pointer', border: 'none', padding: '6px 12px', borderRadius: '8px',
+                        fontFamily: "'Space Mono'", fontSize: '11.5px', letterSpacing: '.02em',
+                        background: active ? 'var(--primary,#C9A24B)' : 'transparent',
+                        color: active ? 'var(--primary-foreground,#1A1407)' : 'var(--muted-foreground,#9AA6B2)',
+                        fontWeight: active ? 700 : 400,
+                        transition: 'background .15s ease, color .15s ease',
+                      }}
+                    >
+                      {o.label}
+                    </button>
+                  )
+                })}
+              </div>
+            ) : null}
+          </div>
 
           {vals.ep.needsDate ? (
             <Card padding="0">
@@ -152,7 +194,7 @@ export default function EventPalcos() {
 
           {vals.ep.hasAvail ? (
             <div style={css(vals.epListGrid)}>
-              {(vals.epList || []).map((p: any, i: number) => (
+              {epList.map((p: any, i: number) => (
                 <div
                   key={i}
                   onMouseEnter={() => setHoverId(p.id)}
