@@ -78,7 +78,7 @@ export default function Detail() {
             <p style={{ margin: '0 0 16px', fontSize: '14px', color: 'var(--muted-foreground,#9AA6B2)' }}>
               El marcador dorado muestra la ubicación exacta dentro del estadio.
             </p>
-            <StadiumMap stadium={vals.det.stadium} name={vals.det.stadiumName} shape={vals.det.stadiumShape} mapImage={vals.det.stadiumMap} markers={vals.det.markers} />
+            <StadiumMap stadium={vals.det.stadium} name={vals.det.stadiumName} mapImage={vals.det.stadiumMap} markers={vals.det.markers} />
           </div>
         </div>
 

@@ -198,10 +198,6 @@ export function StadiumModal() {
           </div>
         </div>
         <div>
-          <label style={css("display:block; font-family:'Space Mono'; font-size:10px; letter-spacing:.08em; color:var(--subtle-foreground,#6B7480); margin-bottom:6px;")}>FORMA DEL PLANO</label>
-          <Select value={vals.stadShape} options={vals.shapeOptions} onChange={(v) => vals.setStadShape({ target: { value: v } })} />
-        </div>
-        <div>
           <label style={css("display:block; font-family:'Space Mono'; font-size:10px; letter-spacing:.08em; color:var(--subtle-foreground,#6B7480); margin-bottom:6px;")}>MAPA DEL ESTADIO (OPCIONAL)</label>
           {vals.stadMapImage ? (
             <div style={{ position: 'relative', borderRadius: '13px', overflow: 'hidden', border: '1px solid var(--border,rgba(255,255,255,.12))', background: 'var(--card,#171B22)' }}>

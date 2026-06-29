@@ -38,7 +38,7 @@ export function usePublishVM(): any {
         }
       }),
       s0: w.step === 0, s1: w.step === 1, s2: w.step === 2, s3: w.step === 3, s4: w.step === 4, s5: w.step === 5,
-      stadium: w.stadium, stadiumName: STADIUMS[w.stadium].name, stadiumShape: (STADIUMS[w.stadium] || {}).shape || 'rect', stadiumMap: (STADIUMS[w.stadium] || {}).mapImage || '', x: w.x, y: w.y, title: w.title, seats: String(w.seats), parkN: String(w.parkN), parkHas: w.parkHas,
+      stadium: w.stadium, stadiumName: STADIUMS[w.stadium].name, stadiumMap: (STADIUMS[w.stadium] || {}).mapImage || '', x: w.x, y: w.y, title: w.title, seats: String(w.seats), parkN: String(w.parkN), parkHas: w.parkHas,
       images: w.images || [],
       addImages: function (files) { self.wzAddImages(files) },
       removeImage: function (i) { self.wzRemoveImage(i) },

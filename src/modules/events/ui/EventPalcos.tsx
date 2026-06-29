@@ -160,7 +160,7 @@ export default function EventPalcos() {
             <p style={{ margin: '0 0 14px', fontSize: '12.5px', color: 'var(--muted-foreground,#9AA6B2)' }}>
               Tocá un palco disponible para ver sus asientos.
             </p>
-            <StadiumMap stadium={vals.ep.stadium} name={vals.ep.stadiumName} shape={vals.ep.stadiumShape} mapImage={vals.ep.stadiumMap} markers={vals.epMarkers} />
+            <StadiumMap stadium={vals.ep.stadium} name={vals.ep.stadiumName} mapImage={vals.ep.stadiumMap} markers={vals.epMarkers} />
             <div style={{ margin: '14px 0 10px' }}><Divider /></div>
             <Stack direction="row" gap={16} style={{ fontFamily: "'Space Mono'", fontSize: '11px', color: 'var(--muted-foreground,#9AA6B2)' }}>
               <Stack direction="row" align="center" gap={6}>
