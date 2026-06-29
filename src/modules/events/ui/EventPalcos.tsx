@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { css } from '@/shared/ui/css'
-import { Card, EmptyState, Btn, Rating, Stack, Divider, Carousel } from '@/lib'
+import { Card, EmptyState, Btn, Rating, Stack, Divider, Carousel, Select } from '@/lib'
 import StadiumMap from '@/shared/ui/components/StadiumMap'
 import { useEventPalcosVM } from './useEventPalcosVM'
 
@@ -11,10 +11,10 @@ export default function EventPalcos() {
 
   // Orden del listado de palcos. Los agotados quedan siempre al final.
   const [sortKey, setSortKey] = useState<'priceDesc' | 'priceAsc' | 'rating'>('rating')
-  const sortOptions: { key: typeof sortKey; label: string }[] = [
-    { key: 'priceDesc', label: 'Mayor precio' },
-    { key: 'priceAsc', label: 'Menor precio' },
-    { key: 'rating', label: 'Mejor rating' },
+  const sortOptions = [
+    { value: 'rating', label: 'Mejor rating' },
+    { value: 'priceDesc', label: 'Mayor precio' },
+    { value: 'priceAsc', label: 'Menor precio' },
   ]
   const sortCmp: Record<typeof sortKey, (a: any, b: any) => number> = {
     priceDesc: (a, b) => b.price - a.price,
@@ -158,27 +158,15 @@ export default function EventPalcos() {
               Palcos con asientos para este evento
             </h2>
             {vals.ep.hasAvail ? (
-              <div role="group" aria-label="Ordenar palcos" style={{ display: 'inline-flex', padding: '3px', borderRadius: '11px', background: 'var(--muted,#1F2530)', border: '1px solid var(--border,rgba(255,255,255,.09))' }}>
-                {sortOptions.map((o) => {
-                  const active = sortKey === o.key
-                  return (
-                    <button
-                      key={o.key}
-                      onClick={() => setSortKey(o.key)}
-                      aria-pressed={active}
-                      style={{
-                        cursor: 'pointer', border: 'none', padding: '6px 12px', borderRadius: '8px',
-                        fontFamily: "'Space Mono'", fontSize: '11.5px', letterSpacing: '.02em',
-                        background: active ? 'var(--primary,#C9A24B)' : 'transparent',
-                        color: active ? 'var(--primary-foreground,#1A1407)' : 'var(--muted-foreground,#9AA6B2)',
-                        fontWeight: active ? 700 : 400,
-                        transition: 'background .15s ease, color .15s ease',
-                      }}
-                    >
-                      {o.label}
-                    </button>
-                  )
-                })}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontFamily: "'Space Mono'", fontSize: '11px', letterSpacing: '.06em', color: 'var(--subtle-foreground,#6B7480)', whiteSpace: 'nowrap' }}>ORDENAR</span>
+                <div style={{ width: '180px' }}>
+                  <Select
+                    value={sortKey}
+                    options={sortOptions}
+                    onChange={(v) => setSortKey(v as typeof sortKey)}
+                  />
+                </div>
               </div>
             ) : null}
           </div>
