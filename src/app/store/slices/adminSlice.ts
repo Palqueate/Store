@@ -3,6 +3,7 @@
 import { container } from '@/app/container'
 import { createEvent } from '@/modules/events/application/use-cases/createEvent'
 import { createStadium } from '@/modules/stadiums/application/use-cases/createStadium'
+import { updateStadium } from '@/modules/stadiums/application/use-cases/updateStadium'
 import { readImagesAsDataUrls } from '@/shared/lib/readImages'
 
 const scrollTop = () => { if (typeof window !== 'undefined') { try { window.scrollTo(0, 0) } catch (e) {} } }
@@ -14,6 +15,7 @@ export const createAdminSlice = (set, get) => ({
   adminClient: null,
   adminEvModal: false,
   adminStadModal: false,
+  stadEditId: null,
   evDraft: { type: 'liga', stadium: 'gpc', date: '', time: '17:00', comp: '', round: '', opp: '', images: [] },
   stadDraft: { name: '', short: '', city: 'Montevideo', address: '', capacity: '', year: '', surface: 'Césped natural', levels: '2', roof: 'no', shape: 'rect', mapImage: '' },
 
@@ -36,8 +38,20 @@ export const createAdminSlice = (set, get) => ({
   },
   adminRemoveEventImage: (index) => get().setEvDraft('images', get().evDraft.images.filter((_, i) => i !== index)),
   closeEvModal: () => set({ adminEvModal: false }),
-  openStadModal: () => set({ adminStadModal: true, stadDraft: { name: '', short: '', city: 'Montevideo', address: '', capacity: '', year: '', surface: 'Césped natural', levels: '2', roof: 'no', shape: 'rect' } }),
-  closeStadModal: () => set({ adminStadModal: false }),
+  openStadModal: () => set({ adminStadModal: true, stadEditId: null, stadDraft: { name: '', short: '', city: 'Montevideo', address: '', capacity: '', year: '', surface: 'Césped natural', levels: '2', roof: 'no', shape: 'rect', mapImage: '' } }),
+  openStadModalEdit: (id) => {
+    const st = get().stadiums[id]; if (!st) return
+    set({
+      adminStadModal: true, stadEditId: id,
+      stadDraft: {
+        name: st.name || '', short: st.short || '', city: st.city || '', address: st.address || '',
+        capacity: st.capacity ? String(st.capacity) : '', year: st.year ? String(st.year) : '',
+        surface: st.surface || 'Césped natural', levels: st.levels ? String(st.levels) : '1',
+        roof: st.roof ? 'si' : 'no', shape: st.shape || 'rect', mapImage: st.mapImage || '',
+      },
+    })
+  },
+  closeStadModal: () => set({ adminStadModal: false, stadEditId: null }),
   adminAddStadMap: async (files) => {
     const list = Array.from(files || []); if (!list.length) return
     const urls = await readImagesAsDataUrls(list)
@@ -59,7 +73,23 @@ export const createAdminSlice = (set, get) => ({
     const d = get().stadDraft
     if (!(d.name || '').trim()) return get().flash('Ingresá el nombre del estadio')
     const short = ((d.short || '').trim() || d.name.trim().slice(0, 3)).toUpperCase().slice(0, 4)
-    const st = { id: 'st' + Date.now(), name: d.name.trim(), short, city: (d.city || '').trim(), shape: d.shape || 'rect', address: (d.address || '').trim(), capacity: parseInt((d.capacity || '').toString().replace(/[^0-9]/g, ''), 10) || 0, year: parseInt((d.year || '').toString().replace(/[^0-9]/g, ''), 10) || null, surface: d.surface || 'Césped natural', levels: parseInt(d.levels, 10) || 1, roof: d.roof === 'si', mapImage: d.mapImage || '' }
+    const editId = get().stadEditId
+    const base = {
+      name: d.name.trim(), short, city: (d.city || '').trim(), shape: d.shape || 'rect',
+      address: (d.address || '').trim(),
+      capacity: parseInt((d.capacity || '').toString().replace(/[^0-9]/g, ''), 10) || 0,
+      year: parseInt((d.year || '').toString().replace(/[^0-9]/g, ''), 10) || null,
+      surface: d.surface || 'Césped natural', levels: parseInt(d.levels, 10) || 1,
+      roof: d.roof === 'si', mapImage: d.mapImage || '',
+    }
+    if (editId) {
+      const st = { ...base, id: editId }
+      updateStadium(container.stadiums, st)
+      set({ stadiums: { ...get().stadiums, [editId]: st }, adminStadModal: false, stadEditId: null })
+      get().flash('Estadio actualizado')
+      return
+    }
+    const st = { ...base, id: 'st' + Date.now() }
     createStadium(container.stadiums, st)
     set({ stadiums: { ...get().stadiums, [st.id]: st }, adminStadModal: false }); get().flash('Estadio agregado')
   },

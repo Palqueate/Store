@@ -75,6 +75,7 @@ export function useOverlaysVM(): any {
 
     // ── StadiumModal ──
     adminStadModal: s.adminStadModal,
+    stadEditing: !!s.stadEditId,
     closeStadModal: function () { self.closeStadModal() },
     adminAddStadium: function () { self.adminAddStadium() },
     stadName: s.stadDraft.name,

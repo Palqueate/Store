@@ -166,12 +166,12 @@ export function StadiumModal() {
     <Modal
       open={!!vals.adminStadModal}
       onClose={vals.closeStadModal}
-      title="Agregar estadio"
+      title={vals.stadEditing ? 'Editar estadio' : 'Agregar estadio'}
       width={460}
       footer={
         <>
           <Btn label="Cancelar" variant="ghost" onClick={vals.closeStadModal} />
-          <Btn label="Agregar estadio" icon="check" onClick={vals.adminAddStadium} />
+          <Btn label={vals.stadEditing ? 'Guardar cambios' : 'Agregar estadio'} icon="check" onClick={vals.adminAddStadium} />
         </>
       }
     >

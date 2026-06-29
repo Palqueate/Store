@@ -15,4 +15,7 @@ export class HttpStadiumRepository implements StadiumRepository {
   async create(stadium: Stadium): Promise<void> {
     await this.http.post<void>('/stadiums', stadium)
   }
+  async update(stadium: Stadium): Promise<void> {
+    await this.http.put<void>(`/stadiums/${stadium.id}`, stadium)
+  }
 }

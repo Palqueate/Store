@@ -186,9 +186,12 @@ export default function Admin() {
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '5px 9px', borderRadius: '7px', background: 'var(--muted,#1F2530)', fontSize: '11.5px', color: 'var(--muted-foreground,#9AA6B2)' }}>{st.surface}</span>
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '5px 9px', borderRadius: '7px', background: 'var(--muted,#1F2530)', fontSize: '11.5px', color: 'var(--muted-foreground,#9AA6B2)' }}>{st.roof}</span>
                     </div>
-                    <div style={{ display: 'flex', gap: '18px', paddingTop: '12px', borderTop: '1px solid var(--border,rgba(255,255,255,.08))' }}>
-                      <div><div style={{ fontFamily: "'Archivo'", fontWeight: 800, fontSize: '18px', color: 'var(--primary,#C9A24B)' }}>{st.palcos}</div><div style={{ fontFamily: "'Space Mono'", fontSize: '10px', color: 'var(--subtle-foreground,#6B7480)' }}>PALCOS</div></div>
-                      <div><div style={{ fontFamily: "'Archivo'", fontWeight: 800, fontSize: '18px', color: 'var(--foreground,#F4EFE6)' }}>{st.events}</div><div style={{ fontFamily: "'Space Mono'", fontSize: '10px', color: 'var(--subtle-foreground,#6B7480)' }}>EVENTOS</div></div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', paddingTop: '12px', borderTop: '1px solid var(--border,rgba(255,255,255,.08))' }}>
+                      <div style={{ display: 'flex', gap: '18px' }}>
+                        <div><div style={{ fontFamily: "'Archivo'", fontWeight: 800, fontSize: '18px', color: 'var(--primary,#C9A24B)' }}>{st.palcos}</div><div style={{ fontFamily: "'Space Mono'", fontSize: '10px', color: 'var(--subtle-foreground,#6B7480)' }}>PALCOS</div></div>
+                        <div><div style={{ fontFamily: "'Archivo'", fontWeight: 800, fontSize: '18px', color: 'var(--foreground,#F4EFE6)' }}>{st.events}</div><div style={{ fontFamily: "'Space Mono'", fontSize: '10px', color: 'var(--subtle-foreground,#6B7480)' }}>EVENTOS</div></div>
+                      </div>
+                      <Btn label="Editar" variant="secondary" onClick={st.edit} />
                     </div>
                   </Card>
                 ))}

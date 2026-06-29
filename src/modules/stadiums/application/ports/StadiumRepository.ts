@@ -5,4 +5,5 @@ export interface StadiumRepository {
   list(): Promise<Stadium[]>
   findById(id: string): Promise<Stadium | null>
   create(stadium: Stadium): Promise<void>
+  update(stadium: Stadium): Promise<void>
 }

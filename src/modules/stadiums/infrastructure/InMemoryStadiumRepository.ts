@@ -5,12 +5,13 @@ import { readJson, writeJson } from '../../../shared/infrastructure/storage/loca
 
 const KEY = 'pq_admin_stadiums'
 
-/** Wraps the in-memory STADIUMS map; admin-created ones persist to localStorage. */
+/** Wraps the in-memory STADIUMS map; admin changes persist to localStorage. */
 export class InMemoryStadiumRepository implements StadiumRepository {
   constructor() {
-    // Rehydrate admin-created stadiums on construction, matching the prototype.
+    // Rehydrate persisted stadiums (admin-created AND admin-edited seeds) on
+    // construction. Stored entries are the latest admin state, so they win.
     for (const st of readJson<Stadium[]>(KEY, [])) {
-      if (!STADIUMS[st.id]) STADIUMS[st.id] = st
+      STADIUMS[st.id] = st
     }
   }
 
@@ -24,8 +25,20 @@ export class InMemoryStadiumRepository implements StadiumRepository {
 
   async create(stadium: Stadium): Promise<void> {
     STADIUMS[stadium.id] = stadium
+    this.persist(stadium)
+  }
+
+  async update(stadium: Stadium): Promise<void> {
+    STADIUMS[stadium.id] = stadium
+    this.persist(stadium)
+  }
+
+  /** Upsert the stadium into the persisted list by id. */
+  private persist(stadium: Stadium): void {
     const stored = readJson<Stadium[]>(KEY, [])
-    stored.push(stadium)
+    const i = stored.findIndex((s) => s.id === stadium.id)
+    if (i >= 0) stored[i] = stadium
+    else stored.push(stadium)
     writeJson(KEY, stored)
   }
 }
