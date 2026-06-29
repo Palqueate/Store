@@ -13,6 +13,7 @@ import type { Palco } from '../../../modules/palcos/domain/Palco'
 import type { FoodItem, FoodCat } from '../../../modules/food/domain/Food'
 import type { User } from '../../../modules/accounts/domain/User'
 import type { Order } from '../../../modules/orders/domain/Order'
+import { promoPoster } from '../../lib/promoPosters'
 
 export const STADIUMS: Record<string, Stadium> = {
   gpc: { id: 'gpc', name: 'Gran Parque Central', short: 'GPC', city: 'Montevideo', country: 'Uruguay', shape: 'rect', capacity: 34000, year: 1900, surface: 'Césped natural', levels: 2, address: 'Carlos Anaya 2900', roof: false },
@@ -21,12 +22,16 @@ export const STADIUMS: Record<string, Stadium> = {
 
 export const EVENTS: Ev[] = [
   { id: 'e1', stadium: 'gpc', country: 'Uruguay', comp: 'Torneo Apertura', round: 'Fecha 7', opp: 'Costa FC', month: 'JUL', day: '12', dow: 'SÁB', time: '17:00', tag: 'Local', label: 'Torneo Apertura · Fecha 7' },
-  { id: 'e2', stadium: 'gpc', country: 'Uruguay', comp: 'Copa Nacional', round: 'Octavos · vuelta', opp: 'Atlético Litoral', month: 'JUL', day: '26', dow: 'SÁB', time: '20:15', tag: 'Copa', label: 'Copa Nacional · Octavos' },
-  { id: 'e3', stadium: 'gpc', country: 'Uruguay', comp: 'Torneo Apertura', round: 'Fecha 11', opp: 'Club Aurora', month: 'AGO', day: '09', dow: 'SÁB', time: '17:30', tag: 'Destacado', label: 'Torneo Apertura · Fecha 11' },
+  { id: 'e2', stadium: 'gpc', country: 'Uruguay', comp: 'Copa Nacional', round: 'Octavos · vuelta', opp: 'Atlético Litoral', month: 'JUL', day: '26', dow: 'SÁB', time: '20:15', tag: 'Copa', label: 'Copa Nacional · Octavos',
+    images: [promoPoster({ title: 'Atlético Litoral', from: '#10243A', to: '#0B1622', accent: '#C9A24B' })] },
+  { id: 'e3', stadium: 'gpc', country: 'Uruguay', comp: 'Torneo Apertura', round: 'Fecha 11', opp: 'Club Aurora', month: 'AGO', day: '09', dow: 'SÁB', time: '17:30', tag: 'Destacado', label: 'Torneo Apertura · Fecha 11',
+    images: [promoPoster({ title: 'Club Aurora', from: '#2A1530', to: '#120A18', accent: '#E0A6FF' })] },
   { id: 'e4', stadium: 'cds', country: 'Uruguay', comp: 'Torneo Apertura', round: 'Fecha 8', opp: 'Deportivo Pradera', month: 'JUL', day: '19', dow: 'SÁB', time: '16:00', tag: 'Local', label: 'Torneo Apertura · Fecha 8' },
-  { id: 'e5', stadium: 'cds', country: 'Uruguay', comp: 'Copa Libertadores', round: 'Fase de grupos', opp: 'Estuario FC', month: 'JUL', day: '30', dow: 'MIÉ', time: '21:30', tag: 'Copa', label: 'Copa Libertadores · Grupo' },
+  { id: 'e5', stadium: 'cds', country: 'Uruguay', comp: 'Copa Libertadores', round: 'Fase de grupos', opp: 'Estuario FC', month: 'JUL', day: '30', dow: 'MIÉ', time: '21:30', tag: 'Copa', label: 'Copa Libertadores · Grupo',
+    images: [promoPoster({ title: 'Estuario FC', from: '#0C2A22', to: '#08130F', accent: '#34D17E' })] },
   // Show con varias funciones: el cliente elige fecha y hora antes de ver palcos.
   { id: 'e6', stadium: 'gpc', country: 'Uruguay', type: 'show', comp: 'Gira Mundial', round: '', opp: 'Banda Aurora', month: 'AGO', day: '22', dow: 'VIE', time: '21:00', tag: 'Destacado', label: 'Gira Mundial',
+    images: [promoPoster({ title: 'Banda Aurora', from: '#3A1438', to: '#160A1E', accent: '#FF8CC8' })],
     dates: [
       { id: 'e6-1', month: 'AGO', day: '22', dow: 'VIE', time: '21:00' },
       { id: 'e6-2', month: 'AGO', day: '23', dow: 'SÁB', time: '21:00' },
@@ -34,6 +39,7 @@ export const EVENTS: Ev[] = [
     ] },
   // Concierto de Ghost: show internacional con dos funciones en el CDS.
   { id: 'e7', stadium: 'cds', country: 'Uruguay', type: 'show', comp: 'Skeletour World Tour', round: '', opp: 'Ghost', month: 'SET', day: '12', dow: 'VIE', time: '21:00', tag: 'Destacado', label: 'Ghost · Skeletour World Tour',
+    images: [promoPoster({ title: 'Ghost', from: '#1A1D24', to: '#05060A', accent: '#C9A24B' })],
     dates: [
       { id: 'e7-1', month: 'SET', day: '12', dow: 'VIE', time: '21:00' },
       { id: 'e7-2', month: 'SET', day: '13', dow: 'SÁB', time: '21:00' },
