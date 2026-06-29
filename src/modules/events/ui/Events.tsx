@@ -84,7 +84,7 @@ export default function Events() {
 
             {/* Price range */}
             <div>
-              <div style={{ fontFamily: "'Space Mono'", fontSize: '10px', letterSpacing: '.1em', color: 'var(--subtle-foreground,#6B7480)', marginBottom: '8px' }}>PRECIO · DESDE</div>
+              <div style={{ fontFamily: "'Space Mono'", fontSize: '10px', letterSpacing: '.1em', color: 'var(--subtle-foreground,#6B7480)', marginBottom: '8px' }}>RANGO DE PRECIO</div>
               <div style={{ fontFamily: "'Archivo'", fontWeight: 700, fontSize: '13.5px', color: vals.evPriceActive ? 'var(--primary,#C9A24B)' : 'var(--foreground,#F4EFE6)', marginBottom: '12px' }}>
                 {vals.evPriceLabel}
               </div>
