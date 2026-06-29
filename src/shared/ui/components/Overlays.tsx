@@ -190,7 +190,7 @@ export function StadiumModal() {
         <div style={css("display:grid; grid-template-columns:1.4fr 1fr; gap:12px;")}>
           <div>
             <label style={css("display:block; font-family:'Space Mono'; font-size:10px; letter-spacing:.08em; color:var(--subtle-foreground,#6B7480); margin-bottom:6px;")}>SUPERFICIE</label>
-            <Select value={vals.stadSurface} options={vals.surfaceOptions} onChange={(v) => vals.setStadSurface({ target: { value: v } })} />
+            <Field value={vals.stadSurface} onInput={vals.setStadSurface} placeholder="Ej. Césped, parquet, hormigón, pista…" />
           </div>
           <div>
             <label style={css("display:block; font-family:'Space Mono'; font-size:10px; letter-spacing:.08em; color:var(--subtle-foreground,#6B7480); margin-bottom:6px;")}>TECHADO</label>

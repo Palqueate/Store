@@ -17,7 +17,7 @@ export const createAdminSlice = (set, get) => ({
   adminStadModal: false,
   stadEditId: null,
   evDraft: { type: 'liga', stadium: 'gpc', date: '', time: '17:00', comp: '', round: '', opp: '', images: [] },
-  stadDraft: { name: '', short: '', city: 'Montevideo', address: '', capacity: '', year: '', surface: 'Césped natural', levels: '2', roof: 'no', mapImage: '' },
+  stadDraft: { name: '', short: '', city: 'Montevideo', address: '', capacity: '', year: '', surface: '', levels: '2', roof: 'no', mapImage: '' },
 
   isAdmin: () => !!(get().user && get().user.admin),
   openAdmin: (tab) => { if (!get().isAdmin()) return get().flash('Acceso solo para administradores'); set({ adminTab: tab || 'dashboard', acctMenu: false }); get().go('admin') },
@@ -38,7 +38,7 @@ export const createAdminSlice = (set, get) => ({
   },
   adminRemoveEventImage: (index) => get().setEvDraft('images', get().evDraft.images.filter((_, i) => i !== index)),
   closeEvModal: () => set({ adminEvModal: false }),
-  openStadModal: () => set({ adminStadModal: true, stadEditId: null, stadDraft: { name: '', short: '', city: 'Montevideo', address: '', capacity: '', year: '', surface: 'Césped natural', levels: '2', roof: 'no', mapImage: '' } }),
+  openStadModal: () => set({ adminStadModal: true, stadEditId: null, stadDraft: { name: '', short: '', city: 'Montevideo', address: '', capacity: '', year: '', surface: '', levels: '2', roof: 'no', mapImage: '' } }),
   openStadModalEdit: (id) => {
     const st = get().stadiums[id]; if (!st) return
     set({
@@ -46,7 +46,7 @@ export const createAdminSlice = (set, get) => ({
       stadDraft: {
         name: st.name || '', short: st.short || '', city: st.city || '', address: st.address || '',
         capacity: st.capacity ? String(st.capacity) : '', year: st.year ? String(st.year) : '',
-        surface: st.surface || 'Césped natural', levels: st.levels ? String(st.levels) : '1',
+        surface: st.surface || '', levels: st.levels ? String(st.levels) : '1',
         roof: st.roof ? 'si' : 'no', mapImage: st.mapImage || '',
       },
     })
@@ -79,7 +79,7 @@ export const createAdminSlice = (set, get) => ({
       address: (d.address || '').trim(),
       capacity: parseInt((d.capacity || '').toString().replace(/[^0-9]/g, ''), 10) || 0,
       year: parseInt((d.year || '').toString().replace(/[^0-9]/g, ''), 10) || null,
-      surface: d.surface || 'Césped natural', levels: parseInt(d.levels, 10) || 1,
+      surface: (d.surface || '').trim(), levels: parseInt(d.levels, 10) || 1,
       roof: d.roof === 'si', mapImage: d.mapImage || '',
     }
     if (editId) {

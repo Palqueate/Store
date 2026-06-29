@@ -99,11 +99,6 @@ export function useOverlaysVM(): any {
     setStadRoof: function (e) { self.setStadDraft('roof', e.target.value) },
     addStadMap: function (files) { self.adminAddStadMap(files) },
     removeStadMap: function () { self.adminRemoveStadMap() },
-    surfaceOptions: [
-      { value: 'Césped natural', label: 'Césped natural' },
-      { value: 'Césped híbrido', label: 'Césped híbrido' },
-      { value: 'Césped sintético', label: 'Césped sintético' },
-    ],
     roofOptions: [
       { value: 'no', label: 'Abierto' },
       { value: 'si', label: 'Techado' },
