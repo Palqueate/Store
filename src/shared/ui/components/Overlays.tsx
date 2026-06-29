@@ -1,5 +1,5 @@
 import { css } from '@/shared/ui/css'
-import { Modal, Btn, Field, Select, FileDropzone } from '@/lib'
+import { Modal, Btn, Field, Select, Combobox, FileDropzone } from '@/lib'
 import { useOverlaysVM } from '@/shared/ui/vm/useOverlaysVM'
 
 // ──────────────────────────────────────────────────────────
@@ -190,7 +190,7 @@ export function StadiumModal() {
         <div style={css("display:grid; grid-template-columns:1.4fr 1fr; gap:12px;")}>
           <div>
             <label style={css("display:block; font-family:'Space Mono'; font-size:10px; letter-spacing:.08em; color:var(--subtle-foreground,#6B7480); margin-bottom:6px;")}>SUPERFICIE</label>
-            <Field value={vals.stadSurface} onInput={vals.setStadSurface} placeholder="Ej. Césped, parquet, hormigón, pista…" />
+            <Combobox value={vals.stadSurface} options={vals.surfaceOptions} placeholder="Elegí o buscá…" onChange={(v) => vals.setStadSurface({ target: { value: v } })} />
           </div>
           <div>
             <label style={css("display:block; font-family:'Space Mono'; font-size:10px; letter-spacing:.08em; color:var(--subtle-foreground,#6B7480); margin-bottom:6px;")}>TECHADO</label>
