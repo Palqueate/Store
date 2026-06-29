@@ -18,9 +18,9 @@ export function useEventsVM(): any {
   // cupo). Igual que en palcos: si el usuario no movió un extremo, queda en el
   // borde (lo / hi) y el filtro no se aplica (guardado como 0).
   var evPrices = eventCards.map(function (c) { return c.minPrice }).filter(function (v) { return v > 0 })
-  var pbLo = evPrices.length ? Math.floor(Math.min.apply(null, evPrices) / 500) * 500 : 0
-  var pbHi = evPrices.length ? Math.ceil(Math.max.apply(null, evPrices) / 500) * 500 : 0
-  var evPriceBounds = { lo: pbLo, hi: pbHi > pbLo ? pbHi : pbLo + 500, step: 500 }
+  var pbLo = evPrices.length ? Math.floor(Math.min.apply(null, evPrices) / 50) * 50 : 0
+  var pbHi = evPrices.length ? Math.ceil(Math.max.apply(null, evPrices) / 50) * 50 : 0
+  var evPriceBounds = { lo: pbLo, hi: pbHi > pbLo ? pbHi : pbLo + 50, step: 50 }
   var evPriceMin = s.evMinPrice > 0 ? s.evMinPrice : evPriceBounds.lo
   var evPriceMax = s.evMaxPrice > 0 ? s.evMaxPrice : evPriceBounds.hi
   // Un extremo que vuelve a su borde (lo / hi) desactiva ese lado del filtro
