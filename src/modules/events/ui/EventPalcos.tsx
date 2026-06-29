@@ -10,7 +10,7 @@ export default function EventPalcos() {
   const [hoverId, setHoverId] = useState<string | null>(null)
 
   // Orden del listado de palcos. Los agotados quedan siempre al final.
-  const [sortKey, setSortKey] = useState<'priceDesc' | 'priceAsc' | 'rating'>('priceDesc')
+  const [sortKey, setSortKey] = useState<'priceDesc' | 'priceAsc' | 'rating'>('rating')
   const sortOptions: { key: typeof sortKey; label: string }[] = [
     { key: 'priceDesc', label: 'Mayor precio' },
     { key: 'priceAsc', label: 'Menor precio' },
