@@ -26,7 +26,7 @@ export const STADIUMS: Record<string, Stadium> = {
 // los de fecha única, y los campos principales month/day/dow/iso/time se
 // DERIVAN de la primera función (no se escriben a mano). Así los datos sembrados
 // quedan siempre consistentes con los que se cargan al crear o editar un evento.
-const EV_MONTHS = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SET', 'OCT', 'NOV', 'DIC']
+const EV_MONTHS = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC']
 const EV_DOWS = ['DOM', 'LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB']
 
 /** Deriva month/day/dow/iso de una fecha ISO (mismo criterio que admin._fmtDate). */
