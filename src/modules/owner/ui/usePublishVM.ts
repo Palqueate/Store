@@ -14,6 +14,19 @@ export function usePublishVM(): any {
   if (w) {
     var editing = !!w.editId
     var stepNames = ['Estadio', 'Ubicación', 'Asientos', 'Fotos', 'Estacionamiento', 'Precios']
+
+    // Estadio (paso 0): lista buscable y ordenada. Escala a cientos de
+    // estadios — la UI la virtualiza, así que sólo filtramos + ordenamos acá.
+    var sQuery = w.stadiumQuery || ''
+    var sNeedle = sQuery.trim().toLowerCase()
+    var allStadiums = Object.keys(STADIUMS).map(function (k) { return STADIUMS[k] })
+      .sort(function (a, b) { return (a.name || '').localeCompare(b.name || '') })
+    var shownStadiums = sNeedle
+      ? allStadiums.filter(function (st) {
+          return ((st.name || '') + ' ' + (st.city || '') + ' ' + (st.short || '')).toLowerCase().indexOf(sNeedle) >= 0
+        })
+      : allStadiums
+
     wiz = {
       editing: editing,
       step: w.step, stepName: stepNames[w.step], progress: Math.round(((w.step + 1) / stepNames.length) * 100),
@@ -42,6 +55,20 @@ export function usePublishVM(): any {
       gpcSel: w.stadium === 'gpc', cdsSel: w.stadium === 'cds',
       pickGpc: function () { self.wzSet({ stadium: 'gpc' }) },
       pickCds: function () { self.wzSet({ stadium: 'cds' }) },
+      stadiumQuery: sQuery,
+      setStadiumQuery: function (v) { self.wzSet({ stadiumQuery: v }) },
+      clearStadiumQuery: function () { self.wzSet({ stadiumQuery: '' }) },
+      stadiumTotal: allStadiums.length,
+      stadiumShown: shownStadiums.length,
+      stadiumNoResults: shownStadiums.length === 0,
+      stadiums: shownStadiums.map(function (st) {
+        return {
+          id: st.id, name: st.name, city: st.city, short: st.short,
+          capacity: st.capacity ? (Number(st.capacity).toLocaleString('es-UY') + ' personas') : '',
+          selected: w.stadium === st.id,
+          pick: function () { self.wzSet({ stadium: st.id }) },
+        }
+      }),
       onPick: function (x, y) { self.wzSet({ x: x, y: y }) },
       setTitle: function (e) { self.wzSet({ title: e.target.value }) },
       incSeats: function () { self.wzSet({ seats: Math.min(40, (w.seats || 0) + 1) }) },

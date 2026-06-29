@@ -1,4 +1,4 @@
-import { Btn, Card, Stack, Toggle, Stepper, QuantityStepper, Field, FileDropzone } from '@/lib'
+import { Btn, Card, Stack, Toggle, Stepper, QuantityStepper, Field, FileDropzone, SearchInput, VirtualList, EmptyState } from '@/lib'
 import { css } from '@/shared/ui/css'
 import StadiumMap from '@/shared/ui/components/StadiumMap'
 import { usePublishVM } from './usePublishVM'
@@ -46,44 +46,64 @@ export default function Publish() {
 
           {/* STEP 0 — Estadio */}
           {vals.wiz.s0 ? (
-            <>
-              <p style={{ margin: '0 0 18px', color: 'var(--muted-foreground,#9AA6B2)', fontSize: '15px' }}>
-                ¿En qué estadio está tu palco?
+            <Stack gap={14}>
+              <p style={{ margin: 0, color: 'var(--muted-foreground,#9AA6B2)', fontSize: '15px' }}>
+                ¿En qué estadio está tu palco? Buscalo por nombre o ciudad.
               </p>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-                <Card
-                  hover
-                  accent={vals.wiz.gpcSel}
-                  onClick={vals.wiz.pickGpc}
-                  style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '18px' }}
-                >
-                  <div style={{ width: '100%', height: '74px', borderRadius: '10px', background: 'repeating-linear-gradient(90deg, #1f7d46 0 16px, #1b6f3e 16px 32px)', border: '1.5px solid rgba(255,255,255,.4)', marginBottom: '12px' }} />
-                  <div style={{ fontFamily: "'Archivo'", fontWeight: 800, fontSize: '18px', color: 'var(--foreground,#F4EFE6)' }}>Gran Parque Central</div>
-                  <div style={{ fontSize: '13px', color: 'var(--muted-foreground,#9AA6B2)' }}>Montevideo</div>
-                  {vals.wiz.gpcSel ? (
-                    <span style={{ position: 'absolute', top: '14px', right: '14px', width: '22px', height: '22px', borderRadius: '50%', background: 'var(--primary,#C9A24B)', display: 'grid', placeItems: 'center' }}>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--primary-foreground,#1A1407)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
-                    </span>
-                  ) : null}
-                </Card>
 
-                <Card
-                  hover
-                  accent={vals.wiz.cdsSel}
-                  onClick={vals.wiz.pickCds}
-                  style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '18px' }}
-                >
-                  <div style={{ width: '100%', height: '74px', borderRadius: '34% / 50%', background: 'repeating-linear-gradient(90deg, #1f7d46 0 16px, #1b6f3e 16px 32px)', border: '1.5px solid rgba(255,255,255,.4)', marginBottom: '12px' }} />
-                  <div style={{ fontFamily: "'Archivo'", fontWeight: 800, fontSize: '18px', color: 'var(--foreground,#F4EFE6)' }}>Campeón del Siglo</div>
-                  <div style={{ fontSize: '13px', color: 'var(--muted-foreground,#9AA6B2)' }}>Montevideo</div>
-                  {vals.wiz.cdsSel ? (
-                    <span style={{ position: 'absolute', top: '14px', right: '14px', width: '22px', height: '22px', borderRadius: '50%', background: 'var(--primary,#C9A24B)', display: 'grid', placeItems: 'center' }}>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--primary-foreground,#1A1407)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
-                    </span>
-                  ) : null}
-                </Card>
+              <SearchInput
+                value={vals.wiz.stadiumQuery}
+                placeholder="Buscar estadio o ciudad…"
+                onInput={vals.wiz.setStadiumQuery}
+                onClear={vals.wiz.clearStadiumQuery}
+              />
+
+              <div style={{ fontFamily: "'Space Mono'", fontSize: '11px', letterSpacing: '.08em', color: 'var(--subtle-foreground,#6B7480)' }}>
+                {vals.wiz.stadiumShown === vals.wiz.stadiumTotal
+                  ? `${vals.wiz.stadiumTotal} estadios`
+                  : `${vals.wiz.stadiumShown} de ${vals.wiz.stadiumTotal} estadios`}
               </div>
-            </>
+
+              {vals.wiz.stadiumNoResults ? (
+                <EmptyState
+                  title="No encontramos estadios"
+                  description="Probá con otro nombre o ciudad."
+                />
+              ) : (
+                <VirtualList
+                  items={vals.wiz.stadiums}
+                  itemHeight={72}
+                  height={Math.min(432, Math.max(144, vals.wiz.stadiumShown * 72))}
+                  renderItem={(st: any) => (
+                    <button
+                      onClick={st.pick}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '14px', width: '100%', height: '72px',
+                        padding: '0 16px', cursor: 'pointer', textAlign: 'left',
+                        background: st.selected ? 'color-mix(in srgb, var(--primary,#C9A24B) 14%, transparent)' : 'transparent',
+                        border: 'none', borderBottom: '1px solid var(--border,rgba(255,255,255,.07))',
+                        boxShadow: st.selected ? 'inset 3px 0 0 var(--primary,#C9A24B)' : 'none',
+                      }}
+                    >
+                      <span style={{ flex: '0 0 auto', width: '44px', height: '44px', borderRadius: '11px', display: 'grid', placeItems: 'center', background: 'var(--muted,#1F2530)', fontFamily: "'Space Mono'", fontWeight: 700, fontSize: '12px', color: 'var(--muted-foreground,#9AA6B2)' }}>
+                        {st.short}
+                      </span>
+                      <span style={{ flex: 1, minWidth: 0 }}>
+                        <span style={{ display: 'block', fontFamily: "'Archivo'", fontWeight: 800, fontSize: '16px', color: 'var(--foreground,#F4EFE6)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{st.name}</span>
+                        <span style={{ display: 'block', fontSize: '12.5px', color: 'var(--muted-foreground,#9AA6B2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {st.city}{st.capacity ? ' · ' + st.capacity : ''}
+                        </span>
+                      </span>
+                      {st.selected ? (
+                        <span style={{ flex: '0 0 auto', width: '22px', height: '22px', borderRadius: '50%', background: 'var(--primary,#C9A24B)', display: 'grid', placeItems: 'center' }}>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--primary-foreground,#1A1407)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
+                        </span>
+                      ) : null}
+                    </button>
+                  )}
+                />
+              )}
+            </Stack>
           ) : null}
 
           {/* STEP 1 — Ubicación */}
