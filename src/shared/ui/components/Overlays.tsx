@@ -466,7 +466,7 @@ export function SnacksModal() {
       open={!!vals.snacksOpen}
       onClose={vals.closeSnacks}
       title="Botana y bebidas"
-      width={680}
+      width={1100}
       footer={
         <div style={css("display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%;")}>
           <div style={css("font-size:13px; color:var(--muted-foreground,#9AA6B2);")}>
@@ -502,8 +502,9 @@ export function SnacksModal() {
         </div>
       ) : null}
 
-      {/* Solo la grilla de productos scrollea; header, filtro y footer quedan fijos. */}
-      <div style={{ maxHeight: '48vh', overflowY: 'auto', overflowX: 'hidden', margin: '0 -4px', padding: '2px 4px' }}>
+      {/* Solo la grilla de productos scrollea; header, filtro y footer quedan fijos.
+          La altura llena el modal (cap 90vh de la lib) sin ocupar toda la pantalla. */}
+      <div style={{ maxHeight: 'max(260px, calc(90vh - 250px))', overflowY: 'auto', overflowX: 'hidden', margin: '0 -4px', padding: '2px 4px' }}>
         <div style={css(vals.snackGrid)}>
           {(vals.snackItems || []).map((it: any, i: number) => (
             <Card key={i} padding="0" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
