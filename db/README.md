@@ -89,7 +89,7 @@ facilitar su lectura; cada bloque corresponde a un área del modelo.
 | 0005 | `palcos` | `palcos`, `palco_modes`, `palco_seats`, co-propietarios, `palco_payout` (cifrado), documentos, fotos, `palco_status_history` |
 | 0006 | `verification` | `palco_reviews`, `palco_review_field_flags` (RD-08) |
 | 0007 | `cart_holds_availability` | `carts`, `cart_items`, `holds`, **`seat_reservations`** (núcleo anti-doble-venta) |
-| 0008 | `orders_payments_payouts` | `orders`, `order_items`, `order_item_seats`, botana, `payments`, `payouts`, idempotencia |
+| 0008 | `orders_payments_payouts` | `orders`, `order_items`, `order_item_seats`, `snack_orders`, `snack_items`, `payments`, `payouts`, idempotencia |
 | 0009 | `engagement_and_notifications` | Vistas a palcos, favoritos, calificaciones, `notifications` (outbox) |
 | 0010 | `audit_logging` | `audit.access_log` (particionado), `audit.audit_log`, `audit.security_log`, retención |
 | 0011 | `functions_and_triggers` | Bitácora de estados, validación RN-09, `expire_holds()`, disponibilidad, rating |
@@ -143,12 +143,15 @@ erDiagram
   orders ||--o{ order_items : ""
   order_items ||--o{ order_item_seats : ""
   order_items ||--o{ seat_reservations : "sold"
-  orders ||--o{ order_food_items : ""
+  orders ||--o{ snack_items : "snacks iniciales"
+  orders ||--o{ snack_orders : "compras posteriores"
+  snack_orders ||--o{ snack_items : ""
   orders ||--o{ payments : ""
+  snack_orders ||--o{ payments : ""
   orders ||--o{ payouts : ""
   palcos ||--o{ payouts : ""
   food_categories ||--o{ food_items : ""
-  food_items ||--o{ order_food_items : ""
+  food_items ||--o{ snack_items : ""
   discount_codes ||--o{ discount_redemptions : ""
   discount_codes ||--o{ orders : "código aplicado"
   orders ||--|| discount_redemptions : ""
@@ -226,8 +229,9 @@ operadas por admins/palquistas.
 | RD-03 palcos · `GET/POST /palcos` | `palcos`, `palco_modes`, `palco_seats`, `palco_co_owners`, `palco_payout`, `palco_documents`, `palco_images` |
 | RD-04 ocupación de butacas (RN-11) | `seat_reservations` (+ `taken_seats()`) |
 | RD-05 cuentas · `/accounts`, `/me` | `users`, `auth_credentials`, `user_roles`, `user_notification_prefs`, `user_payment_methods`, `user_billing` |
-| RD-06 reservas · `POST /orders` | `orders`, `order_items`, `order_item_seats`, `order_food_items`, `payments`, `payouts` |
+| RD-06 reservas · `POST /orders` | `orders`, `order_items`, `order_item_seats`, `snack_items` (iniciales), `payments`, `payouts` |
 | RD-07 catálogo de botana | `food_categories`, `food_items` |
+| Snacks · `POST /orders/{code}/snacks` | `snack_orders`, `snack_items`, `payments`, `v_food_revenue` |
 | RD-08 detalle de verificación | `palco_reviews`, `palco_review_field_flags`, `palco_review_field_defs` |
 | Carrito y holds (API §4, §31-34) | `carts`, `cart_items`, `holds`, `seat_reservations` |
 | RN-01 comisión / RN-02 payout | `platform_config`, `commission_for()`, `orders.fee`, `payouts` |
@@ -276,7 +280,36 @@ existencias restantes.
 
 ---
 
-## 10. Validación realizada
+## 10. Snacks (botana)
+
+Los snacks se compran de dos maneras, ambas sobre la misma reserva:
+
+- **Al reservar el palco** (pago combinado): el checkout de la reserva acepta una
+  selección inicial de snacks. Esas líneas se guardan en `snack_items` con
+  `order_id` = la reserva y se cobran en el **mismo total** (`orders.total =
+  subtotal + fee − discount_total + food_total`, un solo pago).
+- **Después de reservar** (checkout separado): cada compra posterior es una
+  `snack_orders` ligada a la reserva (`reservation_id`), con su **propio total y
+  su propio pago**. Sus líneas van en `snack_items` con `snack_order_id`.
+
+`snack_items` es una sola tabla con dos posibles padres (`order_id` **o**
+`snack_order_id`, garantizado por CHECK), así toda línea de botana comparte forma
+y snapshots de precio. `payments` también admite los dos padres (un pago cubre la
+reserva **o** una orden de snacks).
+
+> **Los snacks no pagan comisión ni entran al payout** (RN-02): la comisión
+> (`orders.fee`) se calcula sólo sobre el subtotal del palco y `payouts` se deriva
+> de `order_items`. El ingreso de botana se mide aparte en `v_food_revenue`
+> (KPI `foodRevenue`, API §27).
+
+> Probado: reserva con snacks iniciales (total combinado 105 460), orden de
+> snacks posterior con pago propio, los CHECK de un solo padre en `snack_items` y
+> `payments`, e ingreso de botana agregado (1 460 + 1 560 = 3 020) sin tocar la
+> comisión del palco.
+
+---
+
+## 11. Validación realizada
 
 El esquema completo se aplicó sobre **PostgreSQL 16** y se ejecutaron pruebas de
 humo que confirman las reglas críticas:
@@ -288,6 +321,7 @@ humo que confirman las reglas críticas:
 - validación RN-09 (rechazo sin motivo ni campos ⇒ rechazado),
 - bitácora de estados y recálculo de `rating` por trigger,
 - códigos de descuento (programación, %/fijo, topes, ventana y límites),
-- vistas de catálogo, CRM y uso de descuentos.
+- snacks: pago combinado al reservar + orden de snacks con checkout separado,
+- vistas de catálogo, CRM, uso de descuentos e ingreso por botana.
 
-Totales del modelo: **57 tablas, 8 vistas, 13 funciones**.
+Totales del modelo: **58 tablas, 9 vistas, 13 funciones**.

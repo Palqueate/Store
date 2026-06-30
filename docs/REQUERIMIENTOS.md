@@ -152,12 +152,19 @@ administrador es una atribución especial de la cuenta.
   cliente.
 
 ### 3.6 Botana (comida y bebida)
-- **RF-25** Tras una reserva, el sistema debe permitir armar un **pedido de
-  comida y bebida** a partir de un menú categorizado.
-- **RF-26** El sistema debe permitir agregar/quitar unidades y mostrar el **total
-  del pedido**.
-- **RF-27** El pedido de botana debe **asociarse a la reserva** del cliente y
-  finalizar con una confirmación de "pedido listo".
+- **RF-25** El sistema debe permitir armar un **pedido de comida y bebida** a
+  partir de un menú categorizado, agregando/quitando unidades y mostrando el
+  **total del pedido**.
+- **RF-26** El cliente debe poder **incluir snacks al momento de reservar el
+  palco**: se eligen junto con la reserva y se **pagan en el mismo cobro** (un
+  único total: palco + snacks iniciales).
+- **RF-27** Una vez hecha la reserva, el cliente debe poder **seguir agregando
+  snacks** en **pedidos posteriores**, cada uno con su **propio cobro (checkout
+  separado)**. Todo pedido de botana queda **asociado a la reserva** y finaliza
+  con una confirmación de "pedido listo".
+- **RF-27b** Los snacks (iniciales o posteriores) **no pagan la comisión de
+  plataforma (RN-01)** ni integran el payout al palquista (RN-02): son un
+  **ingreso aparte** (ver RN-15).
 
 ### 3.7 Cuentas y perfil
 - **RF-28** El sistema debe permitir **registrarse** con nombre, email y
@@ -257,6 +264,11 @@ administrador es una atribución especial de la cuenta.
   acceso debe ser denegado.
 - **RN-14 (Moneda):** Todos los montos deben expresarse en **pesos uruguayos** con
   formato local (ej.: "$U 1.180.000").
+- **RN-15 (Cobro de la botana):** Los snacks se cobran **junto con la reserva**
+  cuando se eligen al reservar (un único total), o en **pedidos posteriores con
+  cobro independiente**, siempre asociados a la reserva. El importe de botana
+  **no genera comisión (RN-01) ni payout (RN-02)**: es ingreso aparte de la
+  plataforma.
 
 ---
 
@@ -331,8 +343,11 @@ administrador es una atribución especial de la cuenta.
   teléfono, documento, datos de contacto, preferencias, puntos, atribución de
   administrador y, opcionalmente, foto, medio de pago y datos de facturación.
 - **RD-06** El sistema debe registrar **reservas (órdenes)** con: código,
-  cliente, ítems reservados, subtotal, comisión, total, fecha, datos de contacto
-  y el pedido de botana asociado (con su total).
+  cliente, ítems reservados, subtotal, comisión, descuento, total, fecha, datos
+  de contacto y los **snacks iniciales** incluidos en el cobro de la reserva
+  (con su total).
+- **RD-06b** El sistema debe registrar las **órdenes de snacks posteriores**:
+  código, reserva asociada, cliente, ítems, total, fecha y su cobro propio.
 - **RD-07** El sistema debe registrar el **catálogo de botana**: ítems con
   categoría, nombre, precio y descripción.
 - **RD-08** Para cada palco rechazado, el sistema debe conservar el **detalle de

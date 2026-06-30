@@ -70,8 +70,8 @@
 | 20 | PUT | `/palcos/{id}/status` | 🟣 | Pausa / reactiva publicación |
 | 21 | POST | `/palcos/{id}/resubmit` | 🟣 | Guarda respuestas a campos observados **y** reenvía a revisión (1 llamada) |
 | 22 | POST | `/palcos/{id}/review` | 🔴 | Verificación: aprueba **o** rechaza + registra review + notifica al palquista |
-| 23 | POST | `/orders` | 🔵 | **Checkout** del carrito del servidor: confirma los holds + calcula subtotal/comisión/total + genera código + marca asientos vendidos + crea orden + vacía carrito |
-| 24 | POST | `/orders/{code}/food` | 🟣 | Agrega botana a una reserva: calcula total + adjunta a la orden |
+| 23 | POST | `/orders` | 🔵 | **Checkout** del carrito del servidor: confirma los holds + **snacks iniciales** + calcula subtotal/comisión/descuento/total (palco + snacks) + genera código + marca asientos vendidos + crea orden + vacía carrito |
+| 24 | POST | `/orders/{code}/snacks` | 🟣 | **Checkout de una orden de snacks** posterior a la reserva: calcula total + genera código + cobra (pago propio) + la asocia a la reserva |
 | 31 | GET | `/cart` | 🔵 | Carrito del servidor: ítems + estado/TTL de cada hold + totales |
 | 32 | POST | `/cart/items` | 🔵 | Agrega ítem al carrito **y** crea el hold (reserva temporal) de esos asientos |
 | 33 | DELETE | `/cart/items/{uid}` | 🔵 | Quita un ítem del carrito **y** libera su hold |
@@ -649,12 +649,17 @@ estado, persiste el registro de revisión y **dispara la notificación** al palq
 
 ### 23. `POST /orders` — checkout 🔵
 
-**El pago.** Es el *checkout* del **carrito del servidor**: el front sólo manda el
-contacto y el medio de pago; el **backend hace todo**: toma los ítems del carrito del
-usuario, **valida que sus holds sigan vigentes** (si alguno expiró o fue tomado →
-`409`), **calcula subtotal + comisión (4%) + total**, **genera el código**, **confirma
-los asientos** (convierte los holds en `taken`), **crea la orden** y **vacía el
-carrito**. Una sola llamada, sin enviar ítems ni precios desde el cliente.
+**El pago.** Es el *checkout* del **carrito del servidor**: el front manda el contacto,
+el medio de pago y —opcional— una **selección de snacks iniciales**; el **backend hace
+todo**: toma los ítems del carrito del usuario, **valida que sus holds sigan vigentes**
+(si alguno expiró o fue tomado → `409`), **calcula subtotal + comisión (4%) − descuento
++ snacks iniciales = total**, **genera el código**, **confirma los asientos** (convierte
+los holds en `taken`), **crea la orden** (palco + snacks iniciales en un único cobro) y
+**vacía el carrito**. Una sola llamada, sin enviar precios desde el cliente.
+
+> Los **snacks iniciales** se cobran **junto con el palco** (un solo total, RN-15). No
+> pagan comisión ni entran al payout. Los snacks que se agreguen **después** van por
+> `POST /orders/{code}/snacks` (cobro separado).
 
 **Body**
 
@@ -662,25 +667,29 @@ carrito**. Una sola llamada, sin enviar ítems ni precios desde el cliente.
 |-------|------|------|-------------|
 | `contact` | object | no | `{ name, email }` (default: los del usuario) |
 | `payMethod` | enum | no | `card` \| `transfer` (default `card`) |
+| `discountCode` | string | no | Código de descuento a aplicar al subtotal del palco |
+| `snacks` | array | no | Snacks iniciales `[{ id, qty }]` (ids del catálogo de comida) |
 | `idempotencyKey` | string | no | Evita doble cobro si el botón se reenvía |
 
 ```json
 {
   "contact": { "name": "string?", "email": "string?" },
   "payMethod": "'card' | 'transfer'?",
+  "discountCode": "string?",
+  "snacks": [ { "id": "string", "qty": "number" } ],
   "idempotencyKey": "string?"
 }
 ```
 
-> El front **no** manda ítems, precios ni totales: el backend los toma del carrito y del
-> palco (fuente de verdad del precio, evita manipulación).
+> El front **no** manda ítems del palco, precios ni totales: el backend los toma del
+> carrito y del palco/catálogo (fuente de verdad del precio, evita manipulación).
 
 **Respuesta `201`:** `Order`.
 
 ```json
 {
   "code": "string", "userId": "string",
-  "subtotal": "number", "fee": "number", "total": "number",
+  "subtotal": "number", "fee": "number", "discountTotal": "number", "total": "number",
   "date": "string",
   "contact": { "name": "string", "email": "string" },
   "items": [
@@ -697,21 +706,26 @@ carrito**. Una sola llamada, sin enviar ítems ni precios desde el cliente.
 }
 ```
 
+> `total` = `subtotal` + `fee` − `discountTotal` + `foodTotal` (palco + snacks iniciales).
+
 **Errores:** `409` un hold venció o el asiento ya fue tomado (carrera) → el front
 refresca disponibilidad · `422` carrito vacío · `401` sin sesión.
 
 ---
 
-### 24. `POST /orders/{code}/food` 🟣
+### 24. `POST /orders/{code}/snacks` 🟣
 
-Agrega botana y bebidas a una reserva ya pagada. El backend **calcula el total de la
-comida** y lo adjunta a la orden. (Colapsa: armar líneas + recalcular + actualizar.)
+**Checkout de una orden de snacks** posterior a la reserva. Crea una orden de snacks
+**propia** asociada a la reserva, **calcula su total**, **genera su código** y la
+**cobra por separado** (pago independiente del de la reserva). Se puede llamar tantas
+veces como pedidos haga el cliente. Los snacks **no pagan comisión** ni integran el
+payout (RN-15).
 
 **Path params**
 
 | Param | Tipo | Descripción |
 |-------|------|-------------|
-| `code` | string | Código de la orden |
+| `code` | string | Código de la **reserva** a la que se asocian los snacks |
 
 ```json
 { "code": "string" }
@@ -719,17 +733,32 @@ comida** y lo adjunta a la orden. (Colapsa: armar líneas + recalcular + actuali
 
 **Body**
 
-| Campo | Tipo | Descripción |
-|-------|------|-------------|
-| `items` | array | `[{ id, qty }]` (ids del catálogo de comida) |
+| Campo | Tipo | Req. | Descripción |
+|-------|------|------|-------------|
+| `items` | array | sí | `[{ id, qty }]` (ids del catálogo de comida) |
+| `payMethod` | enum | no | `card` \| `transfer` (default `card`) |
+| `idempotencyKey` | string | no | Evita doble cobro del ticket de snacks |
 
 ```json
-{ "items": [ { "id": "string", "qty": "number" } ] }
+{
+  "items": [ { "id": "string", "qty": "number" } ],
+  "payMethod": "'card' | 'transfer'?",
+  "idempotencyKey": "string?"
+}
 ```
 
-**Respuesta `200`:** `Order` actualizada (con `food` y `foodTotal` acumulados).
+**Respuesta `201`:** `SnackOrder`.
 
-**Errores:** `403` si la orden no es del usuario · `404` · `422` pedido vacío.
+```json
+{
+  "code": "string", "reservationCode": "string", "userId": "string",
+  "total": "number", "date": "string",
+  "items": "Array<{ id: string, name: string, qty: number, price: number }>"
+}
+```
+
+**Errores:** `403` si la reserva no es del usuario · `404` reserva inexistente ·
+`422` pedido vacío · `401` sin sesión.
 
 ---
 
@@ -1143,7 +1172,7 @@ de "quién hizo qué y cuándo".
 
 **Acciones auditadas** (mapean a los endpoints de mutación):
 `account.register` · `account.login` · `account.update` · `cart.add` · `cart.remove` ·
-`hold.create` · `hold.release` · `hold.expire` · `order.checkout` · `order.add_food` ·
+`hold.create` · `hold.release` · `hold.expire` · `order.checkout` · `snack.checkout` ·
 `palco.publish` · `palco.update` · `palco.status_change` · `palco.resubmit` ·
 `palco.review_approve` · `palco.review_reject` · `event.create` · `event.update` ·
 `stadium.create` · `stadium.update`.
@@ -1216,7 +1245,7 @@ Eventos sensibles para detección de abuso/fraude.
     "PATCH /accounts/{id}",
     "PUT /palcos/{id}", "PUT /palcos/{id}/status",
     "POST /palcos/{id}/resubmit",
-    "POST /orders/{code}/food",
+    "POST /orders/{code}/snacks",
     "DELETE /cart/items/{uid}"
   ],
   "admin": [
@@ -1248,7 +1277,7 @@ Eventos sensibles para detección de abuso/fraude.
 | `POST /palcos/{id}/resubmit` | Sí | Dueño (palquista) |
 | `POST /palcos/{id}/review` | Sí | Rol `admin` |
 | `POST /orders` | Sí | — |
-| `POST /orders/{code}/food` | Sí | Titular de la orden |
+| `POST /orders/{code}/snacks` | Sí | Titular de la orden |
 | `GET /cart` · `POST /cart/items` · `DELETE /cart` | Sí | Dueño del carrito (token) |
 | `DELETE /cart/items/{uid}` | Sí | Dueño del carrito (token) |
 | `GET /owner/palcos` · `GET /owner/metrics` | Sí | Palquista (sus palcos) |
@@ -1268,7 +1297,8 @@ llamadas desde el front:
 | Registrarse / iniciar sesión | crear cuenta + abrir sesión + cargar pedidos | `POST /auth/register` · `POST /auth/login` |
 | Guardar perfil / preferencias / foto | un PUT por cada cambio | `PATCH /accounts/{id}` (partial) |
 | Pagar el carrito | calcular totales (cliente) + crear orden + reservar asientos | `POST /orders` (checkout: confirma holds + total + código + vende asientos + vacía carrito) |
-| Agregar botana | armar líneas + recalcular + actualizar orden | `POST /orders/{code}/food` |
+| Snacks al reservar | armar líneas + cobrar junto al palco (un total) | `POST /orders` (campo `snacks`) |
+| Agregar snacks luego | armar líneas + total + código + cobro propio | `POST /orders/{code}/snacks` |
 | Publicar / editar palco | crear/editar + (re)setear estado de verificación | `POST /palcos` · `PUT /palcos/{id}` |
 | Reenviar palco rechazado | N respuestas a campos + cambio de estado | `POST /palcos/{id}/resubmit` |
 | Verificar palco (admin) | cambio de estado + registro de review + notificación | `POST /palcos/{id}/review` |

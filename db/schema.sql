@@ -1015,7 +1015,7 @@ CREATE TABLE orders (
   status          order_status NOT NULL DEFAULT 'paid',
   subtotal        money_amount NOT NULL,
   fee             money_amount NOT NULL,            -- comisión (RN-01)
-  total           money_amount NOT NULL,            -- subtotal + fee - discount_total
+  total           money_amount NOT NULL,            -- subtotal + fee - discount_total + food_total
   commission_rate ratio        NOT NULL,            -- tasa aplicada (snapshot, RNF-17)
   currency        currency_code NOT NULL DEFAULT 'UYU' REFERENCES currencies(code),
   -- Descuento aplicado a la compra. La PLATAFORMA lo absorbe: la comisión y el
@@ -1026,13 +1026,17 @@ CREATE TABLE orders (
   contact_name    text         NOT NULL,
   contact_email   email        NOT NULL,
   pay_method      pay_method   NOT NULL DEFAULT 'card',
-  food_total      money_amount NOT NULL DEFAULT 0,  -- acumulado de botana (API §24)
+  -- Snacks elegidos AL MOMENTO de reservar: se pagan combinados con el palco en
+  -- este mismo total (líneas en snack_items con order_id = esta orden). NO pagan
+  -- comisión ni entran al payout. Los snacks agregados DESPUÉS van en snack_orders.
+  food_total      money_amount NOT NULL DEFAULT 0,
   idempotency_key text,                              -- evita doble cobro (API §23)
   placed_at       timestamptz  NOT NULL DEFAULT now(),
   created_at      timestamptz  NOT NULL DEFAULT now(),
   updated_at      timestamptz  NOT NULL DEFAULT now(),
   CHECK (discount_total <= subtotal),
-  CHECK (total = subtotal + fee - discount_total)
+  -- Pago combinado: palco (con su comisión y descuento) + snacks iniciales.
+  CHECK (total = subtotal + fee - discount_total + food_total)
 );
 COMMENT ON TABLE orders IS 'Reservas pagadas (RD-06). Generadas por el checkout (API §23).';
 COMMENT ON COLUMN orders.code IS 'Código único de reserva mostrado al cliente y en el QR (RF-23).';
@@ -1080,38 +1084,78 @@ CREATE TABLE order_item_seats (
 );
 COMMENT ON TABLE order_item_seats IS 'Butacas concretas vendidas en un ítem (vacío en palcoYear).';
 
--- --- Botana de la orden -----------------------------------------------------
-CREATE TABLE order_food_items (
-  id            uuid         PRIMARY KEY DEFAULT gen_random_uuid(),
-  order_id      uuid         NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
-  food_item_id  uuid         REFERENCES food_items(id),  -- NULL si el ítem se dio de baja
-  name          text         NOT NULL,             -- snapshot
-  qty           integer      NOT NULL CHECK (qty >= 1),
-  unit_price    money_amount NOT NULL,             -- snapshot
-  created_at    timestamptz  NOT NULL DEFAULT now()
+-- --- Órdenes de snacks (botana) ---------------------------------------------
+-- Una reserva (orders) puede tener 0..N órdenes de snacks compradas DESPUÉS, y
+-- cada una se cobra por SEPARADO (checkout propio). Los snacks elegidos al
+-- momento de reservar NO crean una snack_order: van como líneas en la propia
+-- reserva (snack_items con order_id) y se pagan combinados (orders.total).
+-- Los snacks no pagan comisión ni entran al payout: son ingreso aparte.
+CREATE TABLE snack_orders (
+  id              uuid         PRIMARY KEY DEFAULT gen_random_uuid(),
+  code            text         NOT NULL UNIQUE,     -- "PLQ-S-7F3A" (ticket de snacks)
+  reservation_id  uuid         NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  user_id         uuid         NOT NULL REFERENCES users(id),
+  status          order_status NOT NULL DEFAULT 'paid',
+  total           money_amount NOT NULL,            -- suma de sus líneas (sin comisión)
+  currency        currency_code NOT NULL DEFAULT 'UYU' REFERENCES currencies(code),
+  pay_method      pay_method   NOT NULL DEFAULT 'card',
+  idempotency_key text,                              -- evita doble cobro del ticket de snacks
+  placed_at       timestamptz  NOT NULL DEFAULT now(),
+  created_at      timestamptz  NOT NULL DEFAULT now(),
+  updated_at      timestamptz  NOT NULL DEFAULT now()
 );
-COMMENT ON TABLE order_food_items IS 'Pedido de botana asociado a la reserva (RF-27, RD-06).';
-CREATE INDEX ix_order_food_order ON order_food_items (order_id);
+COMMENT ON TABLE snack_orders IS 'Compras de snacks posteriores a la reserva, con checkout/pago propio (RF-27).';
+CREATE INDEX ix_snack_orders_reservation ON snack_orders (reservation_id);
+CREATE INDEX ix_snack_orders_user ON snack_orders (user_id, placed_at DESC);
+CREATE TRIGGER trg_snack_orders_updated
+  BEFORE UPDATE ON snack_orders
+  FOR EACH ROW EXECUTE FUNCTION palqueate.set_updated_at();
+
+-- --- Líneas de snacks -------------------------------------------------------
+-- Una sola tabla para TODAS las líneas de botana, con dos posibles padres:
+--   · order_id        → snacks iniciales, pagados con la reserva.
+--   · snack_order_id  → snacks de una compra posterior (checkout separado).
+-- El CHECK garantiza exactamente un padre. Guarda snapshots (precio/nombre).
+CREATE TABLE snack_items (
+  id             uuid         PRIMARY KEY DEFAULT gen_random_uuid(),
+  order_id       uuid         REFERENCES orders(id) ON DELETE CASCADE,
+  snack_order_id uuid         REFERENCES snack_orders(id) ON DELETE CASCADE,
+  food_item_id   uuid         REFERENCES food_items(id),  -- NULL si el ítem se dio de baja
+  name           text         NOT NULL,             -- snapshot
+  qty            integer      NOT NULL CHECK (qty >= 1),
+  unit_price     money_amount NOT NULL,             -- snapshot
+  line_total     money_amount NOT NULL,             -- unit_price * qty
+  created_at     timestamptz  NOT NULL DEFAULT now(),
+  CHECK (num_nonnulls(order_id, snack_order_id) = 1)
+);
+COMMENT ON TABLE snack_items IS 'Líneas de botana: padre = reserva (snacks iniciales) o snack_order (compra posterior).';
+CREATE INDEX ix_snack_items_order ON snack_items (order_id) WHERE order_id IS NOT NULL;
+CREATE INDEX ix_snack_items_snack_order ON snack_items (snack_order_id) WHERE snack_order_id IS NOT NULL;
 
 -- --- Pagos ------------------------------------------------------------------
 -- Hoy el pago es SIMULADO (REQUERIMIENTOS §2.2). El modelo ya soporta el ciclo
 -- real (autorización/captura/reembolso) para cuando se integre la pasarela.
 CREATE TABLE payments (
-  id           uuid         PRIMARY KEY DEFAULT gen_random_uuid(),
-  order_id     uuid         NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
-  method       pay_method   NOT NULL,
-  amount       money_amount NOT NULL,
-  currency     currency_code NOT NULL DEFAULT 'UYU' REFERENCES currencies(code),
-  status       text         NOT NULL DEFAULT 'simulated'
-                 CHECK (status IN ('simulated', 'authorized', 'captured', 'failed', 'refunded')),
-  gateway_ref  text,                                -- referencia externa (sin datos de tarjeta)
-  card_brand   text,                                -- sólo brand
-  card_last4   char(4),                             -- sólo last4; nunca PAN/CVV (API §5.4)
-  created_at   timestamptz  NOT NULL DEFAULT now(),
-  updated_at   timestamptz  NOT NULL DEFAULT now()
+  id             uuid         PRIMARY KEY DEFAULT gen_random_uuid(),
+  -- Un pago cubre una reserva (palco + snacks iniciales) O una orden de snacks
+  -- posterior; exactamente uno de los dos padres.
+  order_id       uuid         REFERENCES orders(id) ON DELETE CASCADE,
+  snack_order_id uuid         REFERENCES snack_orders(id) ON DELETE CASCADE,
+  method         pay_method   NOT NULL,
+  amount         money_amount NOT NULL,
+  currency       currency_code NOT NULL DEFAULT 'UYU' REFERENCES currencies(code),
+  status         text         NOT NULL DEFAULT 'simulated'
+                   CHECK (status IN ('simulated', 'authorized', 'captured', 'failed', 'refunded')),
+  gateway_ref    text,                              -- referencia externa (sin datos de tarjeta)
+  card_brand     text,                              -- sólo brand
+  card_last4     char(4),                           -- sólo last4; nunca PAN/CVV (API §5.4)
+  created_at     timestamptz  NOT NULL DEFAULT now(),
+  updated_at     timestamptz  NOT NULL DEFAULT now(),
+  CHECK (num_nonnulls(order_id, snack_order_id) = 1)
 );
-COMMENT ON TABLE payments IS 'Pago de la orden. Hoy simulado; preparado para pasarela real (RI-06).';
-CREATE INDEX ix_payments_order ON payments (order_id);
+COMMENT ON TABLE payments IS 'Pago de una reserva o de una orden de snacks. Hoy simulado; listo para pasarela (RI-06).';
+CREATE INDEX ix_payments_order ON payments (order_id) WHERE order_id IS NOT NULL;
+CREATE INDEX ix_payments_snack_order ON payments (snack_order_id) WHERE snack_order_id IS NOT NULL;
 CREATE TRIGGER trg_payments_updated
   BEFORE UPDATE ON payments
   FOR EACH ROW EXECUTE FUNCTION palqueate.set_updated_at();
@@ -1144,15 +1188,16 @@ CREATE TRIGGER trg_payouts_updated
 
 -- --- Claves de idempotencia -------------------------------------------------
 CREATE TABLE idempotency_keys (
-  key          text         PRIMARY KEY,
-  user_id      uuid         REFERENCES users(id) ON DELETE CASCADE,
-  endpoint     text         NOT NULL,               -- "POST /orders"
-  request_hash bytea,                                -- hash del body para detectar reuse divergente
-  order_id     uuid         REFERENCES orders(id),  -- resultado asociado
-  created_at   timestamptz  NOT NULL DEFAULT now(),
-  expires_at   timestamptz  NOT NULL DEFAULT (now() + interval '24 hours')
+  key            text         PRIMARY KEY,
+  user_id        uuid         REFERENCES users(id) ON DELETE CASCADE,
+  endpoint       text         NOT NULL,             -- "POST /orders" | "POST /orders/{code}/snacks"
+  request_hash   bytea,                              -- hash del body para detectar reuse divergente
+  order_id       uuid         REFERENCES orders(id),       -- reserva resultante
+  snack_order_id uuid         REFERENCES snack_orders(id), -- orden de snacks resultante
+  created_at     timestamptz  NOT NULL DEFAULT now(),
+  expires_at     timestamptz  NOT NULL DEFAULT (now() + interval '24 hours')
 );
-COMMENT ON TABLE idempotency_keys IS 'Idempotencia del checkout: evita doble cobro si el botón se reenvía (API §23).';
+COMMENT ON TABLE idempotency_keys IS 'Idempotencia del checkout de reserva y de snacks: evita doble cobro (API §23-24).';
 
 
 -- ####################################################################
@@ -1277,7 +1322,7 @@ INSERT INTO audit.audit_actions (action, entity, description) VALUES
   ('hold.release',          'hold',    'Liberar reserva temporal'),
   ('hold.expire',           'hold',    'Vencimiento de reserva temporal'),
   ('order.checkout',        'order',   'Checkout / pago'),
-  ('order.add_food',        'order',   'Agregar botana a la reserva'),
+  ('snack.checkout',        'order',   'Checkout de una orden de snacks (posterior a la reserva)'),
   ('palco.publish',         'palco',   'Publicar palco nuevo'),
   ('palco.update',          'palco',   'Editar palco'),
   ('palco.status_change',   'palco',   'Pausar/reactivar palco'),
@@ -1631,6 +1676,22 @@ FROM order_items oi
 JOIN orders o ON o.id = oi.order_id AND o.status = 'paid'
 GROUP BY oi.mode;
 COMMENT ON VIEW v_modality_mix IS 'Ingresos por modalidad para el dashboard (API §27).';
+
+-- --- Ingresos por botana (admin) --------------------------------------------
+-- Suma TODA la botana: snacks iniciales (líneas con order_id, pagados con la
+-- reserva) + órdenes de snacks posteriores (snack_order_id). Ingreso aparte:
+-- no paga comisión ni entra al payout. KPI foodRevenue del dashboard (API §27).
+CREATE OR REPLACE VIEW v_food_revenue AS
+SELECT date_trunc('month', COALESCE(o.placed_at, so.placed_at))::date AS month,
+       sum(si.line_total)::bigint                              AS food_revenue,
+       count(DISTINCT COALESCE(si.order_id, si.snack_order_id)) AS food_tickets
+FROM snack_items si
+LEFT JOIN orders o        ON o.id = si.order_id
+LEFT JOIN snack_orders so ON so.id = si.snack_order_id
+WHERE COALESCE(o.status, so.status) = 'paid'
+GROUP BY 1
+ORDER BY 1;
+COMMENT ON VIEW v_food_revenue IS 'Ingreso por botana (snacks iniciales + órdenes de snacks). Aparte de comisión/payout.';
 
 
 -- ####################################################################
