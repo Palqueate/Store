@@ -280,7 +280,8 @@ abiertas de la cuenta.
 Publica el **JWKS** (JSON Web Key Set): las claves **públicas** RS256 vigentes
 para verificar la firma del access token. Incluye la clave activa y las
 retiradas aún válidas (rotación), cada una con su `kid`. Las privadas nunca se
-exponen.
+exponen. (Creación, firma y rotación de las claves: ver `db/README.md` §7 —
+"Claves RS256".)
 
 Sin params. Sin auth.
 

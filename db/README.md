@@ -223,6 +223,77 @@ documenta la política en `audit.retention_policy` y la redacción en API §5.4.
 `holds` (ciclo completo del bloqueo) y `created_by`/`updated_by` en las entidades
 operadas por admins/palquistas.
 
+### Claves RS256 — creación, firma y rotación
+
+El access token (JWT) se firma con **RS256** (RSA asimétrico): el backend firma
+con la clave **privada** y cualquiera verifica con la **pública** publicada en
+`GET /.well-known/jwks.json` (alimentado por la vista `v_jwks`). Las claves viven
+en `signing_keys`.
+
+**1. Generar el par RSA** (mínimo 2048 bits para RS256):
+
+```bash
+openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out jwt_private.pem
+openssl rsa -in jwt_private.pem -pubout -out jwt_public.pem
+```
+
+**2. Convertir la pública a JWK** y calcular un `kid` estable (thumbprint
+RFC 7638). Con la librería `jose` (Node):
+
+```js
+import { importSPKI, exportJWK, calculateJwkThumbprint } from 'jose'
+const pub  = await importSPKI(publicPem, 'RS256')
+const jwk  = await exportJWK(pub)                 // { kty:'RSA', n, e }
+jwk.kid    = await calculateJwkThumbprint(jwk)    // id estable de la clave
+jwk.use    = 'sig'
+jwk.alg    = 'RS256'
+// jwk -> { kty:'RSA', n:'…', e:'AQAB', kid:'…', use:'sig', alg:'RS256' }
+```
+
+**3. Guardar la clave** en `signing_keys`. La **privada nunca en claro**: o se
+guarda cifrada (pgcrypto `pgp_sym_encrypt` con una clave gestionada fuera de la
+BD) o `private_key_enc` guarda una **referencia a un KMS** (lo ideal en prod):
+
+```sql
+INSERT INTO palqueate.signing_keys (kid, algorithm, public_jwk, private_key_enc, status, expires_at)
+VALUES (
+  :kid, 'RS256',
+  :public_jwk::jsonb,                      -- el JWK del paso 2 (sólo público)
+  pgp_sym_encrypt(:private_pem, :kek),     -- o el handle/ARN del KMS
+  'active',                                -- la que firma ahora
+  now() + interval '90 days'
+);
+```
+
+**4. Firmar el JWT** (capa de aplicación): el header lleva `alg: RS256` y el
+`kid` de la clave activa; las claims incluyen `sub`, `iss`, `aud`, `iat` y
+`exp = iat + access_token_ttl_seconds` (de `platform_config`).
+
+**5. Verificar**: el cliente pide `GET /.well-known/jwks.json` (= `v_jwks`),
+busca la clave por `kid` y valida la firma. Sin llamadas a la BD.
+
+**6. Rotar** (sin invalidar tokens vigentes): se pre-provisiona una clave
+`next`, y al promover se baja la `active` a `retired` —dejándola válida para
+**verificar** hasta que expiren los tokens que firmó (≈ el TTL del access)— y se
+sube la `next` a `active`:
+
+```sql
+BEGIN;
+UPDATE palqueate.signing_keys
+   SET status = 'retired', retired_at = now(),
+       expires_at = now() + make_interval(secs =>
+         (SELECT access_token_ttl_seconds FROM palqueate.platform_config))
+ WHERE status = 'active';
+UPDATE palqueate.signing_keys
+   SET status = 'active', activated_at = now()
+ WHERE status = 'next';
+COMMIT;
+```
+
+`v_jwks` publica sólo `active` + `retired` **no vencidas**, así que las retiradas
+salen solas del JWKS al pasar su `expires_at` (un job luego las borra). Los
+índices únicos garantizan **una sola `active`** y **una sola `next`**.
+
 ---
 
 ## 8. Trazabilidad requerimientos / endpoints → tablas
