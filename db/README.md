@@ -94,6 +94,7 @@ facilitar su lectura; cada bloque corresponde a un área del modelo.
 | 0010 | `audit_logging` | `audit.access_log` (particionado), `audit.audit_log`, `audit.security_log`, retención |
 | 0011 | `functions_and_triggers` | Bitácora de estados, validación RN-09, `expire_holds()`, disponibilidad, rating |
 | 0012 | `views` | Catálogo público, CRM, métricas del palquista, finanzas |
+| 0013 | `discounts` | `discount_codes` (programables), `discount_redemptions`, `validate_discount()`, `v_discount_usage` |
 
 ---
 
@@ -148,6 +149,9 @@ erDiagram
   palcos ||--o{ payouts : ""
   food_categories ||--o{ food_items : ""
   food_items ||--o{ order_food_items : ""
+  discount_codes ||--o{ discount_redemptions : ""
+  discount_codes ||--o{ orders : "código aplicado"
+  orders ||--|| discount_redemptions : ""
 
   palcos ||--o{ palco_view_events : ""
   palcos ||--o{ palco_favorites : ""
@@ -227,6 +231,7 @@ operadas por admins/palquistas.
 | RD-08 detalle de verificación | `palco_reviews`, `palco_review_field_flags`, `palco_review_field_defs` |
 | Carrito y holds (API §4, §31-34) | `carts`, `cart_items`, `holds`, `seat_reservations` |
 | RN-01 comisión / RN-02 payout | `platform_config`, `commission_for()`, `orders.fee`, `payouts` |
+| Códigos de descuento (programables) | `discount_codes`, `discount_redemptions`, `validate_discount()`, `v_discount_usage` |
 | RN-03 visibilidad del catálogo | `v_public_palcos` (índice parcial `ix_palcos_public`) |
 | RN-04/05/07/08/09 ciclo de verificación | `palcos.status`, `palco_status_history`, `palco_reviews` |
 | RN-13 acceso admin | `roles`, `user_roles`, `is_admin()` |
@@ -237,7 +242,34 @@ operadas por admins/palquistas.
 
 ---
 
-## 9. Validación realizada
+## 9. Códigos de descuento
+
+`discount_codes` modela cupones **programables**: cada código es porcentual
+(`percent_off`, 0..1) o de **valor fijo** (`amount_off`), con **ventana de
+validez** (`starts_at`/`ends_at`, programación entrada/salida), interruptor
+manual (`is_active`), **mínimo de compra** (`min_subtotal`), **tope** del
+descuento (`max_discount`, útil para porcentuales) y **límites de uso** (total
+`max_redemptions` y por usuario `max_per_user`, con contador `times_redeemed`).
+
+- **La plataforma absorbe el descuento**: la comisión (RN-01) y el payout
+  (RN-02) se calculan sobre el **subtotal completo**; el código sólo reduce lo
+  que paga el hincha (`total = subtotal + fee − discount_total`). El costo sale
+  del margen de Palqueate, sin afectar al palquista.
+- `validate_discount(code, subtotal, user)` valida ventana, estado, mínimo y
+  límites, y devuelve el monto a descontar (ya con su tope). El checkout la usa
+  dentro de su transacción para evitar carreras.
+- `discount_redemptions` es el libro de usos (un código por orden, `UNIQUE
+  (order_id)`); alimenta los límites y la vista `v_discount_usage` (uso y costo
+  por código). La orden guarda `discount_code_id` y `discount_total` como
+  snapshot inmutable.
+
+> Probado: % con tope, valor fijo, mínimo de compra, código a futuro
+> (`not_started`), vencido (`expired`), inexistente y **límite por usuario**;
+> y que la comisión/payout quedan intactos sobre el subtotal completo.
+
+---
+
+## 10. Validación realizada
 
 El esquema completo se aplicó sobre **PostgreSQL 16** y se ejecutaron pruebas de
 humo que confirman las reglas críticas:
@@ -248,7 +280,7 @@ humo que confirman las reglas críticas:
 - expiración de holds (libera asientos),
 - validación RN-09 (rechazo sin motivo ni campos ⇒ rechazado),
 - bitácora de estados y recálculo de `rating` por trigger,
-- vistas de catálogo y CRM.
+- códigos de descuento (programación, %/fijo, topes, ventana y límites),
+- vistas de catálogo, CRM y uso de descuentos.
 
-Totales del modelo: **55 tablas, 7 vistas, 11 funciones, 95 claves foráneas,
-138 índices**.
+Totales del modelo: **57 tablas, 8 vistas, 13 funciones**.

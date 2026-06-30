@@ -1015,9 +1015,14 @@ CREATE TABLE orders (
   status          order_status NOT NULL DEFAULT 'paid',
   subtotal        money_amount NOT NULL,
   fee             money_amount NOT NULL,            -- comisión (RN-01)
-  total           money_amount NOT NULL,            -- subtotal + fee
+  total           money_amount NOT NULL,            -- subtotal + fee - discount_total
   commission_rate ratio        NOT NULL,            -- tasa aplicada (snapshot, RNF-17)
   currency        currency_code NOT NULL DEFAULT 'UYU' REFERENCES currencies(code),
+  -- Descuento aplicado a la compra. La PLATAFORMA lo absorbe: la comisión y el
+  -- payout se calculan sobre el subtotal COMPLETO; el descuento sólo reduce lo
+  -- que paga el hincha (sale del margen de Palqueate). Snapshot inmutable.
+  discount_code_id uuid,                             -- FK a discount_codes (se agrega abajo)
+  discount_total   money_amount NOT NULL DEFAULT 0,
   contact_name    text         NOT NULL,
   contact_email   email        NOT NULL,
   pay_method      pay_method   NOT NULL DEFAULT 'card',
@@ -1026,7 +1031,8 @@ CREATE TABLE orders (
   placed_at       timestamptz  NOT NULL DEFAULT now(),
   created_at      timestamptz  NOT NULL DEFAULT now(),
   updated_at      timestamptz  NOT NULL DEFAULT now(),
-  CHECK (total = subtotal + fee)
+  CHECK (discount_total <= subtotal),
+  CHECK (total = subtotal + fee - discount_total)
 );
 COMMENT ON TABLE orders IS 'Reservas pagadas (RD-06). Generadas por el checkout (API §23).';
 COMMENT ON COLUMN orders.code IS 'Código único de reserva mostrado al cliente y en el QR (RF-23).';
@@ -1625,6 +1631,167 @@ FROM order_items oi
 JOIN orders o ON o.id = oi.order_id AND o.status = 'paid'
 GROUP BY oi.mode;
 COMMENT ON VIEW v_modality_mix IS 'Ingresos por modalidad para el dashboard (API §27).';
+
+
+-- ####################################################################
+-- ## 0013_discounts.sql
+-- ####################################################################
+-- Códigos de descuento aplicables a una compra. Cada código se PROGRAMA: tiene
+-- ventana de validez (entrada/salida), es porcentual o de valor fijo, admite
+-- tope, mínimo de compra, e interruptor manual, y se le ponen límites de uso
+-- (total y por usuario). El descuento lo ABSORBE LA PLATAFORMA: la comisión
+-- (RN-01) y el payout (RN-02) se calculan sobre el subtotal completo; el código
+-- sólo reduce lo que paga el hincha. `discount_redemptions` es el libro de usos
+-- (un código por orden) y mantiene el contador para los límites.
+
+CREATE TYPE discount_kind AS ENUM ('percentage', 'fixed');
+
+CREATE TABLE discount_codes (
+  id              uuid          PRIMARY KEY DEFAULT gen_random_uuid(),
+  code            citext        NOT NULL UNIQUE,     -- lo que tipea el usuario (case-insensitive)
+  description     text          NOT NULL DEFAULT '',
+  kind            discount_kind NOT NULL,
+  -- 'percentage' usa percent_off (0..1, p.ej. 0.15 = 15%); 'fixed' usa amount_off.
+  percent_off     ratio,
+  amount_off      money_amount,
+  currency        currency_code REFERENCES currencies(code),
+  max_discount    money_amount,                       -- tope del descuento (para porcentuales)
+  min_subtotal    money_amount  NOT NULL DEFAULT 0,   -- subtotal mínimo para que aplique
+  -- Programación entrada/salida (NULL = abierto por ese extremo).
+  starts_at       timestamptz,
+  ends_at         timestamptz,
+  is_active       boolean       NOT NULL DEFAULT true, -- interruptor manual (kill switch)
+  -- Límites de uso.
+  max_redemptions integer       CHECK (max_redemptions IS NULL OR max_redemptions > 0), -- total
+  max_per_user    integer       CHECK (max_per_user IS NULL OR max_per_user > 0),
+  times_redeemed  integer       NOT NULL DEFAULT 0,   -- contador (trigger)
+  created_at      timestamptz   NOT NULL DEFAULT now(),
+  updated_at      timestamptz   NOT NULL DEFAULT now(),
+  created_by      uuid          REFERENCES users(id),
+  deleted_at      timestamptz,
+  -- Coherencia tipo/valor: exactamente uno según el kind.
+  CHECK ( (kind = 'percentage' AND percent_off IS NOT NULL AND amount_off IS NULL)
+       OR (kind = 'fixed'      AND amount_off  IS NOT NULL AND percent_off IS NULL) ),
+  CHECK (ends_at IS NULL OR starts_at IS NULL OR ends_at > starts_at)
+);
+COMMENT ON TABLE discount_codes IS 'Códigos de descuento programables (ventana, %/fijo, topes, límites). La plataforma absorbe el descuento.';
+COMMENT ON COLUMN discount_codes.percent_off IS 'Descuento porcentual 0..1 (0.15 = 15%). Sólo si kind=percentage.';
+COMMENT ON COLUMN discount_codes.max_discount IS 'Tope máximo del descuento en dinero (útil para porcentuales).';
+-- Código único entre los vivos (permite reusar el texto si uno fue borrado).
+CREATE UNIQUE INDEX uq_discount_code_active ON discount_codes (code) WHERE deleted_at IS NULL;
+-- Búsqueda de códigos vigentes por ventana.
+CREATE INDEX ix_discount_codes_window ON discount_codes (is_active, starts_at, ends_at) WHERE deleted_at IS NULL;
+CREATE TRIGGER trg_discount_codes_updated
+  BEFORE UPDATE ON discount_codes
+  FOR EACH ROW EXECUTE FUNCTION palqueate.set_updated_at();
+
+-- FK pendiente de orders.discount_code_id (declarado arriba).
+ALTER TABLE orders
+  ADD CONSTRAINT fk_orders_discount_code
+  FOREIGN KEY (discount_code_id) REFERENCES discount_codes(id);
+
+-- --- Usos (libro mayor) -----------------------------------------------------
+CREATE TABLE discount_redemptions (
+  id               uuid         PRIMARY KEY DEFAULT gen_random_uuid(),
+  discount_code_id uuid         NOT NULL REFERENCES discount_codes(id),
+  order_id         uuid         NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  user_id          uuid         REFERENCES users(id),
+  amount_applied   money_amount NOT NULL,             -- descuento efectivo aplicado
+  redeemed_at      timestamptz  NOT NULL DEFAULT now(),
+  UNIQUE (order_id)                                    -- un código por compra
+);
+COMMENT ON TABLE discount_redemptions IS 'Usos de códigos de descuento: un código por orden; base de los límites y analítica.';
+CREATE INDEX ix_discount_redemptions_code ON discount_redemptions (discount_code_id);
+CREATE INDEX ix_discount_redemptions_user ON discount_redemptions (discount_code_id, user_id);
+
+-- Mantiene el contador times_redeemed.
+CREATE OR REPLACE FUNCTION palqueate.bump_discount_redemptions()
+RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    UPDATE palqueate.discount_codes SET times_redeemed = times_redeemed + 1
+     WHERE id = NEW.discount_code_id;
+  ELSIF TG_OP = 'DELETE' THEN
+    UPDATE palqueate.discount_codes SET times_redeemed = greatest(times_redeemed - 1, 0)
+     WHERE id = OLD.discount_code_id;
+  END IF;
+  RETURN NULL;
+END;
+$$;
+CREATE TRIGGER trg_discount_redemptions_counter
+  AFTER INSERT OR DELETE ON discount_redemptions
+  FOR EACH ROW EXECUTE FUNCTION palqueate.bump_discount_redemptions();
+
+-- --- Validación y cálculo del descuento -------------------------------------
+-- Devuelve (valid, reason, code_id, amount): valida ventana, estado, mínimo de
+-- compra y límites (total y por usuario), y calcula el monto a descontar con su
+-- tope. El checkout la invoca dentro de su transacción para evitar carreras.
+CREATE OR REPLACE FUNCTION palqueate.validate_discount(
+  p_code citext, p_subtotal money_amount, p_user uuid DEFAULT NULL
+) RETURNS TABLE (valid boolean, reason text, code_id uuid, amount bigint)
+LANGUAGE plpgsql STABLE AS $$
+DECLARE
+  c           palqueate.discount_codes%ROWTYPE;
+  v_amount    bigint;
+  v_user_uses integer;
+BEGIN
+  SELECT * INTO c FROM palqueate.discount_codes
+   WHERE code = p_code AND deleted_at IS NULL;
+
+  IF NOT FOUND THEN
+    RETURN QUERY SELECT false, 'not_found', NULL::uuid, 0::bigint; RETURN;
+  END IF;
+  IF NOT c.is_active THEN
+    RETURN QUERY SELECT false, 'inactive', c.id, 0::bigint; RETURN;
+  END IF;
+  IF c.starts_at IS NOT NULL AND now() < c.starts_at THEN
+    RETURN QUERY SELECT false, 'not_started', c.id, 0::bigint; RETURN;
+  END IF;
+  IF c.ends_at IS NOT NULL AND now() > c.ends_at THEN
+    RETURN QUERY SELECT false, 'expired', c.id, 0::bigint; RETURN;
+  END IF;
+  IF p_subtotal < c.min_subtotal THEN
+    RETURN QUERY SELECT false, 'below_min_subtotal', c.id, 0::bigint; RETURN;
+  END IF;
+  IF c.max_redemptions IS NOT NULL AND c.times_redeemed >= c.max_redemptions THEN
+    RETURN QUERY SELECT false, 'redemption_limit', c.id, 0::bigint; RETURN;
+  END IF;
+  IF c.max_per_user IS NOT NULL AND p_user IS NOT NULL THEN
+    SELECT count(*) INTO v_user_uses FROM palqueate.discount_redemptions
+      WHERE discount_code_id = c.id AND user_id = p_user;
+    IF v_user_uses >= c.max_per_user THEN
+      RETURN QUERY SELECT false, 'per_user_limit', c.id, 0::bigint; RETURN;
+    END IF;
+  END IF;
+
+  -- Cálculo del monto.
+  IF c.kind = 'fixed' THEN
+    v_amount := least(c.amount_off, p_subtotal);
+  ELSE
+    v_amount := round(p_subtotal * c.percent_off)::bigint;
+  END IF;
+  IF c.max_discount IS NOT NULL THEN
+    v_amount := least(v_amount, c.max_discount);
+  END IF;
+  v_amount := least(v_amount, p_subtotal);   -- nunca descuenta más que el subtotal
+
+  RETURN QUERY SELECT true, 'ok', c.id, v_amount;
+END;
+$$;
+COMMENT ON FUNCTION palqueate.validate_discount(citext, money_amount, uuid)
+  IS 'Valida un código (ventana, estado, mínimo, límites) y calcula el descuento a aplicar.';
+
+-- --- Vista de uso de códigos (admin) ----------------------------------------
+CREATE OR REPLACE VIEW v_discount_usage AS
+SELECT d.id, d.code, d.kind, d.is_active, d.starts_at, d.ends_at,
+       d.times_redeemed, d.max_redemptions,
+       COALESCE(sum(r.amount_applied), 0)::bigint AS total_discounted,
+       count(r.id)                                AS orders_with_code
+FROM discount_codes d
+LEFT JOIN discount_redemptions r ON r.discount_code_id = d.id
+WHERE d.deleted_at IS NULL
+GROUP BY d.id;
+COMMENT ON VIEW v_discount_usage IS 'Uso y costo (absorbido por la plataforma) de cada código de descuento.';
 
 
 COMMIT;
