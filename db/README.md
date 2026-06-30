@@ -231,6 +231,7 @@ operadas por admins/palquistas.
 | RD-03 palcos · `GET/POST /palcos` | `palcos`, `palco_modes`, `palco_seats`, `palco_co_owners`, `palco_payout`, `palco_documents`, `palco_images` |
 | RD-04 ocupación de butacas (RN-11) | `seat_reservations` (+ `taken_seats()`) |
 | RD-05 cuentas · `/accounts`, `/me` | `users`, `auth_credentials`, `user_roles`, `user_notification_prefs`, `user_payment_methods`, `user_billing` |
+| Sesiones / login (multi-dispositivo, rotación) | `sessions` (`device_label`, `replaced_by_session_id`), `rotate_session()` |
 | RD-06 reservas · `POST /orders` | `orders`, `order_items`, `order_item_seats`, `snack_items` (iniciales), `payments`, `payouts` |
 | RD-07 catálogo de botana | `food_categories`, `food_items` |
 | Snacks · `POST /orders/{code}/snacks` | `snack_orders`, `snack_items`, `payments`, `v_food_revenue` |
@@ -326,6 +327,8 @@ ordenamiento temporal del id):
 - bitácora de estados y recálculo de `rating` por trigger,
 - códigos de descuento (programación, %/fijo, topes, ventana y límites),
 - snacks: pago combinado al reservar + orden de snacks con checkout separado,
+- sesiones: rotación de token encadenada (`rotate_session`), reuso de token
+  rotado rechazado y cadena 1:1,
 - vistas de catálogo, CRM, uso de descuentos e ingreso por botana.
 
-Totales del modelo: **58 tablas, 9 vistas, 13 funciones**.
+Totales del modelo: **58 tablas, 9 vistas, 14 funciones**.

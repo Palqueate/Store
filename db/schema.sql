@@ -561,17 +561,64 @@ CREATE TABLE sessions (
   kind          text        NOT NULL DEFAULT 'user'
                   CHECK (kind IN ('guest', 'user')),
   token_hash    bytea       NOT NULL UNIQUE,       -- hash del JWT/opaco; nunca el token (API §5.4)
+  -- Etiqueta amigable del dispositivo para la pantalla "tus sesiones activas"
+  -- (ej. "iPhone de Juan", "Chrome · Windows"). La deriva/edita la aplicación.
+  device_label  text,
   ip            inet,
   user_agent    text,
   created_at    timestamptz NOT NULL DEFAULT now(),
   last_seen_at  timestamptz NOT NULL DEFAULT now(),
   expires_at    timestamptz NOT NULL,
   revoked_at    timestamptz,
-  CHECK (kind = 'user' OR user_id IS NULL)         -- guest no tiene user
+  -- Rotación de token encadenada: cuando esta sesión se renueva, apunta a la
+  -- sesión NUEVA que la reemplaza (y se revoca). Permite seguir la cadena y
+  -- detectar reuso de un token ya rotado (señal de robo). NULL = fin normal
+  -- (logout/expiración) o sesión vigente.
+  replaced_by_session_id uuid REFERENCES sessions(id) ON DELETE SET NULL,
+  CHECK (kind = 'user' OR user_id IS NULL),         -- guest no tiene user
+  CHECK (replaced_by_session_id IS NULL OR replaced_by_session_id <> id)
 );
-COMMENT ON TABLE sessions IS 'Sesiones de usuario y anónimas (carrito por token). Sólo hash del token (API §5.4).';
+COMMENT ON TABLE sessions IS 'Sesiones de usuario y anónimas (carrito por token). Sólo hash del token; rotación encadenada (API §5.4).';
+COMMENT ON COLUMN sessions.device_label IS 'Nombre amigable del dispositivo para "sesiones activas".';
+COMMENT ON COLUMN sessions.replaced_by_session_id IS 'Sesión que reemplaza a ésta al rotar el token (cadena de rotación).';
 CREATE INDEX ix_sessions_user ON sessions (user_id) WHERE user_id IS NOT NULL;
 CREATE INDEX ix_sessions_active ON sessions (expires_at) WHERE revoked_at IS NULL;
+-- Cadena 1:1: una sesión nueva reemplaza a lo sumo a una vieja.
+CREATE UNIQUE INDEX uq_sessions_replaced_by ON sessions (replaced_by_session_id)
+  WHERE replaced_by_session_id IS NOT NULL;
+
+-- Rotación de token atómica: crea la sesión nueva heredando dueño/dispositivo,
+-- encadena la vieja → nueva y revoca la vieja, todo en una transacción. Devuelve
+-- el id de la sesión nueva. Útil para refresh tokens con rotación.
+CREATE OR REPLACE FUNCTION palqueate.rotate_session(
+  p_old_session uuid, p_new_token_hash bytea, p_new_expires_at timestamptz
+) RETURNS uuid LANGUAGE plpgsql AS $$
+DECLARE
+  v_new uuid;
+  v_old sessions%ROWTYPE;
+BEGIN
+  SELECT * INTO v_old FROM palqueate.sessions WHERE id = p_old_session FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'rotate_session: sesión % inexistente', p_old_session;
+  END IF;
+  IF v_old.revoked_at IS NOT NULL THEN
+    -- Reuso de un token ya rotado/revocado: la app debería tratarlo como posible robo.
+    RAISE EXCEPTION 'rotate_session: la sesión % ya fue revocada/rotada', p_old_session;
+  END IF;
+
+  INSERT INTO palqueate.sessions (user_id, kind, token_hash, device_label, ip, user_agent, expires_at)
+  VALUES (v_old.user_id, v_old.kind, p_new_token_hash, v_old.device_label, v_old.ip, v_old.user_agent, p_new_expires_at)
+  RETURNING id INTO v_new;
+
+  UPDATE palqueate.sessions
+     SET revoked_at = now(), replaced_by_session_id = v_new
+   WHERE id = p_old_session;
+
+  RETURN v_new;
+END;
+$$;
+COMMENT ON FUNCTION palqueate.rotate_session(uuid, bytea, timestamptz)
+  IS 'Rota el token: crea la sesión nueva, encadena old→new y revoca la vieja (atómico).';
 
 
 -- ####################################################################
