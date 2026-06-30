@@ -9,10 +9,15 @@ export const createUiSlice = (set, get) => ({
   vw: typeof window !== 'undefined' ? window.innerWidth : 1280,
   toast: null,
   acctMenu: false,
+  // Modal de botana y bebidas (se abre desde el detalle del palco).
+  snacksModal: false,
 
   // Generic shallow-merge setter, mirroring the old store.setState. Used by the
   // transitional view-model for inline filter/tab updates.
   setState: (patch) => set(patch),
+
+  openSnacks: () => set({ snacksModal: true }),
+  closeSnacks: () => set({ snacksModal: false }),
 
   money: (n) => formatMoney(n),
   cycleTheme: () => { const i = THEME_ORDER.indexOf(get().theme); set({ theme: THEME_ORDER[(i + 1) % THEME_ORDER.length] }) },

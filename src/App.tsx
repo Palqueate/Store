@@ -7,7 +7,7 @@ import { css } from '@/shared/ui/css'
 import Header from '@/shared/ui/components/Header'
 import ErrorBoundary from '@/shared/ui/components/ErrorBoundary'
 import BootGate from '@/shared/ui/components/BootGate'
-import { BottomNav, AcctBackdrop, AuthModal, EventModal, StadiumModal, PalcoReviewModal, Toast } from '@/shared/ui/components/Overlays'
+import { BottomNav, AcctBackdrop, AuthModal, EventModal, StadiumModal, PalcoReviewModal, SnacksModal, Toast } from '@/shared/ui/components/Overlays'
 
 import Home from '@/modules/home/ui/Home'
 import Results from '@/modules/palcos/ui/Results'
@@ -70,6 +70,7 @@ export default function App() {
         <EventModal />
         <StadiumModal />
         <PalcoReviewModal />
+        <SnacksModal />
         <Toast />
       </div>
     </ErrorBoundary>

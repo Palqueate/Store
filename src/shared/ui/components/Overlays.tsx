@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { css } from '@/shared/ui/css'
-import { Modal, Btn, Field, Select, Combobox, FileDropzone, Textarea } from '@/lib'
+import { Modal, Btn, Field, Select, Combobox, FileDropzone, Textarea, Chip, QuantityStepper, Card } from '@/lib'
 import { useOverlaysVM } from '@/shared/ui/vm/useOverlaysVM'
 import { dataUrlExt, isImageDataUrl, fileTypeLabel } from '@/shared/lib/readImages'
 
@@ -452,6 +452,63 @@ export function PalcoReviewModal() {
       </div>
     ) : null}
     </>
+  )
+}
+
+// ──────────────────────────────────────────────────────────
+// SnacksModal  →  lib Modal (botana y bebidas antes de pagar)
+// ──────────────────────────────────────────────────────────
+export function SnacksModal() {
+  const vals = useOverlaysVM()
+  return (
+    <Modal
+      open={!!vals.snacksOpen}
+      onClose={vals.closeSnacks}
+      title="Botana y bebidas"
+      width={680}
+      footer={
+        <div style={css("display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%;")}>
+          <div style={css("font-size:13px; color:var(--muted-foreground,#9AA6B2);")}>
+            {vals.snackCount} ítem{vals.snackCount === 1 ? '' : 's'} · <span style={css("font-family:'Archivo'; font-weight:800; color:var(--foreground,#F4EFE6);")}>{vals.snacksTotalTxt}</span>
+          </div>
+          <Btn label="Listo" icon="check" onClick={vals.closeSnacks} />
+        </div>
+      }
+    >
+      <p style={css("margin:0 0 14px; font-size:13px; color:var(--muted-foreground,#9AA6B2);")}>
+        Elegí lo que quieras y lo encontrás servido en el palco. Se cobra junto con tu reserva.
+      </p>
+
+      <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', scrollbarWidth: 'none', paddingBottom: '6px', marginBottom: '14px' }}>
+        {(vals.snackCatChips || []).map((c: any, i: number) => (
+          <Chip key={i} active={c.active} onClick={c.pick}>{c.label}</Chip>
+        ))}
+      </div>
+
+      <div style={css(vals.snackGrid)}>
+        {(vals.snackItems || []).map((it: any, i: number) => (
+          <Card key={i} padding="12px" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div>
+              <h4 style={{ margin: '0 0 2px', fontFamily: "'Archivo'", fontWeight: 700, fontSize: '14px', color: 'var(--foreground,#F4EFE6)', lineHeight: 1.2 }}>{it.name}</h4>
+              <div style={{ fontSize: '11.5px', color: 'var(--muted-foreground,#9AA6B2)' }}>{it.desc}</div>
+            </div>
+            <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+              <span style={{ fontFamily: "'Archivo'", fontWeight: 800, fontSize: '14px', color: 'var(--primary,#C9A24B)' }}>{it.price}</span>
+              {it.noQty ? (
+                <Btn label="Agregar" icon="plus" size="sm" variant="secondary" onClick={it.add} />
+              ) : (
+                <QuantityStepper
+                  value={it.qty}
+                  min={0}
+                  max={99}
+                  onChange={(next: number) => { if (next > it.qty) it.add(); else it.dec() }}
+                />
+              )}
+            </div>
+          </Card>
+        ))}
+      </div>
+    </Modal>
   )
 }
 

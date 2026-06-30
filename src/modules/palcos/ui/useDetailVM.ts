@@ -67,5 +67,8 @@ export function useDetailVM(): any {
     incPark: function () { self.incParkSel() },
     decPark: function () { self.decParkSel() },
     setPark: function (n: number) { self.setParkSel(n) },
+    // Snacks: abrir el modal de botana y bebidas y contador de lo elegido.
+    openSnacks: function () { self.openSnacks() },
+    snackCount: self.foodCount(),
   }
 }
