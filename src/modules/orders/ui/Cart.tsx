@@ -1,5 +1,5 @@
 import { TrashIcon } from '@heroicons/react/24/outline'
-import { Btn, Card, EmptyState, IconButton, Tag, DescriptionList } from '@/lib'
+import { Btn, Card, EmptyState, IconButton, QuantityStepper, Tag, DescriptionList } from '@/lib'
 import { css } from '@/shared/ui/css'
 import { useCartVM } from './useCartVM'
 
@@ -52,9 +52,20 @@ export default function Cart() {
                     </div>
                   ) : null}
                   {(it.snackLines || []).map((sn: any, j: number) => (
-                    <div key={j} style={css("display:flex; justify-content:space-between; gap:12px; font-size:13px;")}>
-                      <span style={css("color:var(--muted-foreground,#9AA6B2);")}>🍿 {sn.qty} × {sn.name}</span>
-                      <span style={css("color:var(--foreground,#F4EFE6); white-space:nowrap;")}>{sn.price}</span>
+                    <div key={j} style={css("display:flex; justify-content:space-between; align-items:center; gap:10px; font-size:13px;")}>
+                      <span style={css("color:var(--muted-foreground,#9AA6B2); min-width:0; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;")}>🍿 {sn.name}</span>
+                      <div style={css("display:flex; align-items:center; gap:10px; flex:0 0 auto;")}>
+                        <QuantityStepper
+                          value={sn.qty}
+                          min={0}
+                          max={99}
+                          onChange={(next: number) => { if (next > sn.qty) sn.inc(); else sn.dec() }}
+                        />
+                        <span style={css("color:var(--foreground,#F4EFE6); white-space:nowrap; min-width:64px; text-align:right;")}>{sn.price}</span>
+                        <IconButton aria-label="Quitar snack" variant="ghost" size="sm" onClick={sn.remove}>
+                          <TrashIcon />
+                        </IconButton>
+                      </div>
                     </div>
                   ))}
                   <button

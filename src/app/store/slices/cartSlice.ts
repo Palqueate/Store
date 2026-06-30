@@ -27,6 +27,29 @@ export const createCartSlice = (set, get) => ({
   cartSnacksTotal: () => get().cart.reduce((a, b) => a + (b.snacksTotal || 0), 0),
   removeCart: (uid) => set({ cart: get().cart.filter((i) => i.uid !== uid) }),
   setContact: (f, v) => set({ contact: { ...get().contact, [f]: v } }),
+
+  // ---- editar snacks de un ítem del carrito (inline, sin abrir el modal) ----
+  // Reescribe los snacks de un ítem y recalcula su total.
+  _setItemSnacks: (uid, snacks) => set({
+    cart: get().cart.map((i) => i.uid === uid
+      ? { ...i, snacks, snacksTotal: snacks.reduce((a, b) => a + b.price * b.qty, 0) }
+      : i),
+  }),
+  incItemSnack: (uid, foodId) => {
+    const item = get().cart.find((i) => i.uid === uid); if (!item) return
+    const snacks = (item.snacks || []).map((sn) => sn.id === foodId ? { ...sn, qty: sn.qty + 1 } : sn)
+    get()._setItemSnacks(uid, snacks)
+  },
+  decItemSnack: (uid, foodId) => {
+    const item = get().cart.find((i) => i.uid === uid); if (!item) return
+    const snacks = (item.snacks || []).map((sn) => sn.id === foodId ? { ...sn, qty: sn.qty - 1 } : sn).filter((sn) => sn.qty > 0)
+    get()._setItemSnacks(uid, snacks)
+  },
+  removeItemSnack: (uid, foodId) => {
+    const item = get().cart.find((i) => i.uid === uid); if (!item) return
+    const snacks = (item.snacks || []).filter((sn) => sn.id !== foodId)
+    get()._setItemSnacks(uid, snacks)
+  },
   addToCart: () => {
     const s = get(); const p = get().byId(s.pId); if (!p) return
     // Builder incremental del ítem (las claves de cada modalidad se agregan
@@ -79,7 +102,12 @@ export const createCartSlice = (set, get) => ({
     const snacks = it.snacks || []
     const hasSnacks = snacks.length > 0
     const snackCount = snacks.reduce((a, b) => a + b.qty, 0)
-    const snackLines = snacks.map((sn) => ({ name: sn.name, qty: sn.qty, price: get().money(sn.price * sn.qty) }))
+    const snackLines = snacks.map((sn) => ({
+      id: sn.id, name: sn.name, qty: sn.qty, price: get().money(sn.price * sn.qty),
+      inc: () => get().incItemSnack(it.uid, sn.id),
+      dec: () => get().decItemSnack(it.uid, sn.id),
+      remove: () => get().removeItemSnack(it.uid, sn.id),
+    }))
     return {
       uid: it.uid, title: it.palcoTitle, stadiumName: get().stadiums[it.stadium].name, modeLabel: it.modeLabel, seatsText, meta, tag,
       baseLabel: seatsText, qtyNote,
