@@ -41,19 +41,19 @@ export default function Cart() {
 
                 {/* Desglose del ítem: cada concepto con su importe + subtotal */}
                 <div style={css("margin-top:12px; padding-top:12px; border-top:1px solid var(--border,rgba(255,255,255,.1)); display:flex; flex-direction:column; gap:6px;")}>
-                  <div style={css("display:flex; justify-content:space-between; gap:12px; font-size:13px;")}>
-                    <span style={css("color:var(--muted-foreground,#9AA6B2);")}>{it.baseLabel}{it.qtyNote}</span>
+                  <div style={css("display:flex; justify-content:space-between; gap:12px; font-size:13.5px;")}>
+                    <span style={css("color:var(--foreground,#F4EFE6); font-weight:600;")}>{it.baseLabel}<span style={css("color:var(--muted-foreground,#9AA6B2); font-weight:400;")}>{it.qtyNote}</span></span>
                     <span style={css("color:var(--foreground,#F4EFE6); white-space:nowrap;")}>{it.price}</span>
                   </div>
                   {it.hasParking ? (
-                    <div style={css("display:flex; justify-content:space-between; gap:12px; font-size:13px;")}>
-                      <span style={css("color:var(--muted-foreground,#9AA6B2);")}>🅿️ {it.parkingText}{it.parkingUnitNote}</span>
+                    <div style={css("display:flex; justify-content:space-between; gap:12px; font-size:13.5px;")}>
+                      <span style={css("color:var(--foreground,#F4EFE6); font-weight:600;")}>🅿️ {it.parkingText}<span style={css("color:var(--muted-foreground,#9AA6B2); font-weight:400;")}>{it.parkingUnitNote}</span></span>
                       <span style={css("color:var(--foreground,#F4EFE6); white-space:nowrap;")}>{it.parkingPrice}</span>
                     </div>
                   ) : null}
                   {(it.snackLines || []).map((sn: any, j: number) => (
-                    <div key={j} style={css("display:flex; justify-content:space-between; align-items:center; gap:10px; font-size:13px;")}>
-                      <span style={css("color:var(--muted-foreground,#9AA6B2); min-width:0; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;")}>🍿 {sn.name}</span>
+                    <div key={j} style={css("display:flex; justify-content:space-between; align-items:center; gap:10px; font-size:13.5px;")}>
+                      <span style={css("color:var(--foreground,#F4EFE6); font-weight:600; min-width:0; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;")}>🍿 {sn.name}</span>
                       <div style={css("display:flex; align-items:center; gap:10px; flex:0 0 auto;")}>
                         <QuantityStepper
                           value={sn.qty}
