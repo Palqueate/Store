@@ -203,25 +203,6 @@ export default function Detail() {
               </div>
             ) : null}
 
-            {/* Agregar snacks (abre el modal de botana y bebidas) */}
-            <button
-              onClick={vals.openSnacks}
-              style={{
-                marginTop: '14px', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px',
-                padding: '13px 15px', borderRadius: '13px', cursor: 'pointer',
-                border: '1.5px dashed var(--border)', background: 'transparent', color: 'var(--foreground,#F4EFE6)',
-                fontFamily: "'Archivo'", fontWeight: 700, fontSize: '14px',
-              }}
-            >
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '9px' }}>
-                <span style={{ fontSize: '17px' }}>🍿</span>
-                {vals.snackCount > 0 ? ('Snacks · ' + vals.snackCount + ' agregados') : 'Agregar snacks'}
-              </span>
-              <span style={{ fontFamily: "'Space Mono'", fontSize: '12px', color: 'var(--primary,#C9A24B)' }}>
-                {vals.snackCount > 0 ? ('Editar · ' + vals.det.snacksTotalTxt) : '+ Botana y bebidas'}
-              </span>
-            </button>
-
             {/* Price summary + CTA */}
             <Divider />
             <div style={{ marginTop: '16px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '12px', marginBottom: '14px' }}>

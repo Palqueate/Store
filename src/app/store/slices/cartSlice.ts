@@ -39,11 +39,8 @@ export const createCartSlice = (set, get) => ({
     const parkAvail = p.parking.has ? p.parking.n : 0
     const parkSel = Math.max(0, Math.min(parkAvail, s.parkSel || 0))
     if (parkSel > 0) { item.parkingQty = parkSel; item.parkingPrice = p.parking.price || 0; item.parkingTotal = parkSel * (p.parking.price || 0) }
-    // Snacks elegidos para ESTE palco (borrador en food) → snapshot en el ítem.
-    const snap = get()._snackSnapshot()
-    if (snap.list.length) { item.snacks = snap.list; item.snacksTotal = snap.total }
-    // Limpiamos el borrador de snacks y el estacionamiento para el próximo palco.
-    set({ cart: get().cart.concat([item]), parkSel: 0, food: [], snacksTarget: 'draft' })
+    // Los snacks se agregan después, por palco, desde el carrito (no en el detalle).
+    set({ cart: get().cart.concat([item]), parkSel: 0 })
     get().flash('Reserva agregada al carrito'); get().go('cart')
   },
   pay: (forceUser?) => {
@@ -114,10 +111,8 @@ export const createCartSlice = (set, get) => ({
     return { list, total }
   },
 
-  // ---- snacks modal (por palco) ----
-  // Detalle: edita el borrador del palco que se está por reservar.
-  openSnacks: () => set({ snacksTarget: 'draft', snacksModal: true }),
-  // Carrito: edita los snacks de un ítem ya agregado (carga su selección).
+  // ---- snacks modal (por palco, desde el carrito) ----
+  // Edita los snacks de un ítem del carrito (carga su selección en el borrador).
   openSnacksForItem: (uid) => {
     const item = get().cart.find((i) => i.uid === uid); if (!item) return
     const draft = (item.snacks || []).map((sn) => ({ id: sn.id, qty: sn.qty }))

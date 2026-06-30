@@ -42,11 +42,7 @@ export function useDetailVM(): any {
         dateStyle: { flex: '0 0 auto', width: '52px', textAlign: 'center', padding: '6px 0', borderRadius: '8px', background: (on ? 'var(--primary)' : 'var(--muted)'), color: (on ? 'var(--primary-foreground)' : 'var(--foreground)'), fontFamily: 'Archivo', fontWeight: '800', fontSize: '13px', lineHeight: '1.1' }
       }
     })
-    // El total del detalle incluye los snacks elegidos para este palco (borrador).
-    var snacksNum = self.foodTotal()
-    det.total = self.money(dvm.total + snacksNum); det.qty = dvm.qty
-    det.hasSnacks = self.foodCount() > 0
-    det.snacksTotalTxt = self.money(snacksNum)
+    det.total = self.money(dvm.total); det.qty = dvm.qty
     det.canReserve = s.mode === 'palcoYear' ? true : dvm.qty > 0
     det.summary = s.mode === 'palcoYear' ? 'Palco entero · 1 año' : (s.mode === 'seatYear' ? (dvm.qty + ' asiento' + (dvm.qty === 1 ? '' : 's') + ' · anual') : (dvm.qty + ' asiento' + (dvm.qty === 1 ? '' : 's') + ' · evento'))
     det.unitNote = s.mode === 'palcoYear' ? 'Precio total del año' : (dvm.qty > 0 ? (dvm.qty + ' × ' + self.money(s.mode === 'seatYear' ? dp.modes.seatYear.price : dp.modes.seatEvent.price)) : 'Elegí tus asientos')
@@ -71,8 +67,5 @@ export function useDetailVM(): any {
     incPark: function () { self.incParkSel() },
     decPark: function () { self.decParkSel() },
     setPark: function (n: number) { self.setParkSel(n) },
-    // Snacks: abrir el modal de botana y bebidas y contador de lo elegido.
-    openSnacks: function () { self.openSnacks() },
-    snackCount: self.foodCount(),
   }
 }
