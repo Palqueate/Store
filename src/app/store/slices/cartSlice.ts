@@ -2,6 +2,9 @@
 import { container } from '@/app/container'
 import { createOrder, updateOrder } from '@/modules/orders/application/use-cases/orderUseCases'
 import { eventOccurrence } from '@/modules/events/domain/Event'
+import {
+  palcoOccupancy, withCart, palcoYearAvailable, seatYearAvailable, seatEventAvailable,
+} from '@/modules/palcos/domain/availability'
 import type { Order, OrderItem } from '@/modules/orders/domain/Order'
 
 export const createCartSlice = (set, get) => ({
@@ -52,12 +55,32 @@ export const createCartSlice = (set, get) => ({
   },
   addToCart: () => {
     const s = get(); const p = get().byId(s.pId); if (!p) return
+    // Disponibilidad cruzando modalidades (RN-11): lo sembrado + lo que ya hay en
+    // el carrito para este palco. Es la validación autoritativa: aunque la UI
+    // deshabilite lo no disponible, no se agrega nada que pise otra reserva.
+    const occ = withCart(palcoOccupancy(p), get().cart, p.id)
     // Builder incremental del ítem (las claves de cada modalidad se agregan
     // según el caso); se valida contra OrderItem al hacer concat.
     const item: any = { uid: 'c' + Date.now() + Math.floor(Math.random() * 999), palcoId: p.id, palcoTitle: p.title, stadium: p.stadium }
-    if (s.mode === 'palcoYear') { item.mode = 'palcoYear'; item.modeLabel = 'Palco entero · 1 año'; item.seats = []; item.term = 'Temporada 2026 · 1 año'; item.qty = 1; item.price = p.modes.palcoYear.price }
-    else if (s.mode === 'seatYear') { if (!s.seats.length) return get().flash('Elegí al menos un asiento'); item.mode = 'seatYear'; item.modeLabel = 'Asiento anual · 1 año'; item.seats = s.seats.slice().sort((a, b) => a - b); item.term = 'Temporada 2026 · 1 año'; item.qty = s.seats.length; item.price = p.modes.seatYear.price * s.seats.length }
-    else { if (!s.seats.length) return get().flash('Elegí al menos un asiento'); const ev = get().events.find((e) => e.id === s.eventId); const occ = ev ? eventOccurrence(ev, s.occurrenceId) : null; item.mode = 'seatEvent'; item.modeLabel = 'Asiento · por evento'; item.seats = s.seats.slice().sort((a, b) => a - b); item.eventId = s.eventId; item.occurrenceId = s.occurrenceId; item.eventLabel = ev ? (ev.comp + (ev.round ? (' · ' + ev.round) : '')) : ''; item.eventOpp = ev ? ev.opp : ''; item.term = occ ? (occ.day + ' ' + occ.month + ' · ' + occ.time + ' hs') : ''; item.qty = s.seats.length; item.price = p.modes.seatEvent.price * s.seats.length }
+    if (s.mode === 'palcoYear') {
+      // RN-2: el palco entero exige todas las butacas libres en toda la temporada.
+      if (!palcoYearAvailable(occ)) return get().flash('El palco tiene reservas activas: no se puede alquilar entero por el año')
+      item.mode = 'palcoYear'; item.modeLabel = 'Palco entero · 1 año'; item.seats = []; item.term = 'Temporada 2026 · 1 año'; item.qty = 1; item.price = p.modes.palcoYear.price
+    }
+    else if (s.mode === 'seatYear') {
+      if (!s.seats.length) return get().flash('Elegí al menos un asiento')
+      // RN-1/RN-3: la butaca anual no puede estar tomada ni por el año ni en ningún evento.
+      const bad = s.seats.filter((n) => !seatYearAvailable(occ, n)).sort((a, b) => a - b)
+      if (bad.length) return get().flash('Asiento' + (bad.length > 1 ? 's' : '') + ' ' + bad.join(', ') + ' no disponible' + (bad.length > 1 ? 's' : '') + ' por el año')
+      item.mode = 'seatYear'; item.modeLabel = 'Asiento anual · 1 año'; item.seats = s.seats.slice().sort((a, b) => a - b); item.term = 'Temporada 2026 · 1 año'; item.qty = s.seats.length; item.price = p.modes.seatYear.price * s.seats.length
+    }
+    else {
+      if (!s.seats.length) return get().flash('Elegí al menos un asiento')
+      // RN-1/RN-3: la butaca por evento no puede estar tomada por el año ni en esa función.
+      const bad = s.seats.filter((n) => !seatEventAvailable(occ, n, s.occurrenceId)).sort((a, b) => a - b)
+      if (bad.length) return get().flash('Asiento' + (bad.length > 1 ? 's' : '') + ' ' + bad.join(', ') + ' no disponible' + (bad.length > 1 ? 's' : '') + ' para esta función')
+      const ev = get().events.find((e) => e.id === s.eventId); const occu = ev ? eventOccurrence(ev, s.occurrenceId) : null; item.mode = 'seatEvent'; item.modeLabel = 'Asiento · por evento'; item.seats = s.seats.slice().sort((a, b) => a - b); item.eventId = s.eventId; item.occurrenceId = s.occurrenceId; item.eventLabel = ev ? (ev.comp + (ev.round ? (' · ' + ev.round) : '')) : ''; item.eventOpp = ev ? ev.opp : ''; item.term = occu ? (occu.day + ' ' + occu.month + ' · ' + occu.time + ' hs') : ''; item.qty = s.seats.length; item.price = p.modes.seatEvent.price * s.seats.length
+    }
     // Estacionamiento como add-on de la reserva (no afecta item.price; se suma aparte).
     const parkAvail = p.parking.has ? p.parking.n : 0
     const parkSel = Math.max(0, Math.min(parkAvail, s.parkSel || 0))

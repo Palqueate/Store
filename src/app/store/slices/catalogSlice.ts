@@ -11,6 +11,7 @@ import { getSession } from '@/modules/accounts/application/use-cases/accountUseC
 import { publishPalco as publishPalcoUseCase } from '@/modules/palcos/application/use-cases/publishPalco'
 import { updatePalco as updatePalcoUseCase } from '@/modules/palcos/application/use-cases/updatePalco'
 import { EVENT_TYPES } from '@/shared/infrastructure/in-memory/db'
+import { palcoOccupancy, withCart, freeSeatsForEvent } from '@/modules/palcos/domain/availability'
 import type { Stadium } from '@/modules/stadiums/domain/Stadium'
 import type { Ev, EventType } from '@/modules/events/domain/Event'
 import type { Palco, PalcoStatus } from '@/modules/palcos/domain/Palco'
@@ -55,7 +56,9 @@ export const createCatalogSlice = (set, get) => ({
   allPalcos: () => get().palcos,
   byId: (id) => get().allPalcos().find((p) => p.id === id),
   statusOf: (p) => get().statusOver[p.id] || p.status,
-  eventFreeSeats: (p, eid) => { const t = (p.modes.seatEvent.taken && p.modes.seatEvent.taken[eid]) || []; return p.seats - t.length },
+  // Butacas libres para una función: descuenta lo tomado en ESA función y también
+  // lo anual / palco-entero, que tapa la butaca en todos los eventos (RN-11).
+  eventFreeSeats: (p, eid) => freeSeatsForEvent(p, withCart(palcoOccupancy(p), get().cart, p.id), eid),
   palcoChips: (p) => {
     const c = [p.seats + ' asientos']
     if (p.parking.has) c.push('Estac. x' + p.parking.n); else c.push('Sin estac.')

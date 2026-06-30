@@ -1,5 +1,6 @@
 export interface PalcoModes {
-  palcoYear: { on: boolean; price: number }
+  /** `taken` = el palco entero ya está alquilado por la temporada (RN-11). */
+  palcoYear: { on: boolean; price: number; taken?: boolean }
   seatYear: { on: boolean; price: number; taken: number[] }
   seatEvent: { on: boolean; price: number; taken: Record<string, number[]> }
 }

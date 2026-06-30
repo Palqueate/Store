@@ -128,7 +128,12 @@ export default function Detail() {
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--primary-foreground,#1A1407)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
                     ) : null}
                   </div>
-                  <div style={{ fontFamily: 'Archivo', fontWeight: 800, fontSize: '16px', color: 'var(--foreground,#F4EFE6)', paddingRight: '24px' }}>{m.title}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingRight: '24px' }}>
+                    <span style={{ fontFamily: 'Archivo', fontWeight: 800, fontSize: '16px', color: 'var(--foreground,#F4EFE6)' }}>{m.title}</span>
+                    {m.available === false ? (
+                      <span style={{ flex: '0 0 auto', padding: '2px 7px', borderRadius: '6px', background: 'var(--muted,#1F2530)', color: 'var(--subtle-foreground,#6B7480)', fontFamily: "'Space Mono'", fontWeight: 700, fontSize: '9.5px', letterSpacing: '.04em', textTransform: 'uppercase' }}>{m.soldOutNote}</span>
+                    ) : null}
+                  </div>
                   <div style={{ fontSize: '12.5px', color: 'var(--muted-foreground,#9AA6B2)' }}>{m.sub}</div>
                   <div style={{ marginTop: '5px', display: 'flex', alignItems: 'baseline', gap: '6px' }}>
                     <span style={{ fontFamily: 'Archivo', fontWeight: 800, fontSize: '18px', color: 'var(--primary,#C9A24B)' }}>{m.price}</span>

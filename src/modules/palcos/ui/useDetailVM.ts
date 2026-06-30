@@ -24,9 +24,14 @@ export function useDetailVM(): any {
     det.amenities = dp.amenities || []
     det.modeCards = dvm.modeDefs.filter(function (m) { return m.on }).map(function (m) {
       var on = s.mode === m.key
+      // Modalidad sin disponibilidad (RN-11): se muestra atenuada y no se puede
+      // elegir; el cliente entiende por qué no puede reservar de esa forma.
+      var avail = m.available !== false
       return {
-        key: m.key, title: m.title, sub: m.sub, term: m.term, price: self.money(m.price), check: on, pick: function () { self.setMode(m.key) },
-        style: { position: 'relative', textAlign: 'left', cursor: 'pointer', padding: '14px 15px', borderRadius: '13px', width: '100%', display: 'flex', flexDirection: 'column', gap: '3px', border: '1.5px solid ' + (on ? 'var(--primary)' : 'var(--border)'), background: (on ? 'color-mix(in srgb,var(--primary) 13%, var(--card))' : 'var(--card)') },
+        key: m.key, title: m.title, sub: m.sub, term: m.term, price: self.money(m.price), check: on,
+        available: avail, soldOutNote: avail ? '' : 'Sin disponibilidad',
+        pick: avail ? function () { self.setMode(m.key) } : function () { self.flash('Esa modalidad no está disponible en este palco') },
+        style: { position: 'relative', textAlign: 'left', cursor: (avail ? 'pointer' : 'not-allowed'), opacity: (avail ? 1 : 0.55), padding: '14px 15px', borderRadius: '13px', width: '100%', display: 'flex', flexDirection: 'column', gap: '3px', border: '1.5px solid ' + (on ? 'var(--primary)' : 'var(--border)'), background: (on ? 'color-mix(in srgb,var(--primary) 13%, var(--card))' : 'var(--card)') },
         dotStyle: { position: 'absolute', top: '14px', right: '14px', width: '18px', height: '18px', borderRadius: '50%', border: '2px solid ' + (on ? 'var(--primary)' : 'var(--subtle-foreground)'), background: (on ? 'var(--primary)' : 'transparent'), display: 'grid', placeItems: 'center' }
       }
     })
@@ -43,7 +48,9 @@ export function useDetailVM(): any {
       }
     })
     det.total = self.money(dvm.total); det.qty = dvm.qty
-    det.canReserve = s.mode === 'palcoYear' ? true : dvm.qty > 0
+    // No se puede reservar si la modalidad no tiene disponibilidad (RN-11).
+    det.modeAvailable = dvm.modeAvailable !== false
+    det.canReserve = det.modeAvailable && (s.mode === 'palcoYear' ? true : dvm.qty > 0)
     det.summary = s.mode === 'palcoYear' ? 'Palco entero · 1 año' : (s.mode === 'seatYear' ? (dvm.qty + ' asiento' + (dvm.qty === 1 ? '' : 's') + ' · anual') : (dvm.qty + ' asiento' + (dvm.qty === 1 ? '' : 's') + ' · evento'))
     det.unitNote = s.mode === 'palcoYear' ? 'Precio total del año' : (dvm.qty > 0 ? (dvm.qty + ' × ' + self.money(s.mode === 'seatYear' ? dp.modes.seatYear.price : dp.modes.seatEvent.price)) : 'Elegí tus asientos')
     var curEv = EVENTS.find(function (e) { return e.id === s.eventId })

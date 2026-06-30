@@ -1,6 +1,10 @@
 // Routing + the palco-detail selection state, plus the detail view-model.
 import { routerNavigate, pathForScreen } from '@/app/router/navigation'
 import { eventOccurrences } from '@/modules/events/domain/Event'
+import {
+  palcoOccupancy, withCart, palcoYearAvailable, seatYearAvailable, seatEventAvailable,
+  seatYearHasFree, seatEventHasFree,
+} from '@/modules/palcos/domain/availability'
 
 const scrollTop = () => { if (typeof window !== 'undefined') { try { window.scrollTo(0, 0) } catch (e) {} } }
 
@@ -36,7 +40,12 @@ export const createNavigationSlice = (set, get) => ({
   },
   selectPalco: (id) => {
     const p = get().byId(id); if (!p) return
-    const defMode = (p.modes.palcoYear && p.modes.palcoYear.on) ? 'palcoYear' : (p.modes.seatYear && p.modes.seatYear.on) ? 'seatYear' : 'seatEvent'
+    // Abre en la primera modalidad ACTIVA y con disponibilidad (RN-11); si
+    // ninguna tiene cupo, cae en la primera activa para mostrarla agotada.
+    const occ = withCart(palcoOccupancy(p), get().cart, p.id)
+    const onModes = (['palcoYear', 'seatYear', 'seatEvent'] as const).filter((k) => p.modes[k] && p.modes[k].on)
+    const isAvail = (k: string) => k === 'palcoYear' ? palcoYearAvailable(occ) : k === 'seatYear' ? seatYearHasFree(p, occ) : seatEventHasFree(p, occ)
+    const defMode = onModes.find(isAvail) || onModes[0] || 'seatEvent'
     const ev = get().events.filter((e) => e.stadium === p.stadium)
     const eid = ev[0] ? ev[0].id : get().eventId
     set({ pId: id, mode: defMode, eventId: eid, occurrenceId: get()._firstOcc(eid), seats: [], parkSel: 0, food: [], snacksTarget: 'draft', fromEvent: false })
@@ -75,18 +84,27 @@ export const createNavigationSlice = (set, get) => ({
   detailVM: () => {
     const s = get(); const p = get().byId(s.pId); if (!p) return null
     const markers = get().allPalcos().filter((q) => q.stadium === p.stadium && get().statusOf(q) !== 'pausado').map((q) => ({ x: q.map.x, y: q.map.y, active: q.id === p.id, label: q.id === p.id ? 'Tu palco' : '' }))
+    // Ocupación cruzando modalidades (RN-11): lo sembrado + lo que ya hay en el
+    // carrito para este palco, para que una reserva tape a las demás.
+    const occ = withCart(palcoOccupancy(p), get().cart, p.id)
     const modeDefs = [
-      { key: 'palcoYear', title: 'Palco entero', sub: 'Los ' + p.seats + ' asientos, por 1 año', term: '/año', on: p.modes.palcoYear.on, price: p.modes.palcoYear.price },
-      { key: 'seatYear', title: 'Asiento anual', sub: 'Tu butaca toda la temporada', term: '/año · por asiento', on: p.modes.seatYear.on, price: p.modes.seatYear.price },
-      { key: 'seatEvent', title: 'Asiento por evento', sub: 'Una butaca para un evento puntual', term: '· por asiento', on: p.modes.seatEvent.on, price: p.modes.seatEvent.price },
+      { key: 'palcoYear', title: 'Palco entero', sub: 'Los ' + p.seats + ' asientos, por 1 año', term: '/año', on: p.modes.palcoYear.on, price: p.modes.palcoYear.price, available: palcoYearAvailable(occ) },
+      { key: 'seatYear', title: 'Asiento anual', sub: 'Tu butaca toda la temporada', term: '/año · por asiento', on: p.modes.seatYear.on, price: p.modes.seatYear.price, available: seatYearHasFree(p, occ) },
+      { key: 'seatEvent', title: 'Asiento por evento', sub: 'Una butaca para un evento puntual', term: '· por asiento', on: p.modes.seatEvent.on, price: p.modes.seatEvent.price, available: seatEventHasFree(p, occ) },
     ]
-    let taken: number[] = []
-    if (s.mode === 'seatYear') taken = p.modes.seatYear.taken || []
-    else if (s.mode === 'seatEvent') taken = (s.occurrenceId && p.modes.seatEvent.taken && p.modes.seatEvent.taken[s.occurrenceId]) || []
+    // Estado de cada butaca según la modalidad elegida, ya cruzado entre modos.
     const seats: any[] = []
     for (let i = 1; i <= p.seats; i++) {
       ((n) => {
-        const st = s.mode === 'palcoYear' ? 'all' : (taken.indexOf(n) >= 0 ? 'taken' : (s.seats.indexOf(n) >= 0 ? 'sel' : 'free'))
+        let st: string
+        if (s.mode === 'palcoYear') {
+          // El palco entero exige TODAS las butacas libres en toda la temporada:
+          // cualquier reserva (anual o por evento) marca la butaca como bloqueante.
+          st = (occ.palcoYear || !seatYearAvailable(occ, n)) ? 'taken' : 'all'
+        } else {
+          const free = s.mode === 'seatYear' ? seatYearAvailable(occ, n) : seatEventAvailable(occ, n, s.occurrenceId)
+          st = !free ? 'taken' : (s.seats.indexOf(n) >= 0 ? 'sel' : 'free')
+        }
         seats.push({ n, st, click: () => get().toggleSeat(n, st) })
       })(i)
     }
@@ -108,6 +126,8 @@ export const createNavigationSlice = (set, get) => ({
     const parkSel = Math.max(0, Math.min(parkAvail, s.parkSel || 0))
     const parkTotal = parkSel * parkPrice
     total += parkTotal
-    return { p, markers, modeDefs, seats, events, total, qty, parkAvail, parkPrice, parkSel, parkTotal }
+    // ¿La modalidad elegida admite reservar ahora mismo? (RN-11)
+    const modeAvailable = (modeDefs.find((m) => m.key === s.mode) || { available: true }).available
+    return { p, markers, modeDefs, seats, events, total, qty, parkAvail, parkPrice, parkSel, parkTotal, modeAvailable }
   },
 })
