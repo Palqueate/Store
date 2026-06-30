@@ -32,7 +32,7 @@ export const createOwnerSlice = (set, get) => ({
     const country = DEFAULT_COUNTRY
     const inCountry = get()._wzStadiumsInCountry(country)
     const stadium = inCountry.indexOf('gpc') >= 0 ? 'gpc' : (inCountry[0] || '')
-    set({ wz: { editId: null, step: 0, country, stadium, x: null, y: null, title: '', seats: 10, parkHas: true, parkN: 2, amenities: [], coOwners: [], images: [], payout: emptyPayout(), mPalco: true, pricePalco: 1200000, mSeatY: true, priceSeatY: 95000, mSeatE: true, priceSeatE: 6500 } })
+    set({ wz: { editId: null, step: 0, country, stadium, x: null, y: null, title: '', seats: 10, parkHas: true, parkN: 2, parkPrice: 80000, amenities: [], coOwners: [], images: [], payout: emptyPayout(), mPalco: true, pricePalco: 1200000, mSeatY: true, priceSeatY: 95000, mSeatE: true, priceSeatE: 6500 } })
     get().go('publish')
   },
   startEditWizard: (id) => {
@@ -41,7 +41,7 @@ export const createOwnerSlice = (set, get) => ({
     set({ wz: {
       editId: p.id, step: 0, country: p.country || stadCountry, stadium: p.stadium, x: p.map.x, y: p.map.y, title: p.title,
       seats: p.seats,
-      parkHas: p.parking.has, parkN: p.parking.n || 1,
+      parkHas: p.parking.has, parkN: p.parking.n || 1, parkPrice: p.parking.price || 0,
       amenities: (p.amenities || []).slice(),
       coOwners: (p.coOwners || []).map((c) => ({ name: c.name, email: c.email })),
       images: (p.images || []).slice(),
@@ -166,7 +166,7 @@ export const createOwnerSlice = (set, get) => ({
         sector: get().stadiums[w.stadium].name + ' · Nivel Palcos',
         map: { x: w.x == null ? 50 : w.x, y: w.y == null ? 14 : w.y },
         seats: w.seats || 1,
-        parking: { has: w.parkHas, n: w.parkHas ? (w.parkN || 1) : 0 },
+        parking: { has: w.parkHas, n: w.parkHas ? (w.parkN || 1) : 0, price: w.parkHas ? (w.parkPrice || 0) : 0 },
         amenities, coOwners, payout,
         photos: imgs.length, images: imgs,
         status: 'pendiente',
@@ -183,7 +183,7 @@ export const createOwnerSlice = (set, get) => ({
     }
     const id = 'px' + Date.now()
     // Todo palco nuevo entra en proceso de verificación antes de publicarse.
-    const np = { id, stadium: w.stadium, country, title: (w.title || '').trim() || 'Mi palco', sector: get().stadiums[w.stadium].name + ' · Nivel Palcos', map: { x: w.x == null ? 50 : w.x, y: w.y == null ? 14 : w.y }, seats: w.seats || 1, parking: { has: w.parkHas, n: w.parkHas ? (w.parkN || 1) : 0 }, amenities, coOwners, payout, host: 'Vos (demo)', rating: 5.0, photos: imgs.length, images: imgs, modes: { palcoYear: { on: w.mPalco, price: w.pricePalco || 0 }, seatYear: { on: w.mSeatY, price: w.priceSeatY || 0, taken: [] }, seatEvent: { on: w.mSeatE, price: w.priceSeatE || 0, taken: {} } }, status: 'pendiente' }
+    const np = { id, stadium: w.stadium, country, title: (w.title || '').trim() || 'Mi palco', sector: get().stadiums[w.stadium].name + ' · Nivel Palcos', map: { x: w.x == null ? 50 : w.x, y: w.y == null ? 14 : w.y }, seats: w.seats || 1, parking: { has: w.parkHas, n: w.parkHas ? (w.parkN || 1) : 0, price: w.parkHas ? (w.parkPrice || 0) : 0 }, amenities, coOwners, payout, host: 'Vos (demo)', rating: 5.0, photos: imgs.length, images: imgs, modes: { palcoYear: { on: w.mPalco, price: w.pricePalco || 0 }, seatYear: { on: w.mSeatY, price: w.priceSeatY || 0, taken: [] }, seatEvent: { on: w.mSeatE, price: w.priceSeatE || 0, taken: {} } }, status: 'pendiente' }
     get().publishPalcoEntity(np)
     set({ palcos: get().palcos.concat([np]), wz: null }); get().flash('Palco enviado a revisión'); get().go('owner')
   },

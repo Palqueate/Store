@@ -14,6 +14,13 @@ export function useDetailVM(): any {
     det.host = dp.host; det.seatsN = dp.seats; det.stadium = dp.stadium; det.stadiumMap = (STADIUMS[dp.stadium] || {}).mapImage || ''; det.markers = dvm.markers; det.photos = dp.photos; det.images = dp.images || []
     det.parkLabel = dp.parking.has ? (dp.parking.n + (dp.parking.n > 1 ? ' autos' : ' auto')) : 'No incluye'
     det.parkHas = dp.parking.has
+    // Estacionamiento alquilable: disponibilidad, precio por lugar y selección.
+    det.parkAvail = dvm.parkAvail
+    det.canAddParking = dvm.parkAvail > 0 && dvm.parkPrice > 0
+    det.parkSel = dvm.parkSel
+    det.parkUnitPrice = self.money(dvm.parkPrice)
+    det.parkSubtotal = self.money(dvm.parkTotal)
+    det.parkAvailLabel = dvm.parkAvail + (dvm.parkAvail === 1 ? ' lugar disponible' : ' lugares disponibles')
     det.amenities = dp.amenities || []
     det.modeCards = dvm.modeDefs.filter(function (m) { return m.on }).map(function (m) {
       var on = s.mode === m.key
@@ -57,5 +64,8 @@ export function useDetailVM(): any {
     detailBooking: mobile ? '' : 'position:sticky; top:88px;',
     reserveDisabled: !det.canReserve,
     addToCart: function () { self.addToCart() },
+    incPark: function () { self.incParkSel() },
+    decPark: function () { self.decParkSel() },
+    setPark: function (n: number) { self.setParkSel(n) },
   }
 }

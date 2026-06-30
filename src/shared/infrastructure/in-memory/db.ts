@@ -97,17 +97,17 @@ export const EVENT_TYPES: EventType[] = [
 ]
 
 export const PALCOS: Palco[] = [
-  { id: 'p1', stadium: 'gpc', title: 'Palco Atilio García', sector: 'Tribuna Atilio García · Nivel Palcos', map: { x: 50, y: 13.5 }, seats: 10, parking: { has: true, n: 2 }, host: 'Familia Méndez', rating: 4.9, photos: 3, images: [],
+  { id: 'p1', stadium: 'gpc', title: 'Palco Atilio García', sector: 'Tribuna Atilio García · Nivel Palcos', map: { x: 50, y: 13.5 }, seats: 10, parking: { has: true, n: 2, price: 78000 }, host: 'Familia Méndez', rating: 4.9, photos: 3, images: [],
     modes: { palcoYear: { on: true, price: 1180000 }, seatYear: { on: true, price: 96000, taken: [3, 4] }, seatEvent: { on: true, price: 6500, taken: { e1: [1, 2], e2: [], e3: [1, 2, 3, 4, 5], 'e6-1': [1, 2, 3], 'e6-2': [], 'e6-3': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] } } }, status: 'publicado' },
-  { id: 'p2', stadium: 'cds', title: 'Palco Henderson', sector: 'Tribuna Henderson · Platea Alta', map: { x: 50, y: 12 }, seats: 12, parking: { has: true, n: 3 }, host: 'Grupo Aurinegro SA', rating: 4.8, photos: 4, images: [],
+  { id: 'p2', stadium: 'cds', title: 'Palco Henderson', sector: 'Tribuna Henderson · Platea Alta', map: { x: 50, y: 12 }, seats: 12, parking: { has: true, n: 3, price: 88000 }, host: 'Grupo Aurinegro SA', rating: 4.8, photos: 4, images: [],
     modes: { palcoYear: { on: true, price: 1450000 }, seatYear: { on: true, price: 108000, taken: [7, 8, 9] }, seatEvent: { on: true, price: 7200, taken: { e4: [1], e5: [1, 2, 3], 'e7-1': [1, 2, 3, 4], 'e7-2': [] } } }, status: 'publicado' },
-  { id: 'p3', stadium: 'gpc', title: 'Palco Esquina Norte', sector: 'Codo Norte · Nivel Palcos', map: { x: 78, y: 24 }, seats: 8, parking: { has: false, n: 0 }, host: 'Vos (demo)', rating: 4.7, photos: 2, images: [],
+  { id: 'p3', stadium: 'gpc', title: 'Palco Esquina Norte', sector: 'Codo Norte · Nivel Palcos', map: { x: 78, y: 24 }, seats: 8, parking: { has: false, n: 0, price: 0 }, host: 'Vos (demo)', rating: 4.7, photos: 2, images: [],
     modes: { palcoYear: { on: false, price: 980000 }, seatYear: { on: true, price: 84000, taken: [1, 2, 5] }, seatEvent: { on: true, price: 5400, taken: { e1: [3, 4], e2: [3, 4, 5], e3: [6], 'e6-1': [1], 'e6-2': [3, 4, 5], 'e6-3': [6] } } }, status: 'publicado' },
-  { id: 'p4', stadium: 'cds', title: 'Palco Olímpico', sector: 'Tribuna Olímpica · Platea Alta', map: { x: 24, y: 30 }, seats: 10, parking: { has: true, n: 2 }, host: 'Inversiones del Sur', rating: 4.6, photos: 3, images: [],
+  { id: 'p4', stadium: 'cds', title: 'Palco Olímpico', sector: 'Tribuna Olímpica · Platea Alta', map: { x: 24, y: 30 }, seats: 10, parking: { has: true, n: 2, price: 82000 }, host: 'Inversiones del Sur', rating: 4.6, photos: 3, images: [],
     modes: { palcoYear: { on: true, price: 1290000 }, seatYear: { on: false, price: 99000, taken: [] }, seatEvent: { on: true, price: 6800, taken: { e4: [5, 6], e5: [], 'e7-1': [], 'e7-2': [5, 6, 7] } } }, status: 'publicado' },
-  { id: 'p5', stadium: 'gpc', title: 'Palco Abdón Porte', sector: 'Tribuna Abdón Porte · Centro', map: { x: 50, y: 86.5 }, seats: 14, parking: { has: true, n: 4 }, host: 'Estudio Caraballo', rating: 5.0, photos: 5, images: [],
+  { id: 'p5', stadium: 'gpc', title: 'Palco Abdón Porte', sector: 'Tribuna Abdón Porte · Centro', map: { x: 50, y: 86.5 }, seats: 14, parking: { has: true, n: 4, price: 95000 }, host: 'Estudio Caraballo', rating: 5.0, photos: 5, images: [],
     modes: { palcoYear: { on: true, price: 1620000 }, seatYear: { on: true, price: 118000, taken: [2] }, seatEvent: { on: true, price: 8200, taken: { e1: [1, 2, 3], e2: [], e3: [], 'e6-1': [1, 2], 'e6-2': [], 'e6-3': [1, 2, 3] } } }, status: 'publicado' },
-  { id: 'p6', stadium: 'cds', title: 'Palco Palacio', sector: 'Codo Sur · Nivel Palcos', map: { x: 74, y: 74 }, seats: 8, parking: { has: true, n: 1 }, host: 'Vos (demo)', rating: 4.5, photos: 2, images: [],
+  { id: 'p6', stadium: 'cds', title: 'Palco Palacio', sector: 'Codo Sur · Nivel Palcos', map: { x: 74, y: 74 }, seats: 8, parking: { has: true, n: 1, price: 70000 }, host: 'Vos (demo)', rating: 4.5, photos: 2, images: [],
     modes: { palcoYear: { on: true, price: 1040000 }, seatYear: { on: true, price: 88000, taken: [3, 4, 5, 6] }, seatEvent: { on: true, price: 5900, taken: { e4: [1, 2], e5: [7, 8], 'e7-1': [1], 'e7-2': [2, 3] } } }, status: 'pausado' },
 ]
 

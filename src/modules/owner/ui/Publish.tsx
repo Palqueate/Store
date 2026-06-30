@@ -281,6 +281,19 @@ export default function Publish() {
                       }}
                     />
                   </Card>
+
+                  <div style={{ marginTop: '18px', maxWidth: '320px' }}>
+                    <Field
+                      label="PRECIO $U POR LUGAR"
+                      type="number"
+                      value={vals.wiz.parkPrice}
+                      onInput={vals.wiz.setParkPrice}
+                      placeholder="0"
+                    />
+                    <p style={{ margin: '6px 0 0', fontSize: '12px', color: 'var(--subtle-foreground,#6B7480)' }}>
+                      Por el mismo período que la reserva. El cliente elige cuántos lugares sumar.
+                    </p>
+                  </div>
                 </div>
               ) : null}
             </>

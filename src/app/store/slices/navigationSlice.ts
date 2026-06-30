@@ -13,6 +13,8 @@ export const createNavigationSlice = (set, get) => ({
   // coincide con el id del evento.
   occurrenceId: 'e1' as string | null,
   seats: [] as number[],
+  // Lugares de estacionamiento elegidos para sumar a la reserva (0..disponibles).
+  parkSel: 0,
   fromEvent: false,
   acctTab: 'compras',
 
@@ -37,10 +39,10 @@ export const createNavigationSlice = (set, get) => ({
     const defMode = (p.modes.palcoYear && p.modes.palcoYear.on) ? 'palcoYear' : (p.modes.seatYear && p.modes.seatYear.on) ? 'seatYear' : 'seatEvent'
     const ev = get().events.filter((e) => e.stadium === p.stadium)
     const eid = ev[0] ? ev[0].id : get().eventId
-    set({ pId: id, mode: defMode, eventId: eid, occurrenceId: get()._firstOcc(eid), seats: [], fromEvent: false })
+    set({ pId: id, mode: defMode, eventId: eid, occurrenceId: get()._firstOcc(eid), seats: [], parkSel: 0, fromEvent: false })
   },
   openDetail: (id) => { get().selectPalco(id); get().go('detail') },
-  openDetailEvent: (pid, eid, occId) => { set({ pId: pid, mode: 'seatEvent', eventId: eid, occurrenceId: occId || get()._firstOcc(eid), seats: [], fromEvent: true }); get().go('detail') },
+  openDetailEvent: (pid, eid, occId) => { set({ pId: pid, mode: 'seatEvent', eventId: eid, occurrenceId: occId || get()._firstOcc(eid), seats: [], parkSel: 0, fromEvent: true }); get().go('detail') },
   setMode: (m) => set({ mode: m, seats: [] }),
   setEvent: (id) => set({ eventId: id, occurrenceId: get()._firstOcc(id), seats: [] }),
   // Elige la función (fecha + hora) dentro del evento actual.
@@ -53,6 +55,14 @@ export const createNavigationSlice = (set, get) => ({
     if (i >= 0) arr.splice(i, 1); else arr.push(n)
     set({ seats: arr })
   },
+  // Estacionamiento: elegir cuántos lugares sumar (clamp a los disponibles).
+  setParkSel: (n) => {
+    const p = get().byId(get().pId)
+    const max = (p && p.parking.has) ? p.parking.n : 0
+    set({ parkSel: Math.max(0, Math.min(max, n)) })
+  },
+  incParkSel: () => get().setParkSel((get().parkSel || 0) + 1),
+  decParkSel: () => get().setParkSel((get().parkSel || 0) - 1),
   goAccount: (tab) => {
     const u = get().user
     set({
@@ -92,6 +102,12 @@ export const createNavigationSlice = (set, get) => ({
     if (s.mode === 'palcoYear') { total = p.modes.palcoYear.price; qty = 1 }
     else if (s.mode === 'seatYear') { qty = s.seats.length; total = p.modes.seatYear.price * qty }
     else { qty = s.seats.length; total = p.modes.seatEvent.price * qty }
-    return { p, markers, modeDefs, seats, events, total, qty }
+    // Estacionamiento como add-on: lugares elegidos × precio por lugar, sumado al total.
+    const parkAvail = p.parking.has ? p.parking.n : 0
+    const parkPrice = p.parking.has ? (p.parking.price || 0) : 0
+    const parkSel = Math.max(0, Math.min(parkAvail, s.parkSel || 0))
+    const parkTotal = parkSel * parkPrice
+    total += parkTotal
+    return { p, markers, modeDefs, seats, events, total, qty, parkAvail, parkPrice, parkSel, parkTotal }
   },
 })

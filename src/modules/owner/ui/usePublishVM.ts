@@ -59,7 +59,7 @@ export function usePublishVM(): any {
       countryOptions: COUNTRY_OPTIONS,
       setCountry: function (v) { self.wzSetCountry(v) },
 
-      stadium: w.stadium, stadiumName: curStad.name || '—', stadiumMap: curStad.mapImage || '', x: w.x, y: w.y, title: w.title, seats: String(w.seats), parkN: String(w.parkN), parkHas: w.parkHas,
+      stadium: w.stadium, stadiumName: curStad.name || '—', stadiumMap: curStad.mapImage || '', x: w.x, y: w.y, title: w.title, seats: String(w.seats), parkN: String(w.parkN), parkHas: w.parkHas, parkPrice: String(w.parkPrice ?? 0),
       images: images,
       photosMin: MIN_PHOTOS,
       photosCount: images.length,
@@ -140,6 +140,7 @@ export function usePublishVM(): any {
       setParkNo: function () { self.wzSet({ parkHas: false }) },
       incPark: function () { self.wzSet({ parkN: Math.min(30, (w.parkN || 0) + 1) }) },
       decPark: function () { self.wzSet({ parkN: Math.max(1, (w.parkN || 1) - 1) }) },
+      setParkPrice: function (e) { self.wzSet({ parkPrice: parseInt((e.target.value || '').replace(/[^0-9]/g, ''), 10) || 0 }) },
       tPalco: function () { self.wzSet({ mPalco: !w.mPalco }) },
       tSeatY: function () { self.wzSet({ mSeatY: !w.mSeatY }) },
       tSeatE: function () { self.wzSet({ mSeatE: !w.mSeatE }) },

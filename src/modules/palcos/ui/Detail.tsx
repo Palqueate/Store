@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Btn, Card, Badge, Rating, StatTile, Avatar, Divider, Carousel, Modal } from '@/lib'
+import { Btn, Card, Badge, Rating, StatTile, Avatar, Divider, Carousel, Modal, QuantityStepper } from '@/lib'
 import { css } from '@/shared/ui/css'
 import StadiumMap from '@/shared/ui/components/StadiumMap'
 import SeatGrid from '@/shared/ui/components/SeatGrid'
@@ -176,6 +176,30 @@ export default function Detail() {
                   </div>
                 </div>
                 <SeatGrid seats={vals.det.seatList} />
+              </div>
+            ) : null}
+
+            {/* Estacionamiento (add-on) */}
+            {vals.det.canAddParking ? (
+              <div style={{ marginTop: '16px', padding: '14px 15px', borderRadius: '13px', border: '1.5px solid var(--border)', background: 'var(--card)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+                  <div>
+                    <div style={{ fontFamily: "'Archivo'", fontWeight: 800, fontSize: '15px', color: 'var(--foreground,#F4EFE6)' }}>Sumar estacionamiento</div>
+                    <div style={{ fontSize: '12.5px', color: 'var(--muted-foreground,#9AA6B2)' }}>{vals.det.parkUnitPrice} por lugar · {vals.det.parkAvailLabel}</div>
+                  </div>
+                  <QuantityStepper
+                    value={vals.det.parkSel}
+                    min={0}
+                    max={vals.det.parkAvail}
+                    onChange={(v: number) => vals.setPark(v)}
+                  />
+                </div>
+                {vals.det.parkSel > 0 ? (
+                  <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: 'var(--muted-foreground,#9AA6B2)' }}>
+                    <span>Estacionamiento ({vals.det.parkSel})</span>
+                    <span style={{ fontFamily: "'Archivo'", fontWeight: 700, color: 'var(--foreground,#F4EFE6)' }}>{vals.det.parkSubtotal}</span>
+                  </div>
+                ) : null}
               </div>
             ) : null}
 

@@ -14,6 +14,12 @@ export interface OrderItem {
   occurrenceId?: string
   eventLabel?: string
   eventOpp?: string
+  /** Estacionamiento alquilado junto a la reserva (add-on). */
+  parkingQty?: number
+  /** Precio por lugar de estacionamiento al momento de reservar. */
+  parkingPrice?: number
+  /** Costo total del estacionamiento del ítem (parkingQty × parkingPrice). */
+  parkingTotal?: number
 }
 
 export interface Order {

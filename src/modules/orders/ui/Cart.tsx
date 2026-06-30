@@ -33,6 +33,12 @@ export default function Cart() {
                     <h3 style={css("margin:0 0 3px; font-family:'Archivo'; font-weight:800; font-size:17px; color:var(--foreground,#F4EFE6);")}>{it.title}</h3>
                     <div style={css("font-size:13px; color:var(--muted-foreground,#9AA6B2);")}>{it.modeLabel}</div>
                     <div style={css("font-size:12.5px; color:var(--muted-foreground,#9AA6B2);")}>{it.seatsText} · {it.meta}</div>
+                    {it.hasParking ? (
+                      <div style={css("margin-top:4px; font-size:12.5px; color:var(--muted-foreground,#9AA6B2); display:flex; gap:6px; align-items:center;")}>
+                        <span>🅿️ {it.parkingText}</span>
+                        <span style={css("color:var(--foreground,#F4EFE6); font-weight:700;")}>+{it.parkingPrice}</span>
+                      </div>
+                    ) : null}
                   </div>
                   <div style={css("display:flex; flex-direction:column; align-items:flex-end; justify-content:space-between;")}>
                     <IconButton aria-label="Quitar" variant="ghost" size="sm" onClick={it.remove}>

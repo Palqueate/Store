@@ -16,7 +16,7 @@ export const createCartSlice = (set, get) => ({
 
   // ---- cart ----
   cartCount: () => get().cart.length + get().food.reduce((a, b) => a + b.qty, 0),
-  cartSubtotal: () => get().cart.reduce((a, b) => a + b.price, 0),
+  cartSubtotal: () => get().cart.reduce((a, b) => a + b.price + (b.parkingTotal || 0), 0),
   removeCart: (uid) => set({ cart: get().cart.filter((i) => i.uid !== uid) }),
   setContact: (f, v) => set({ contact: { ...get().contact, [f]: v } }),
   addToCart: () => {
@@ -27,7 +27,11 @@ export const createCartSlice = (set, get) => ({
     if (s.mode === 'palcoYear') { item.mode = 'palcoYear'; item.modeLabel = 'Palco entero · 1 año'; item.seats = []; item.term = 'Temporada 2026 · 1 año'; item.qty = 1; item.price = p.modes.palcoYear.price }
     else if (s.mode === 'seatYear') { if (!s.seats.length) return get().flash('Elegí al menos un asiento'); item.mode = 'seatYear'; item.modeLabel = 'Asiento anual · 1 año'; item.seats = s.seats.slice().sort((a, b) => a - b); item.term = 'Temporada 2026 · 1 año'; item.qty = s.seats.length; item.price = p.modes.seatYear.price * s.seats.length }
     else { if (!s.seats.length) return get().flash('Elegí al menos un asiento'); const ev = get().events.find((e) => e.id === s.eventId); const occ = ev ? eventOccurrence(ev, s.occurrenceId) : null; item.mode = 'seatEvent'; item.modeLabel = 'Asiento · por evento'; item.seats = s.seats.slice().sort((a, b) => a - b); item.eventId = s.eventId; item.occurrenceId = s.occurrenceId; item.eventLabel = ev ? (ev.comp + (ev.round ? (' · ' + ev.round) : '')) : ''; item.eventOpp = ev ? ev.opp : ''; item.term = occ ? (occ.day + ' ' + occ.month + ' · ' + occ.time + ' hs') : ''; item.qty = s.seats.length; item.price = p.modes.seatEvent.price * s.seats.length }
-    set({ cart: get().cart.concat([item]) })
+    // Estacionamiento como add-on de la reserva (no afecta item.price; se suma aparte).
+    const parkAvail = p.parking.has ? p.parking.n : 0
+    const parkSel = Math.max(0, Math.min(parkAvail, s.parkSel || 0))
+    if (parkSel > 0) { item.parkingQty = parkSel; item.parkingPrice = p.parking.price || 0; item.parkingTotal = parkSel * (p.parking.price || 0) }
+    set({ cart: get().cart.concat([item]), parkSel: 0 })
     get().flash('Reserva agregada al carrito'); get().go('cart')
   },
   pay: (forceUser?) => {
@@ -50,7 +54,15 @@ export const createCartSlice = (set, get) => ({
     else if (it.mode === 'seatYear') { seatsText = 'Asiento' + (it.seats.length > 1 ? 's' : '') + ' ' + it.seats.join(' · '); meta = 'Temporada 2026 · 1 año' }
     else { seatsText = 'Asiento' + (it.seats.length > 1 ? 's' : '') + ' ' + it.seats.join(' · '); meta = it.eventLabel }
     const tag = it.mode === 'palcoYear' ? 'PALCO' : 'ASIENTO'
-    return { uid: it.uid, title: it.palcoTitle, stadiumName: get().stadiums[it.stadium].name, modeLabel: it.modeLabel, seatsText, meta, tag, price: get().money(it.price), remove: () => get().removeCart(it.uid) }
+    const hasParking = !!(it.parkingQty && it.parkingQty > 0)
+    return {
+      uid: it.uid, title: it.palcoTitle, stadiumName: get().stadiums[it.stadium].name, modeLabel: it.modeLabel, seatsText, meta, tag,
+      price: get().money(it.price), remove: () => get().removeCart(it.uid),
+      hasParking,
+      parkingText: hasParking ? ('Estacionamiento · ' + it.parkingQty + (it.parkingQty > 1 ? ' lugares' : ' lugar')) : '',
+      parkingPrice: hasParking ? get().money(it.parkingTotal) : '',
+      lineTotal: get().money(it.price + (it.parkingTotal || 0)),
+    }
   },
 
   // ---- food order ----

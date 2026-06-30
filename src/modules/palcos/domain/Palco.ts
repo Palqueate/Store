@@ -92,7 +92,9 @@ export interface Palco {
   sector: string
   map: { x: number; y: number }
   seats: number
-  parking: { has: boolean; n: number }
+  /** Estacionamiento: si incluye, cuántos lugares y el precio por lugar
+   *  (mismo período que la reserva). `price` es 0 cuando no hay estacionamiento. */
+  parking: { has: boolean; n: number; price: number }
   /** Comodidades del palco (Wi-Fi, Cocina, etc. + las que agregue el palquista). */
   amenities?: string[]
   /** Co-propietarios opcionales del palco. */
