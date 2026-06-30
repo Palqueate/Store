@@ -11,7 +11,7 @@
 |---|---|
 | **Motor** | PostgreSQL 16 (validado: aplica y pasa pruebas funcionales) |
 | **Esquemas** | `palqueate` (negocio) · `audit` (trazabilidad) |
-| **Migraciones** | `db/migrations/0001…0012` (orden estricto) |
+| **Script** | `db/schema.sql` (único, autocontenido) |
 | **Convención de nombres** | identificadores en inglés (como la API), comentarios en español |
 
 ---
@@ -19,16 +19,15 @@
 ## 1. Cómo aplicar
 
 ```bash
-# Sobre una base vacía, en orden:
-for f in db/migrations/00*.sql; do
-  psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "$f"
-done
+# Sobre una base vacía:
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/schema.sql
 ```
 
-Las migraciones son idempotentes en su intención (cada una abre `BEGIN`/`COMMIT`)
-y deben correrse **en orden numérico**: declaran dependencias hacia adelante que
-se cierran con `ALTER TABLE` (p. ej. `users.fav_stadium_id` apunta a `stadiums`,
-creada en 0004).
+`db/schema.sql` es un **único script** que crea todo el modelo en una sola
+transacción y en el orden de dependencias correcto: dependencias hacia adelante
+se cierran con `ALTER TABLE` (p. ej. `users.fav_stadium_id` apunta a `stadiums`).
+El archivo está organizado internamente en bloques (`## 0001 … 0012`) para
+facilitar su lectura; cada bloque corresponde a un área del modelo.
 
 ---
 
@@ -79,10 +78,10 @@ creada en 0004).
 
 ---
 
-## 4. Mapa de migraciones
+## 4. Mapa de bloques de `schema.sql`
 
-| # | Archivo | Contenido |
-|---|---------|-----------|
+| # | Bloque | Contenido |
+|---|--------|-----------|
 | 0001 | `foundation` | Extensiones, esquemas, dominios (`money_amount`, `email`…), enums, `set_updated_at` |
 | 0002 | `reference_data` | `platform_config`, países, monedas, temporadas, comodidades, tipos de evento, **catálogo de botana**, roles, definición de campos verificables, `commission_for()` |
 | 0003 | `identity_and_media` | `media_assets`, `users`, `auth_credentials`, `user_roles`, preferencias, medios de pago tokenizados, facturación, `sessions` |
@@ -179,7 +178,7 @@ o `sold` (venta confirmada).
   `taken_seats(palco, mode, season, occurrence)` (cuenta `sold` + `held` vigente).
 
 > Probado: dos inserciones del mismo asiento ⇒ la segunda falla; al vencer el
-> hold, el asiento vuelve a estar libre. Ver `db/migrations` + pruebas de humo.
+> hold, el asiento vuelve a estar libre.
 
 ---
 
