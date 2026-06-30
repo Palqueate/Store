@@ -5,6 +5,8 @@ import { THEMES } from '@/shared/domain/theme'
 import { css } from '@/shared/ui/css'
 
 import Header from '@/shared/ui/components/Header'
+import ErrorBoundary from '@/shared/ui/components/ErrorBoundary'
+import BootGate from '@/shared/ui/components/BootGate'
 import { BottomNav, AcctBackdrop, AuthModal, EventModal, StadiumModal, PalcoReviewModal, Toast } from '@/shared/ui/components/Overlays'
 
 import Home from '@/modules/home/ui/Home'
@@ -25,7 +27,7 @@ import Admin from '@/modules/admin/ui/Admin'
 
 export default function App() {
   useBootstrap()
-  const theme = useAppStore((s: any) => s.theme)
+  const theme = useAppStore((s) => s.theme)
   const th = THEMES[theme] || THEMES.palco
   const rootStyle = {
     ...th.vars,
@@ -34,38 +36,42 @@ export default function App() {
   }
 
   return (
-    <div style={css(rootStyle)}>
-      <RouterBridge />
-      <Header />
+    <ErrorBoundary>
+      <div style={css(rootStyle)}>
+        <RouterBridge />
+        <Header />
 
-      <main style={{ minHeight: 'calc(100vh - 67px)' }}>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/palcos" element={<Results />} />
-          <Route path="/eventos" element={<Events />} />
-          <Route path="/evento/:eventId" element={<EventPalcos />} />
-          <Route path="/palco/:palcoId" element={<Detail />} />
-          <Route path="/carrito" element={<Cart />} />
-          <Route path="/checkout" element={<Checkout />} />
-          <Route path="/confirmacion" element={<Confirm />} />
-          <Route path="/comida" element={<Food />} />
-          <Route path="/comida/confirmacion" element={<FoodConfirm />} />
-          <Route path="/owner" element={<Owner />} />
-          <Route path="/owner/metricas" element={<Metrics />} />
-          <Route path="/publicar" element={<Publish />} />
-          <Route path="/cuenta" element={<Account />} />
-          <Route path="/admin" element={<Admin />} />
-          <Route path="*" element={<Home />} />
-        </Routes>
-      </main>
+        <main style={{ minHeight: 'calc(100vh - 67px)' }}>
+          <BootGate>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/palcos" element={<Results />} />
+              <Route path="/eventos" element={<Events />} />
+              <Route path="/evento/:eventId" element={<EventPalcos />} />
+              <Route path="/palco/:palcoId" element={<Detail />} />
+              <Route path="/carrito" element={<Cart />} />
+              <Route path="/checkout" element={<Checkout />} />
+              <Route path="/confirmacion" element={<Confirm />} />
+              <Route path="/comida" element={<Food />} />
+              <Route path="/comida/confirmacion" element={<FoodConfirm />} />
+              <Route path="/owner" element={<Owner />} />
+              <Route path="/owner/metricas" element={<Metrics />} />
+              <Route path="/publicar" element={<Publish />} />
+              <Route path="/cuenta" element={<Account />} />
+              <Route path="/admin" element={<Admin />} />
+              <Route path="*" element={<Home />} />
+            </Routes>
+          </BootGate>
+        </main>
 
-      <BottomNav />
-      <AcctBackdrop />
-      <AuthModal />
-      <EventModal />
-      <StadiumModal />
-      <PalcoReviewModal />
-      <Toast />
-    </div>
+        <BottomNav />
+        <AcctBackdrop />
+        <AuthModal />
+        <EventModal />
+        <StadiumModal />
+        <PalcoReviewModal />
+        <Toast />
+      </div>
+    </ErrorBoundary>
   )
 }

@@ -24,9 +24,12 @@ export const createCatalogSlice = (set, get) => ({
   foodCats: [] as FoodCat[],
   eventTypes: [] as EventType[],
   statusOver: {} as Record<string, PalcoStatus>,
+  // Estado de la carga inicial, para que la UI muestre carga / error + reintento.
+  bootStatus: 'loading' as 'loading' | 'ready' | 'error',
 
   // ---- bootstrap (was mount): load everything through the use cases ----
   bootstrap: async () => {
+    set({ bootStatus: 'loading' })
     try {
       const [stadiums, events, palcos, foodCatalog, foodCats, accounts, orders, sessionId] = await Promise.all([
         listStadiums(container.stadiums),
@@ -38,11 +41,14 @@ export const createCatalogSlice = (set, get) => ({
         listOrders(container.orders),
         getSession(container.session),
       ])
-      const stadiumMap = {}
+      const stadiumMap: Record<string, Stadium> = {}
       stadiums.forEach((st) => { stadiumMap[st.id] = st })
       const user = sessionId ? (accounts.find((a) => a.id === sessionId) || null) : null
-      set({ stadiums: stadiumMap, events, palcos, foodCatalog, foodCats, eventTypes: EVENT_TYPES, accounts, orders, user })
-    } catch (e) {}
+      set({ stadiums: stadiumMap, events, palcos, foodCatalog, foodCats, eventTypes: EVENT_TYPES, accounts, orders, user, bootStatus: 'ready' })
+    } catch (e) {
+      console.error('[palqueate] bootstrap failed', e)
+      set({ bootStatus: 'error' })
+    }
   },
 
   // ---- selectors over the catalog ----
