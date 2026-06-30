@@ -57,9 +57,9 @@ export default function Cart() {
                       <div style={css("display:flex; align-items:center; gap:10px; flex:0 0 auto;")}>
                         <QuantityStepper
                           value={sn.qty}
-                          min={0}
+                          min={1}
                           max={99}
-                          onChange={(next: number) => { if (next > sn.qty) sn.inc(); else sn.dec() }}
+                          onChange={(next: number) => { if (next > sn.qty) sn.inc(); else if (next < sn.qty) sn.dec() }}
                         />
                         <span style={css("color:var(--foreground,#F4EFE6); white-space:nowrap; min-width:64px; text-align:right;")}>{sn.price}</span>
                         <IconButton aria-label="Quitar snack" variant="ghost" size="sm" onClick={sn.remove}>
