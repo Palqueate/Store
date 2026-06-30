@@ -863,6 +863,7 @@ CREATE TABLE palcos (
   seat_count    integer      NOT NULL CHECK (seat_count BETWEEN 1 AND 40),  -- API §18
   has_parking   boolean      NOT NULL DEFAULT false,
   parking_spots integer      NOT NULL DEFAULT 0 CHECK (parking_spots >= 0),
+  parking_price money_amount NOT NULL DEFAULT 0,   -- precio por lugar (add-on; mismo período que la reserva)
   rating        numeric(2,1) NOT NULL DEFAULT 0 CHECK (rating BETWEEN 0 AND 5),
   status        palco_status NOT NULL DEFAULT 'pendiente',  -- RN-04: nace pendiente
   submitted_at  timestamptz  NOT NULL DEFAULT now(),         -- último envío a verificación
@@ -871,7 +872,7 @@ CREATE TABLE palcos (
   updated_at    timestamptz  NOT NULL DEFAULT now(),
   updated_by    uuid         REFERENCES users(id),
   deleted_at    timestamptz,
-  CHECK (has_parking OR parking_spots = 0)
+  CHECK (has_parking OR (parking_spots = 0 AND parking_price = 0))
 );
 COMMENT ON TABLE palcos IS 'Publicaciones de palco (RD-03). Nace pendiente de verificación (RN-04).';
 COMMENT ON COLUMN palcos.status IS 'Ciclo de vida: pendiente→rechazado/publicado→pausado/alquilado (DOCUMENTACION §10).';
@@ -1227,6 +1228,10 @@ CREATE TABLE order_items (
   qty           integer      NOT NULL CHECK (qty >= 1),
   unit_price    money_amount NOT NULL,             -- precio congelado al pagar
   line_total    money_amount NOT NULL,             -- unit_price * qty
+  -- Estacionamiento alquilado junto a la reserva (add-on). Snapshots al pagar.
+  parking_qty        integer      NOT NULL DEFAULT 0 CHECK (parking_qty >= 0),
+  parking_unit_price money_amount NOT NULL DEFAULT 0,   -- precio por lugar congelado
+  parking_total      money_amount NOT NULL DEFAULT 0,   -- parking_unit_price * parking_qty
   created_at    timestamptz  NOT NULL DEFAULT now()
 );
 COMMENT ON TABLE order_items IS 'Líneas de la reserva con snapshots inmutables (RD-06).';
@@ -1769,7 +1774,7 @@ COMMENT ON VIEW v_palco_min_price IS 'Precio "desde" (modalidad activa más econ
 -- Sólo palcos publicado/alquilado (RN-03), con datos de tarjeta del catálogo.
 CREATE OR REPLACE VIEW v_public_palcos AS
 SELECT p.id, p.title, p.sector, p.rating, p.seat_count,
-       p.has_parking, p.parking_spots, p.map_x, p.map_y,
+       p.has_parking, p.parking_spots, p.parking_price, p.map_x, p.map_y,
        p.stadium_id, s.name AS stadium_name, s.short_name AS stadium_short,
        p.country_code, p.host_label,
        mp.from_price,

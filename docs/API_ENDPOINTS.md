@@ -515,7 +515,7 @@ palcos del estadio + calcular asientos libres por función + armar los markers d
       "rating": "number", "stadium": "string",
       "map": { "x": "number", "y": "number" },
       "seats": "number", "free": "number", "soldOut": "boolean",
-      "parking": { "has": "boolean", "n": "number" },
+      "parking": { "has": "boolean", "n": "number", "price": "number" },
       "price": "number"
     }
   ]
@@ -622,7 +622,7 @@ Detalle de palco con disponibilidad por modalidad (`modes.*.taken`).
   "title": "string", "sector": "string",
   "map": { "x": "number", "y": "number" },
   "seats": "number",
-  "parking": { "has": "boolean", "n": "number" },
+  "parking": { "has": "boolean", "n": "number", "price": "number" },
   "amenities": "string[]?",
   "coOwners": [ { "name": "string", "email": "string" } ],
   "host": "string", "rating": "number", "photos": "number", "images": "string[]",
@@ -655,7 +655,7 @@ Publica un palco nuevo desde el wizard del palquista. El backend lo crea en esta
 | `title` | string | no | default "Mi palco" |
 | `map` | object | sí | `{ x: number, y: number }` |
 | `seats` | number | sí | 1–40 |
-| `parking` | object | sí | `{ has: boolean, n: number }` |
+| `parking` | object | sí | `{ has: boolean, n: number, price: number }` · `price` = precio por lugar |
 | `amenities` | string[] | sí | ≥ 1 |
 | `coOwners` | array | no | `[{ name, email }]` |
 | `payout` | object | sí | datos de cobro + documentos (ver `PalcoPayout`) |
@@ -667,7 +667,7 @@ Publica un palco nuevo desde el wizard del palquista. El backend lo crea en esta
   "stadium": "string", "title": "string?",
   "map": { "x": "number", "y": "number" },
   "seats": "number",
-  "parking": { "has": "boolean", "n": "number" },
+  "parking": { "has": "boolean", "n": "number", "price": "number" },
   "amenities": "string[]",
   "coOwners": [ { "name": "string", "email": "string" } ],
   "payout": {
@@ -834,7 +834,8 @@ los holds en `taken`), **crea la orden** (palco + snacks iniciales en un único 
       "mode": "string", "modeLabel": "string", "seats": "number[]",
       "term": "string", "qty": "number", "price": "number",
       "eventId": "string?", "occurrenceId": "string?",
-      "eventLabel": "string?", "eventOpp": "string?"
+      "eventLabel": "string?", "eventOpp": "string?",
+      "parkingQty": "number?", "parkingPrice": "number?", "parkingTotal": "number?"
     }
   ],
   "food": "Array<{ id: string, name: string, qty: number, price: number }>",
@@ -842,7 +843,8 @@ los holds en `taken`), **crea la orden** (palco + snacks iniciales en un único 
 }
 ```
 
-> `total` = `subtotal` + `fee` − `discountTotal` + `foodTotal` (palco + snacks iniciales).
+> `total` = `subtotal` + `fee` − `discountTotal` + `foodTotal`. El `subtotal` incluye el
+> estacionamiento (`parkingTotal` de cada ítem) además del palco/asientos.
 
 **Errores:** `409` un hold venció o el asiento ya fue tomado (carrera) → el front
 refresca disponibilidad · `422` carrito vacío · `401` sin sesión.
@@ -1139,6 +1141,7 @@ con un TTL y recalcula el precio. Si alguien ya los tiene tomados o en hold → 
 | `seats` | number[] | según modo | vacío en `palcoYear`; ≥ 1 en los de asiento |
 | `eventId` | string | sólo `seatEvent` | |
 | `occurrenceId` | string | sólo `seatEvent` | función (fecha+hora) |
+| `parkingQty` | number | no | lugares de estacionamiento a sumar (0..`parking.n`); el backend recalcula el costo con `parking.price` |
 
 ```json
 {
@@ -1146,7 +1149,8 @@ con un TTL y recalcula el precio. Si alguien ya los tiene tomados o en hold → 
   "mode": "'palcoYear' | 'seatYear' | 'seatEvent'",
   "seats": "number[]",
   "eventId": "string?",
-  "occurrenceId": "string?"
+  "occurrenceId": "string?",
+  "parkingQty": "number?"
 }
 ```
 
