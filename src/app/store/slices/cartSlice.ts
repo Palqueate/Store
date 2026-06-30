@@ -40,11 +40,17 @@ export const createCartSlice = (set, get) => ({
     if (!get().cart.length || get().paying) return
     set({ paying: true })
     setTimeout(() => {
-      const sub = get().cartSubtotal(), fee = Math.round(sub * 0.04), total = sub + fee
+      const sub = get().cartSubtotal(), fee = Math.round(sub * 0.04)
+      // Snacks iniciales elegidos en el checkout: se cobran junto con el palco,
+      // sin comisión (RN-15). El total = subtotal + comisión + snacks.
+      const foodCatalog = get().foodCatalog
+      const foodArr = get().food.map((x) => { const it = foodCatalog.find((f) => f.id === x.id)!; return { id: x.id, name: it.name, qty: x.qty, price: it.price } })
+      const foodTot = get().foodTotal()
+      const total = sub + fee + foodTot
       const code = 'PLQ-' + Math.random().toString(36).slice(2, 6).toUpperCase()
-      const order = { code, userId: user.id, items: get().cart.slice(), subtotal: sub, fee, total, date: new Date().toISOString(), contact: { name: user.name, email: user.email }, food: [], foodTotal: 0 }
+      const order = { code, userId: user.id, items: get().cart.slice(), subtotal: sub, fee, total, date: new Date().toISOString(), contact: { name: user.name, email: user.email }, food: foodArr, foodTotal: foodTot }
       const orders = get().orders.concat([order]); createOrder(container.orders, order)
-      set({ orders, activeRes: order, cart: [], paying: false })
+      set({ orders, activeRes: order, cart: [], food: [], paying: false })
       get().go('confirm')
     }, 1300)
   },

@@ -1,4 +1,4 @@
-import { Banner, Btn, Card, DescriptionList, Field, SegmentedControl, Spinner } from '@/lib'
+import { Banner, Btn, Card, Chip, DescriptionList, Field, QuantityStepper, SegmentedControl, Spinner } from '@/lib'
 import { css } from '@/shared/ui/css'
 import { useCheckoutVM } from './useCheckoutVM'
 
@@ -99,6 +99,48 @@ export default function Checkout() {
               <Field label="CVV" placeholder="123" />
             </div>
           </Card>
+
+          {/* Section 3 — Snacks (opcional) */}
+          <Card padding="20px">
+            <div style={css('font-family:\'Archivo\'; font-weight:800; font-size:16px; color:var(--foreground,#F4EFE6); margin-bottom:4px; display:flex; align-items:center; gap:9px;')}>
+              <span style={css('width:24px; height:24px; border-radius:50%; background:var(--primary,#C9A24B); color:var(--primary-foreground,#1A1407); display:grid; place-items:center; font-family:\'Space Mono\'; font-weight:700; font-size:12px;')}>3</span>
+              Botana y bebidas
+              <span style={css('font-family:\'Space Mono\'; font-weight:400; font-size:11px; color:var(--subtle-foreground,#6B7480);')}>OPCIONAL</span>
+            </div>
+            <div style={css('font-size:12.5px; color:var(--muted-foreground,#9AA6B2); margin-bottom:14px;')}>
+              Sumá tu pedido ahora y lo encontrás servido en el palco. También podés agregar más después.
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', scrollbarWidth: 'none', paddingBottom: '6px', marginBottom: '14px' }}>
+              {(vals.snackCatChips || []).map((c: any, i: number) => (
+                <Chip key={i} active={c.active} onClick={c.pick}>{c.label}</Chip>
+              ))}
+            </div>
+
+            <div style={css(vals.snackGrid)}>
+              {(vals.snackItems || []).map((it: any, i: number) => (
+                <Card key={i} padding="12px" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div>
+                    <h4 style={{ margin: '0 0 2px', fontFamily: "'Archivo'", fontWeight: 700, fontSize: '14px', color: 'var(--foreground,#F4EFE6)', lineHeight: 1.2 }}>{it.name}</h4>
+                    <div style={{ fontSize: '11.5px', color: 'var(--muted-foreground,#9AA6B2)' }}>{it.desc}</div>
+                  </div>
+                  <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                    <span style={{ fontFamily: "'Archivo'", fontWeight: 800, fontSize: '14px', color: 'var(--primary,#C9A24B)' }}>{it.price}</span>
+                    {it.noQty ? (
+                      <Btn label="Agregar" icon="plus" size="sm" variant="secondary" onClick={it.add} />
+                    ) : (
+                      <QuantityStepper
+                        value={it.qty}
+                        min={0}
+                        max={99}
+                        onChange={(next: number) => { if (next > it.qty) it.add(); else it.dec() }}
+                      />
+                    )}
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </Card>
         </div>
 
         {/* Aside — Order summary */}
@@ -121,11 +163,25 @@ export default function Checkout() {
               ))}
             </div>
 
+            {/* Snacks elegidos */}
+            {vals.hasSnacks ? (
+              <div style={css('display:flex; flex-direction:column; gap:7px; margin-bottom:14px; padding-top:12px; border-top:1px solid var(--border,rgba(255,255,255,.1));')}>
+                <div style={css('font-family:\'Space Mono\'; font-size:10px; letter-spacing:.08em; color:var(--subtle-foreground,#6B7480);')}>BOTANA Y BEBIDAS</div>
+                {(vals.snackLines || []).map((ln: any, i: number) => (
+                  <div key={i} style={css('display:flex; justify-content:space-between; gap:10px; font-size:12.5px;')}>
+                    <span style={css('color:var(--muted-foreground,#9AA6B2);')}>{ln.qty} × {ln.name}</span>
+                    <span style={css('color:var(--foreground,#F4EFE6); white-space:nowrap;')}>{ln.price}</span>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+
             {/* Summary breakdown */}
             <DescriptionList
               items={[
-                { term: 'Subtotal', value: vals.cartSub },
+                { term: 'Subtotal palco', value: vals.cartSub },
                 { term: 'Comisión', value: vals.cartFee },
+                ...(vals.hasSnacksLine ? [{ term: 'Botana y bebidas', value: vals.snacksTotal }] : []),
               ]}
             />
 
