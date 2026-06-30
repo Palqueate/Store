@@ -75,20 +75,27 @@ export function useOverlaysVM(): any {
     }
   }
 
-  // ── SnacksModal (botana y bebidas, desde el detalle del palco) ──
+  // ── SnacksModal (botana y bebidas, por palco, desde el carrito) ──
   const FOOD = s.foodCatalog
   const FOOD_CATS = s.foodCats
+  // Emoji por categoría: placeholder cuando el producto no trae imagen.
+  const SNACK_EMOJI: Record<string, string> = {
+    compartir: '🧀', sandwich: '🥪', pizza: '🍕', cerveza: '🍺', bebida: '🥤', dulce: '🍫',
+  }
   const snackItems = FOOD.filter(function (f) { return s.foodCat === 'all' || f.cat === s.foodCat }).map(function (f) {
     var q = self.foodQty(f.id)
     var catName = (FOOD_CATS.find(function (c) { return c.id === f.cat }) || {}).name || ''
     return {
       id: f.id, name: f.name, desc: f.desc, price: self.money(f.price), qty: q, hasQty: q > 0, noQty: q === 0, catTag: catName.toUpperCase(),
+      image: f.image || '', emoji: SNACK_EMOJI[f.cat] || '🍽️',
       add: function () { self.addFood(f.id) }, dec: function () { self.decFood(f.id) },
     }
   })
-  const snackCatChips = [{ id: 'all', name: 'Todas' }].concat(FOOD_CATS).map(function (c) {
+  // FOOD_CATS ya incluye la categoría "Todo" (id 'all'); no se duplica.
+  const snackCatChips = FOOD_CATS.map(function (c) {
     return { id: c.id, label: c.name, active: s.foodCat === c.id, pick: function () { self.setFoodCat(c.id) } }
   })
+  const snackActiveCat = (FOOD_CATS.find(function (c) { return c.id === s.foodCat }) || { name: 'Todo' }).name
 
   return {
     // ── SnacksModal ──
@@ -96,6 +103,7 @@ export function useOverlaysVM(): any {
     closeSnacks: function () { self.closeSnacks() },
     snackItems,
     snackCatChips,
+    snackActiveCat,
     snackCount: self.foodCount(),
     snacksTotalTxt: self.money(self.foodTotal()),
     snackGrid: 'display:grid; grid-template-columns:repeat(auto-fill,minmax(' + (mobile ? '140px' : '180px') + ',1fr)); gap:12px;',

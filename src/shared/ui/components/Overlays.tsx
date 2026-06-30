@@ -460,6 +460,7 @@ export function PalcoReviewModal() {
 // ──────────────────────────────────────────────────────────
 export function SnacksModal() {
   const vals = useOverlaysVM()
+  const [filtersOpen, setFiltersOpen] = useState(false)
   return (
     <Modal
       open={!!vals.snacksOpen}
@@ -475,37 +476,64 @@ export function SnacksModal() {
         </div>
       }
     >
-      <p style={css("margin:0 0 14px; font-size:13px; color:var(--muted-foreground,#9AA6B2);")}>
-        Elegí lo que quieras y lo encontrás servido en el palco. Se cobra junto con tu reserva.
-      </p>
+      {/* Filtro de categorías colapsable */}
+      <button
+        onClick={() => setFiltersOpen((o) => !o)}
+        aria-expanded={filtersOpen}
+        style={{
+          width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px',
+          padding: '10px 13px', borderRadius: '11px', cursor: 'pointer', marginBottom: filtersOpen ? '10px' : '14px',
+          border: '1px solid var(--border,rgba(255,255,255,.12))', background: 'var(--background,#0E1116)',
+          color: 'var(--foreground,#F4EFE6)', fontFamily: "'Archivo'", fontWeight: 700, fontSize: '13.5px',
+        }}
+      >
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" /></svg>
+          Filtrar
+          <span style={{ color: 'var(--muted-foreground,#9AA6B2)', fontWeight: 600 }}>· {vals.snackActiveCat}</span>
+        </span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ transition: 'transform .15s ease', transform: filtersOpen ? 'rotate(180deg)' : 'none' }}><path d="M6 9l6 6 6-6" /></svg>
+      </button>
+      {filtersOpen ? (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '14px' }}>
+          {(vals.snackCatChips || []).map((c: any, i: number) => (
+            <Chip key={i} active={c.active} onClick={c.pick}>{c.label}</Chip>
+          ))}
+        </div>
+      ) : null}
 
-      <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', scrollbarWidth: 'none', paddingBottom: '6px', marginBottom: '14px' }}>
-        {(vals.snackCatChips || []).map((c: any, i: number) => (
-          <Chip key={i} active={c.active} onClick={c.pick}>{c.label}</Chip>
-        ))}
-      </div>
-
-      {/* Solo la grilla de productos scrollea; header, chips y footer quedan fijos. */}
+      {/* Solo la grilla de productos scrollea; header, filtro y footer quedan fijos. */}
       <div style={{ maxHeight: '48vh', overflowY: 'auto', overflowX: 'hidden', margin: '0 -4px', padding: '2px 4px' }}>
         <div style={css(vals.snackGrid)}>
           {(vals.snackItems || []).map((it: any, i: number) => (
-            <Card key={i} padding="12px" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <div>
-                <h4 style={{ margin: '0 0 2px', fontFamily: "'Archivo'", fontWeight: 700, fontSize: '14px', color: 'var(--foreground,#F4EFE6)', lineHeight: 1.2 }}>{it.name}</h4>
-                <div style={{ fontSize: '11.5px', color: 'var(--muted-foreground,#9AA6B2)' }}>{it.desc}</div>
-              </div>
-              <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                <span style={{ fontFamily: "'Archivo'", fontWeight: 800, fontSize: '14px', color: 'var(--primary,#C9A24B)' }}>{it.price}</span>
-                {it.noQty ? (
-                  <Btn label="Agregar" icon="plus" size="sm" variant="secondary" onClick={it.add} />
+            <Card key={i} padding="0" style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+              {/* Imagen del producto, o placeholder con el emoji de su categoría */}
+              <div style={{ position: 'relative', aspectRatio: '5 / 3', background: 'repeating-linear-gradient(135deg, var(--muted,#1F2530) 0 11px, var(--card,#171B22) 11px 22px)', display: 'grid', placeItems: 'center', overflow: 'hidden' }}>
+                {it.image ? (
+                  <img src={it.image} alt={it.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 ) : (
-                  <QuantityStepper
-                    value={it.qty}
-                    min={0}
-                    max={99}
-                    onChange={(next: number) => { if (next > it.qty) it.add(); else it.dec() }}
-                  />
+                  <span style={{ fontSize: '34px', lineHeight: 1 }} aria-hidden="true">{it.emoji}</span>
                 )}
+                <span style={{ position: 'absolute', top: '8px', left: '9px', fontFamily: "'Space Mono'", fontSize: '9px', letterSpacing: '.06em', color: 'var(--subtle-foreground,#6B7480)', background: 'color-mix(in srgb, var(--background,#0E1116) 70%, transparent)', padding: '2px 6px', borderRadius: '6px' }}>{it.catTag}</span>
+              </div>
+              <div style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
+                <div>
+                  <h4 style={{ margin: '0 0 2px', fontFamily: "'Archivo'", fontWeight: 700, fontSize: '14px', color: 'var(--foreground,#F4EFE6)', lineHeight: 1.2 }}>{it.name}</h4>
+                  <div style={{ fontSize: '11.5px', color: 'var(--muted-foreground,#9AA6B2)' }}>{it.desc}</div>
+                </div>
+                <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                  <span style={{ fontFamily: "'Archivo'", fontWeight: 800, fontSize: '14px', color: 'var(--primary,#C9A24B)' }}>{it.price}</span>
+                  {it.noQty ? (
+                    <Btn label="Agregar" icon="plus" size="sm" variant="secondary" onClick={it.add} />
+                  ) : (
+                    <QuantityStepper
+                      value={it.qty}
+                      min={0}
+                      max={99}
+                      onChange={(next: number) => { if (next > it.qty) it.add(); else it.dec() }}
+                    />
+                  )}
+                </div>
               </div>
             </Card>
           ))}
