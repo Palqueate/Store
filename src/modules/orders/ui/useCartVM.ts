@@ -25,6 +25,6 @@ export function useCartVM(): any {
       : 'display:grid; grid-template-columns:minmax(0,1fr) 330px; gap:26px; align-items:start;',
     stickySum: mobile ? '' : 'position:sticky; top:88px;',
     goCheckout: function () { if (s.cart.length) self.go('checkout') },
-    goExplore: function () { self.go('results') },
+    goExplore: function () { self.go('events') },
   }
 }
