@@ -40,12 +40,16 @@ export interface Container {
   orders: OrderRepository
 }
 
-// ---- the only line you change to go live against the API ----
-const DATA_SOURCE = 'memory' as 'memory' | 'http'
-const API_BASE_URL = '/api'
+// ---- configuración por entorno (ver .env.example) ----
+// DATA_SOURCE decide qué adaptadores se montan; API_BASE_URL y el timeout solo
+// aplican al modo 'http'. Se resuelve desde import.meta.env con defaults
+// seguros, así no hay que tocar código para apuntar a la API.
+const DATA_SOURCE: 'memory' | 'http' = import.meta.env.VITE_DATA_SOURCE === 'http' ? 'http' : 'memory'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api'
+const API_TIMEOUT_MS = Number(import.meta.env.VITE_API_TIMEOUT_MS) || 15000
 
 function buildHttp(): Container {
-  const http: HttpClient = new FetchHttpClient(API_BASE_URL)
+  const http: HttpClient = new FetchHttpClient(API_BASE_URL, { timeoutMs: API_TIMEOUT_MS })
   return {
     stadiums: new HttpStadiumRepository(http),
     events: new HttpEventRepository(http),
