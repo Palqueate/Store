@@ -59,8 +59,8 @@ export const createCartSlice = (set, get) => ({
     // importe de cada línea sea verificable de un vistazo.
     const seatQty = it.qty || (it.seats ? it.seats.length : 1)
     const seatUnit = seatQty > 0 ? Math.round(it.price / seatQty) : it.price
-    const qtyNote = (it.mode !== 'palcoYear' && seatQty > 1) ? (' · ' + seatQty + ' × ' + get().money(seatUnit)) : ''
-    const parkingUnitNote = (hasParking && it.parkingQty > 1) ? (' · ' + it.parkingQty + ' × ' + get().money(it.parkingPrice)) : ''
+    const qtyNote = (it.mode !== 'palcoYear' && seatQty > 1) ? (' · ' + get().money(seatUnit) + ' × ' + seatQty) : ''
+    const parkingUnitNote = (hasParking && it.parkingQty > 1) ? (' · ' + get().money(it.parkingPrice) + ' × ' + it.parkingQty) : ''
     return {
       uid: it.uid, title: it.palcoTitle, stadiumName: get().stadiums[it.stadium].name, modeLabel: it.modeLabel, seatsText, meta, tag,
       baseLabel: seatsText, qtyNote,
