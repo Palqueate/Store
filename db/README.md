@@ -251,6 +251,13 @@ manual (`is_active`), **mínimo de compra** (`min_subtotal`), **tope** del
 descuento (`max_discount`, útil para porcentuales) y **límites de uso** (total
 `max_redemptions` y por usuario `max_per_user`, con contador `times_redeemed`).
 
+`max_redemptions` son las **"existencias"** del código (cupo total; `NULL` =
+ilimitado). Ej.: `PalMundial` con `max_redemptions = 300`. El límite es **duro y
+atómico**: el CHECK `chk_within_max_redemptions` (más el bloqueo de fila del
+trigger de conteo) hace imposible la **sobreventa** aunque haya checkouts
+concurrentes; el uso #301 hace rollback. `v_discount_usage.remaining` expone las
+existencias restantes.
+
 - **La plataforma absorbe el descuento**: la comisión (RN-01) y el payout
   (RN-02) se calculan sobre el **subtotal completo**; el código sólo reduce lo
   que paga el hincha (`total = subtotal + fee − discount_total`). El costo sale

@@ -1672,11 +1672,17 @@ CREATE TABLE discount_codes (
   -- Coherencia tipo/valor: exactamente uno según el kind.
   CHECK ( (kind = 'percentage' AND percent_off IS NOT NULL AND amount_off IS NULL)
        OR (kind = 'fixed'      AND amount_off  IS NOT NULL AND percent_off IS NULL) ),
-  CHECK (ends_at IS NULL OR starts_at IS NULL OR ends_at > starts_at)
+  CHECK (ends_at IS NULL OR starts_at IS NULL OR ends_at > starts_at),
+  -- "Existencias": el contador no puede superar el cupo total. Junto con el
+  -- bloqueo de fila del trigger de conteo, hace el límite ATÓMICO (sin
+  -- sobreventa por checkouts concurrentes). NULL en max_redemptions = ilimitado.
+  CONSTRAINT chk_within_max_redemptions
+    CHECK (max_redemptions IS NULL OR times_redeemed <= max_redemptions)
 );
-COMMENT ON TABLE discount_codes IS 'Códigos de descuento programables (ventana, %/fijo, topes, límites). La plataforma absorbe el descuento.';
+COMMENT ON TABLE discount_codes IS 'Códigos de descuento programables (ventana, %/fijo, topes, existencias). La plataforma absorbe el descuento.';
 COMMENT ON COLUMN discount_codes.percent_off IS 'Descuento porcentual 0..1 (0.15 = 15%). Sólo si kind=percentage.';
 COMMENT ON COLUMN discount_codes.max_discount IS 'Tope máximo del descuento en dinero (útil para porcentuales).';
+COMMENT ON COLUMN discount_codes.max_redemptions IS 'Existencias: cupo total de usos del código (NULL = ilimitado). Límite duro.';
 -- Código único entre los vivos (permite reusar el texto si uno fue borrado).
 CREATE UNIQUE INDEX uq_discount_code_active ON discount_codes (code) WHERE deleted_at IS NULL;
 -- Búsqueda de códigos vigentes por ventana.
@@ -1785,6 +1791,9 @@ COMMENT ON FUNCTION palqueate.validate_discount(citext, money_amount, uuid)
 CREATE OR REPLACE VIEW v_discount_usage AS
 SELECT d.id, d.code, d.kind, d.is_active, d.starts_at, d.ends_at,
        d.times_redeemed, d.max_redemptions,
+       -- Existencias restantes (NULL = ilimitado).
+       CASE WHEN d.max_redemptions IS NULL THEN NULL
+            ELSE greatest(d.max_redemptions - d.times_redeemed, 0) END AS remaining,
        COALESCE(sum(r.amount_applied), 0)::bigint AS total_discounted,
        count(r.id)                                AS orders_with_code
 FROM discount_codes d
