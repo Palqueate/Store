@@ -393,7 +393,9 @@ servidor** sin rehacer la experiencia. Los hitos esperados:
    servidor, habilitando datos compartidos entre dispositivos, respaldo y
    consistencia (cubre RNF-12).
 2. **Autenticación real:** sustituir el modo demo por registro/login seguros
-   (reemplaza RN-12, cubre RNF-15).
+   (reemplaza RN-12, cubre RNF-15). Implementado con **access token JWT firmado
+   con RS256** (verificable vía `/.well-known/jwks.json`) + **refresh token con
+   rotación**, y recuperación de contraseña por **OTP** (forgot/verify/reset).
 3. **Pagos reales:** integrar una pasarela y la gestión de payouts (cubre RI-06).
 4. **Notificaciones:** activar el envío efectivo según las preferencias del
    usuario.

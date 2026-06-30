@@ -198,7 +198,10 @@ o `sold` (venta confirmada).
 | Dato | Dónde vive | Tratamiento |
 |------|-----------|-------------|
 | Contraseña | `auth_credentials.password_hash` | Hash (argon2id); nunca en claro (RNF-15) |
-| Token de sesión | `sessions.token_hash` | Sólo el hash (API §5.4) |
+| Refresh token | `sessions.refresh_token_hash` | Sólo el hash; rota (API §5.4) |
+| Access token | — (no se guarda) | JWT RS256 stateless; se verifica vía JWKS |
+| Clave privada de firma | `signing_keys.private_key_enc` | Cifrada / KMS; sólo las públicas en JWKS |
+| OTP de recuperación | `auth_otp_codes.code_hash` | Hash, TTL e intentos; nunca el código |
 | Tarjeta | `user_payment_methods` / `payments` | Sólo `brand` + `last4` + token; nunca PAN/CVV |
 | Cuenta bancaria | `palco_payout.account_enc` | Cifrado en reposo + `account_last4` para mostrar |
 | Documentos (CI, título) | `media_assets (is_sensitive)` + `palco_documents` | Confidenciales; nunca públicos (API §17, RNF-14) |
@@ -232,6 +235,7 @@ operadas por admins/palquistas.
 | RD-04 ocupación de butacas (RN-11) | `seat_reservations` (+ `taken_seats()`) |
 | RD-05 cuentas · `/accounts`, `/me` | `users`, `auth_credentials`, `user_roles`, `user_notification_prefs`, `user_payment_methods`, `user_billing` |
 | Sesiones / login (multi-dispositivo, rotación) | `sessions` (`device_label`, `replaced_by_session_id`), `rotate_session()` |
+| Auth: refresh, OTP, firma RS256/JWKS | `sessions`, `auth_otp_codes` + `verify_otp()`, `signing_keys` + `v_jwks` |
 | RD-06 reservas · `POST /orders` | `orders`, `order_items`, `order_item_seats`, `snack_items` (iniciales), `payments`, `payouts` |
 | RD-07 catálogo de botana | `food_categories`, `food_items` |
 | Snacks · `POST /orders/{code}/snacks` | `snack_orders`, `snack_items`, `payments`, `v_food_revenue` |
@@ -329,6 +333,8 @@ ordenamiento temporal del id):
 - snacks: pago combinado al reservar + orden de snacks con checkout separado,
 - sesiones: rotación de token encadenada (`rotate_session`), reuso de token
   rotado rechazado y cadena 1:1,
+- auth: JWKS (clave activa + retiradas vigentes, una sola activa), OTP
+  (`verify_otp`: válido sin consumir / consumido / intentos / vencido),
 - vistas de catálogo, CRM, uso de descuentos e ingreso por botana.
 
-Totales del modelo: **58 tablas, 9 vistas, 14 funciones**.
+Totales del modelo: **60 tablas, 10 vistas, 15 funciones**.

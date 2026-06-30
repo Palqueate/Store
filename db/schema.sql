@@ -22,7 +22,6 @@
 -- ============================================================================
 
 BEGIN;
-SET search_path = palqueate, public;
 
 
 
@@ -52,12 +51,6 @@ SET search_path = palqueate, public;
 -- ============================================================================
 
 
--- --- Extensiones ------------------------------------------------------------
-CREATE EXTENSION IF NOT EXISTS pgcrypto;   -- digest()/crypt() para hashes (uuidv7() es core en PG18)
-CREATE EXTENSION IF NOT EXISTS citext;     -- email case-insensitive con unicidad
-CREATE EXTENSION IF NOT EXISTS btree_gist; -- constraints de exclusión (anti-doble-reserva)
-CREATE EXTENSION IF NOT EXISTS pg_trgm;    -- búsqueda por texto en catálogo/CRM
-
 -- --- Esquemas ---------------------------------------------------------------
 -- Núcleo de negocio.
 CREATE SCHEMA IF NOT EXISTS palqueate;
@@ -67,6 +60,18 @@ CREATE SCHEMA IF NOT EXISTS audit;
 
 COMMENT ON SCHEMA palqueate IS 'Modelo de negocio de Palqueate (marketplace de palcos).';
 COMMENT ON SCHEMA audit      IS 'Trazabilidad: acceso, auditoría de dominio y seguridad. Retención propia.';
+
+-- --- Extensiones ------------------------------------------------------------
+-- Se fijan en el esquema public (WITH SCHEMA public) para NO contaminar el
+-- esquema de negocio con cientos de objetos de extensión, sin depender del
+-- search_path ni del orden de creación.
+CREATE EXTENSION IF NOT EXISTS pgcrypto   WITH SCHEMA public;  -- digest()/crypt() (uuidv7() es core en PG18)
+CREATE EXTENSION IF NOT EXISTS citext     WITH SCHEMA public;  -- email case-insensitive con unicidad
+CREATE EXTENSION IF NOT EXISTS btree_gist WITH SCHEMA public;  -- exclusión (anti-doble-reserva)
+CREATE EXTENSION IF NOT EXISTS pg_trgm    WITH SCHEMA public;  -- búsqueda por texto en catálogo/CRM
+
+-- A partir de aquí, los objetos sin calificar se crean en palqueate.
+SET search_path = palqueate, public;
 
 
 -- --- Dominios ---------------------------------------------------------------
@@ -168,12 +173,22 @@ CREATE TABLE platform_config (
                        CHECK (hold_ttl_seconds BETWEEN 60 AND 7200),
   min_palco_photos   integer      NOT NULL DEFAULT 3 CHECK (min_palco_photos >= 0), -- RN-06
   min_palco_amenities integer     NOT NULL DEFAULT 1 CHECK (min_palco_amenities >= 0),
+  -- TTLs de autenticación. El access token (JWT RS256) es de vida corta; el
+  -- refresh token (sesión) dura más y rota. expiresIn de /login y /refresh = el
+  -- access. El OTP de recuperación vence rápido.
+  access_token_ttl_seconds  integer NOT NULL DEFAULT 900       -- 15 min
+                       CHECK (access_token_ttl_seconds BETWEEN 60 AND 86400),
+  refresh_token_ttl_seconds integer NOT NULL DEFAULT 2592000   -- 30 días
+                       CHECK (refresh_token_ttl_seconds >= 3600),
+  otp_ttl_seconds    integer      NOT NULL DEFAULT 600         -- 10 min
+                       CHECK (otp_ttl_seconds BETWEEN 60 AND 3600),
   api_version        text         NOT NULL DEFAULT 'v1',
   updated_at         timestamptz  NOT NULL DEFAULT now()
 );
 COMMENT ON TABLE platform_config IS 'Parámetros de negocio centralizados (RNF-17). Fila única.';
 COMMENT ON COLUMN platform_config.commission_rate IS 'Comisión de plataforma sobre el subtotal (RN-01).';
 COMMENT ON COLUMN platform_config.hold_ttl_seconds IS 'TTL de las reservas temporales (holds) en segundos.';
+COMMENT ON COLUMN platform_config.access_token_ttl_seconds IS 'Vida del access token (JWT RS256) en segundos = expiresIn.';
 INSERT INTO platform_config (id) VALUES (true);
 
 CREATE TRIGGER trg_platform_config_updated
@@ -554,13 +569,16 @@ CREATE TRIGGER trg_user_billing_updated
   FOR EACH ROW EXECUTE FUNCTION palqueate.set_updated_at();
 
 -- --- Sesiones / tokens ------------------------------------------------------
--- Soporta sesión de usuario y "sesión anónima por token" del carrito (API §4).
+-- Modelo de tokens: el ACCESS TOKEN es un JWT RS256 STATELESS (no se guarda; se
+-- verifica por firma vía /.well-known/jwks.json). Lo que vive aquí es el REFRESH
+-- TOKEN (su hash), que es opaco, rota y se puede revocar. Soporta además la
+-- "sesión anónima por token" del carrito (API §4).
 CREATE TABLE sessions (
   id            uuid        PRIMARY KEY DEFAULT uuidv7(),
   user_id       uuid        REFERENCES users(id) ON DELETE CASCADE,  -- NULL = anónima
   kind          text        NOT NULL DEFAULT 'user'
                   CHECK (kind IN ('guest', 'user')),
-  token_hash    bytea       NOT NULL UNIQUE,       -- hash del JWT/opaco; nunca el token (API §5.4)
+  refresh_token_hash bytea  NOT NULL UNIQUE,       -- hash del refresh token; nunca el token (API §5.4)
   -- Etiqueta amigable del dispositivo para la pantalla "tus sesiones activas"
   -- (ej. "iPhone de Juan", "Chrome · Windows"). La deriva/edita la aplicación.
   device_label  text,
@@ -578,7 +596,7 @@ CREATE TABLE sessions (
   CHECK (kind = 'user' OR user_id IS NULL),         -- guest no tiene user
   CHECK (replaced_by_session_id IS NULL OR replaced_by_session_id <> id)
 );
-COMMENT ON TABLE sessions IS 'Sesiones de usuario y anónimas (carrito por token). Sólo hash del token; rotación encadenada (API §5.4).';
+COMMENT ON TABLE sessions IS 'Refresh tokens / sesiones (el access token JWT es stateless, vía JWKS). Sólo hash; rotación encadenada (API §5.4).';
 COMMENT ON COLUMN sessions.device_label IS 'Nombre amigable del dispositivo para "sesiones activas".';
 COMMENT ON COLUMN sessions.replaced_by_session_id IS 'Sesión que reemplaza a ésta al rotar el token (cadena de rotación).';
 CREATE INDEX ix_sessions_user ON sessions (user_id) WHERE user_id IS NOT NULL;
@@ -591,7 +609,7 @@ CREATE UNIQUE INDEX uq_sessions_replaced_by ON sessions (replaced_by_session_id)
 -- encadena la vieja → nueva y revoca la vieja, todo en una transacción. Devuelve
 -- el id de la sesión nueva. Útil para refresh tokens con rotación.
 CREATE OR REPLACE FUNCTION palqueate.rotate_session(
-  p_old_session uuid, p_new_token_hash bytea, p_new_expires_at timestamptz
+  p_old_session uuid, p_new_refresh_hash bytea, p_new_expires_at timestamptz
 ) RETURNS uuid LANGUAGE plpgsql AS $$
 DECLARE
   v_new uuid;
@@ -602,12 +620,12 @@ BEGIN
     RAISE EXCEPTION 'rotate_session: sesión % inexistente', p_old_session;
   END IF;
   IF v_old.revoked_at IS NOT NULL THEN
-    -- Reuso de un token ya rotado/revocado: la app debería tratarlo como posible robo.
+    -- Reuso de un refresh token ya rotado/revocado: tratarlo como posible robo.
     RAISE EXCEPTION 'rotate_session: la sesión % ya fue revocada/rotada', p_old_session;
   END IF;
 
-  INSERT INTO palqueate.sessions (user_id, kind, token_hash, device_label, ip, user_agent, expires_at)
-  VALUES (v_old.user_id, v_old.kind, p_new_token_hash, v_old.device_label, v_old.ip, v_old.user_agent, p_new_expires_at)
+  INSERT INTO palqueate.sessions (user_id, kind, refresh_token_hash, device_label, ip, user_agent, expires_at)
+  VALUES (v_old.user_id, v_old.kind, p_new_refresh_hash, v_old.device_label, v_old.ip, v_old.user_agent, p_new_expires_at)
   RETURNING id INTO v_new;
 
   UPDATE palqueate.sessions
@@ -619,6 +637,100 @@ END;
 $$;
 COMMENT ON FUNCTION palqueate.rotate_session(uuid, bytea, timestamptz)
   IS 'Rota el token: crea la sesión nueva, encadena old→new y revoca la vieja (atómico).';
+
+-- --- Claves de firma JWT (RS256 / JWKS) -------------------------------------
+-- El access token se firma con RS256 (asimétrico). El backend firma con la
+-- clave privada y publica las PÚBLICAS en /.well-known/jwks.json para que
+-- cualquiera verifique la firma. Se modela rotación de claves: puede haber una
+-- 'active' (firma), varias 'retired' aún válidas para verificar (tokens viejos)
+-- y una 'next' pre-provisionada. La privada NUNCA en claro (cifrada o en KMS).
+CREATE TYPE signing_key_status AS ENUM ('next', 'active', 'retired');
+
+CREATE TABLE signing_keys (
+  kid             text               PRIMARY KEY,          -- key id; va en el header del JWT
+  algorithm       text               NOT NULL DEFAULT 'RS256'
+                    CHECK (algorithm IN ('RS256', 'RS384', 'RS512', 'ES256')),
+  public_jwk      jsonb              NOT NULL,             -- clave pública en formato JWK (la publica el JWKS)
+  private_key_enc bytea,                                   -- privada CIFRADA o referencia a KMS; nunca en claro
+  status          signing_key_status NOT NULL DEFAULT 'next',
+  created_at      timestamptz        NOT NULL DEFAULT now(),
+  activated_at    timestamptz,
+  retired_at      timestamptz,
+  expires_at      timestamptz,                             -- fin de validez para verificar
+  CHECK (public_jwk ? 'kty')
+);
+COMMENT ON TABLE signing_keys IS 'Claves RS256 para firmar/verificar el JWT. Las públicas alimentan /.well-known/jwks.json.';
+COMMENT ON COLUMN signing_keys.private_key_enc IS 'Clave privada cifrada en reposo o referencia KMS. NUNCA en claro (RNF-15).';
+-- A lo sumo una clave activa (la que firma) y una "next" pre-provisionada.
+CREATE UNIQUE INDEX uq_signing_keys_active ON signing_keys ((status = 'active')) WHERE status = 'active';
+CREATE UNIQUE INDEX uq_signing_keys_next   ON signing_keys ((status = 'next'))   WHERE status = 'next';
+
+-- Conjunto JWKS público: las claves usables para VERIFICAR (activa + retiradas
+-- no vencidas). La privada nunca sale de aquí. Alimenta /.well-known/jwks.json.
+CREATE OR REPLACE VIEW v_jwks AS
+SELECT kid, algorithm, public_jwk
+FROM signing_keys
+WHERE status IN ('active', 'retired')
+  AND (expires_at IS NULL OR expires_at > now());
+COMMENT ON VIEW v_jwks IS 'Claves públicas vigentes para /.well-known/jwks.json.';
+
+-- --- OTP de autenticación (recuperación / verificación) ---------------------
+-- Códigos de un solo uso para forgot-password / verify-otp / reset-password (y
+-- verificación de email). Se guarda el HASH del código, nunca el código. Vence
+-- por TTL y limita intentos. Se busca por email aunque la cuenta no exista, para
+-- no revelar su existencia (enumeración).
+CREATE TYPE otp_purpose AS ENUM ('email_verify', 'password_reset');
+
+CREATE TABLE auth_otp_codes (
+  id           uuid        PRIMARY KEY DEFAULT uuidv7(),
+  user_id      uuid        REFERENCES users(id) ON DELETE CASCADE,
+  email        email       NOT NULL,                       -- destinatario del código
+  purpose      otp_purpose NOT NULL,
+  code_hash    bytea       NOT NULL,                        -- hash del OTP; nunca el código (API §5.4)
+  attempts     integer     NOT NULL DEFAULT 0,
+  max_attempts integer     NOT NULL DEFAULT 5,
+  expires_at   timestamptz NOT NULL,
+  consumed_at  timestamptz,
+  ip           inet,
+  created_at   timestamptz NOT NULL DEFAULT now()
+);
+COMMENT ON TABLE auth_otp_codes IS 'Códigos OTP (recuperación de contraseña / verificación de email). Hash, TTL e intentos.';
+CREATE INDEX ix_otp_email_purpose ON auth_otp_codes (email, purpose, created_at DESC);
+CREATE INDEX ix_otp_expiry ON auth_otp_codes (expires_at) WHERE consumed_at IS NULL;
+
+-- Verifica el OTP vigente más reciente para (email, purpose). Si coincide y no
+-- venció ni superó intentos: lo consume (si p_consume) y devuelve true. Si no,
+-- incrementa el contador de intentos y devuelve false. Encapsula la regla para
+-- verify-otp (p_consume=false) y reset-password (p_consume=true).
+CREATE OR REPLACE FUNCTION palqueate.verify_otp(
+  p_email email, p_purpose otp_purpose, p_code_hash bytea, p_consume boolean DEFAULT true
+) RETURNS boolean LANGUAGE plpgsql AS $$
+DECLARE
+  v auth_otp_codes%ROWTYPE;
+BEGIN
+  SELECT * INTO v FROM palqueate.auth_otp_codes
+   WHERE email = p_email AND purpose = p_purpose AND consumed_at IS NULL
+   ORDER BY created_at DESC
+   LIMIT 1
+   FOR UPDATE;
+
+  IF NOT FOUND OR v.expires_at < now() OR v.attempts >= v.max_attempts THEN
+    RETURN false;
+  END IF;
+
+  IF v.code_hash <> p_code_hash THEN
+    UPDATE palqueate.auth_otp_codes SET attempts = attempts + 1 WHERE id = v.id;
+    RETURN false;
+  END IF;
+
+  IF p_consume THEN
+    UPDATE palqueate.auth_otp_codes SET consumed_at = now() WHERE id = v.id;
+  END IF;
+  RETURN true;
+END;
+$$;
+COMMENT ON FUNCTION palqueate.verify_otp(email, otp_purpose, bytea, boolean)
+  IS 'Valida (y opcionalmente consume) el OTP vigente de un email/propósito; cuenta intentos.';
 
 
 -- ####################################################################
@@ -1354,7 +1466,8 @@ CREATE TYPE audit.audit_entity AS ENUM
   ('order', 'palco', 'event', 'stadium', 'account', 'hold', 'cart');
 CREATE TYPE audit.audit_result AS ENUM ('ok', 'rejected');
 CREATE TYPE audit.security_event AS ENUM
-  ('login_success', 'login_failed', 'forbidden', 'rate_limited', 'payment_attempt', 'hold_conflict');
+  ('login_success', 'login_failed', 'forbidden', 'rate_limited', 'payment_attempt', 'hold_conflict',
+   'otp_failed', 'password_reset', 'token_refresh', 'token_reuse');
 
 -- Catálogo de acciones auditadas (verbos de dominio, API §5.2). Tabla en vez de
 -- enum para poder agregar acciones sin migración de tipo.
@@ -1366,6 +1479,11 @@ CREATE TABLE audit.audit_actions (
 INSERT INTO audit.audit_actions (action, entity, description) VALUES
   ('account.register',      'account', 'Alta de cuenta'),
   ('account.login',         'account', 'Inicio de sesión'),
+  ('account.logout',        'account', 'Cierre de sesión (revoca refresh token)'),
+  ('account.token_refresh', 'account', 'Rotación de refresh token'),
+  ('account.password_forgot','account', 'Solicitud de recuperación de contraseña (envía OTP)'),
+  ('account.otp_verify',    'account', 'Verificación de código OTP'),
+  ('account.password_reset','account', 'Restablecer contraseña con OTP'),
   ('account.update',        'account', 'Edición de perfil/preferencias'),
   ('cart.add',              'cart',    'Agregar ítem al carrito'),
   ('cart.remove',           'cart',    'Quitar ítem del carrito'),

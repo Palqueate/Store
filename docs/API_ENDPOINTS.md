@@ -49,9 +49,14 @@
 | # | Método | Path | Acceso | Acciones que colapsa (1 llamada) |
 |---|--------|------|--------|----------------------------------|
 | 1 | GET | `/bootstrap` | 🟢 | Carga inicial completa: estadios + eventos + palcos públicos + catálogo de comida + tipos de evento + rango de precios + sesión y pedidos del usuario |
-| 2 | POST | `/auth/register` | 🟢 | Crea cuenta + abre sesión + devuelve token |
-| 3 | POST | `/auth/login` | 🟢 | Valida credenciales + abre sesión + devuelve token y pedidos |
-| 4 | POST | `/auth/logout` | 🔵 | Cierra sesión |
+| 2 | POST | `/auth/register` | 🟢 | Crea cuenta + abre sesión + devuelve access + refresh token |
+| 3 | POST | `/auth/login` | 🟢 | Valida credenciales + abre sesión + devuelve access + refresh token (`expiresIn`) |
+| 3.1 | POST | `/auth/refresh` | 🟢 | Renueva el access token y **rota** el refresh token |
+| 4 | POST | `/auth/logout` | 🔵 | Cierra sesión (revoca el refresh token) |
+| 4.1 | POST | `/auth/forgot-password` | 🟢 | Genera y envía OTP de recuperación (anti-enumeración) |
+| 4.2 | POST | `/auth/verify-otp` | 🟢 | Verifica el OTP sin consumirlo |
+| 4.3 | POST | `/auth/reset-password` | 🟢 | Cambia la contraseña con el OTP (lo consume) |
+| 4.4 | GET | `/.well-known/jwks.json` | 🟢 | Claves públicas RS256 (JWKS) para verificar el JWT |
 | 5 | GET | `/me` | 🔵 | Usuario actual + sus pedidos |
 | 6 | PATCH | `/accounts/{id}` | 🟣 | Update parcial: perfil / notificaciones / estadio fav / idioma / foto (cualquier subconjunto) |
 | 7 | GET | `/stadiums` | 🟢 | Lista de estadios |
@@ -122,9 +127,16 @@ Sin path ni query params. Sin body.
 
 ---
 
+> **Modelo de tokens (auth real).** El `token` es un **access token JWT firmado
+> con RS256** (asimétrico): de vida corta (`expiresIn` segundos) y **stateless**,
+> se verifica con las claves públicas de `GET /.well-known/jwks.json`. El
+> `refreshToken` es **opaco**, se guarda **hasheado** del lado servidor y **rota**
+> en cada uso (`POST /auth/refresh`). El usuario y sus pedidos se obtienen con
+> `GET /me` o `GET /bootstrap`.
+
 ### 2. `POST /auth/register` 🟢
 
-Crea la cuenta, abre sesión y devuelve el token. (Colapsa: alta de cuenta + login.)
+Crea la cuenta, abre sesión y devuelve los tokens.
 
 **Body**
 
@@ -133,16 +145,16 @@ Crea la cuenta, abre sesión y devuelve el token. (Colapsa: alta de cuenta + log
 | `name` | string | sí | mín. 2 caracteres |
 | `email` | string | sí | email válido, único |
 | `phone` | string | no | — |
-| `pass` | string | sí | mín. 4 caracteres |
+| `password` | string | sí | mín. 4 caracteres |
 
 ```json
-{ "name": "string", "email": "string", "phone": "string?", "pass": "string" }
+{ "name": "string", "email": "string", "phone": "string?", "password": "string" }
 ```
 
 **Respuesta `201`:**
 
 ```json
-{ "token": "string", "user": "User" }
+{ "token": "string", "refreshToken": "string", "expiresIn": 0 }
 ```
 
 **Errores:** `409` email ya registrado · `422` validación (`error.fields`).
@@ -151,35 +163,136 @@ Crea la cuenta, abre sesión y devuelve el token. (Colapsa: alta de cuenta + log
 
 ### 3. `POST /auth/login` 🟢
 
-Valida credenciales, abre sesión y devuelve token + pedidos del usuario (evita un
-segundo `GET /orders` tras loguear).
+Valida credenciales y abre sesión: devuelve el access token (JWT RS256), el
+refresh token y la vida del access en segundos.
 
 **Body**
 
 | Campo | Tipo | Req. |
 |-------|------|------|
 | `email` | string | sí |
-| `pass` | string | sí |
+| `password` | string | sí |
 
 ```json
-{ "email": "string", "pass": "string" }
+{ "email": "string", "password": "string" }
 ```
 
 **Respuesta `200`:**
 
 ```json
-{ "token": "string", "user": "User", "orders": "Order[]" }
+{ "token": "string", "refreshToken": "string", "expiresIn": 0 }
 ```
 
 **Errores:** `401` credenciales inválidas.
 
 ---
 
+### 3.1 `POST /auth/refresh` 🟢
+
+Renueva el access token a partir del refresh token. **Rota** el refresh token
+(invalida el anterior y entrega uno nuevo, encadenado a la sesión). Si llega un
+refresh token ya rotado/revocado, se rechaza (posible robo → `401`).
+
+**Body**
+
+| Campo | Tipo | Req. |
+|-------|------|------|
+| `refreshToken` | string | sí |
+
+```json
+{ "refreshToken": "string" }
+```
+
+**Respuesta `200`:**
+
+```json
+{ "token": "string", "refreshToken": "string", "expiresIn": 0 }
+```
+
+**Errores:** `401` refresh token inválido, vencido o ya rotado.
+
+---
+
 ### 4. `POST /auth/logout` 🔵
 
-Invalida la sesión actual. Sin body.
+Cierra la sesión actual: **revoca el refresh token** (la sesión queda `revoked`).
+El access token, al ser de vida corta, expira solo. Sin body.
 
 **Respuesta `204`:** *(sin cuerpo)*
+
+---
+
+### 4.1 `POST /auth/forgot-password` 🟢
+
+Inicia la recuperación de contraseña: si el email corresponde a una cuenta,
+**genera y envía un OTP** (código de un solo uso, con TTL). Devuelve `true` para
+**no revelar** si el email existe (anti-enumeración); igual responde `true`.
+
+**Body**
+
+```json
+{ "email": "string" }
+```
+
+**Respuesta `200`:** `boolean` (`true`).
+
+---
+
+### 4.2 `POST /auth/verify-otp` 🟢
+
+Verifica que un OTP sea válido (vigente, no consumido, dentro de los intentos)
+**sin** consumirlo. Útil para validar el código antes de pedir la nueva clave.
+
+**Body**
+
+```json
+{ "email": "string", "code-otp": "string" }
+```
+
+**Respuesta `200`:** `boolean` (`true` si el código es válido).
+
+---
+
+### 4.3 `POST /auth/reset-password` 🟢
+
+Restablece la contraseña usando el OTP. Valida y **consume** el código (un solo
+uso), actualiza la credencial y —recomendado— **revoca todas las sesiones**
+abiertas de la cuenta.
+
+**Body**
+
+| Campo | Tipo | Req. | Regla |
+|-------|------|------|-------|
+| `email` | string | sí | |
+| `code-otp` | string | sí | OTP vigente |
+| `new-password` | string | sí | mín. 4 caracteres |
+
+```json
+{ "email": "string", "code-otp": "string", "new-password": "string" }
+```
+
+**Respuesta `200`:** `boolean` (`true` si se cambió).
+
+---
+
+### 4.4 `GET /.well-known/jwks.json` 🟢
+
+Publica el **JWKS** (JSON Web Key Set): las claves **públicas** RS256 vigentes
+para verificar la firma del access token. Incluye la clave activa y las
+retiradas aún válidas (rotación), cada una con su `kid`. Las privadas nunca se
+exponen.
+
+Sin params. Sin auth.
+
+**Respuesta `200`:**
+
+```json
+{
+  "keys": [
+    { "kty": "RSA", "use": "sig", "alg": "RS256", "kid": "string", "n": "string", "e": "string" }
+  ]
+}
+```
 
 ---
 
@@ -1230,7 +1343,9 @@ Eventos sensibles para detección de abuso/fraude.
 ```json
 {
   "public": [
-    "GET /bootstrap", "POST /auth/register", "POST /auth/login",
+    "GET /bootstrap", "POST /auth/register", "POST /auth/login", "POST /auth/refresh",
+    "POST /auth/forgot-password", "POST /auth/verify-otp", "POST /auth/reset-password",
+    "GET /.well-known/jwks.json",
     "GET /stadiums", "GET /stadiums/{id}",
     "GET /events", "GET /events/{id}", "GET /events/{id}/palcos",
     "GET /palcos", "GET /palcos/{id}"
@@ -1263,6 +1378,9 @@ Eventos sensibles para detección de abuso/fraude.
 | `GET /bootstrap` | Opcional | — |
 | `POST /auth/register` | No | — |
 | `POST /auth/login` | No | — |
+| `POST /auth/refresh` | No | Refresh token válido (no rotado) |
+| `POST /auth/forgot-password` · `verify-otp` · `reset-password` | No | OTP (en verify/reset) |
+| `GET /.well-known/jwks.json` | No | — |
 | `POST /auth/logout` | Sí | — |
 | `GET /me` | Sí | — |
 | `PATCH /accounts/{id}` | Sí | Self (`id` == token) |
