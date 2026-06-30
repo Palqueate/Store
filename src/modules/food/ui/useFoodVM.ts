@@ -26,12 +26,18 @@ export function useFoodVM(): any {
 
   const resCtx = (s.activeRes && s.activeRes.items[0]) ? { code: s.activeRes.code, palco: s.activeRes.items[0].palcoTitle, stadium: STADIUMS[s.activeRes.items[0].stadium].name } : { code: '—', palco: 'tu palco', stadium: 'el estadio' }
 
+  // Origen del menú: al sumar snacks a una compra ya hecha se vuelve a "Mis
+  // compras"; al hacerlo recién reservado, a la reserva.
+  const fromAccount = s.foodFrom === 'account'
+
   const foodGrid = 'display:grid; grid-template-columns:repeat(auto-fill,minmax(' + (mobile ? '150px' : '212px') + ',1fr)); gap:14px;'
   const foodWrap = mobile ? 'display:flex; flex-direction:column; gap:18px;' : 'display:grid; grid-template-columns:minmax(0,1fr) 318px; gap:28px; align-items:start;'
   const stickySum = mobile ? '' : 'position:sticky; top:88px;'
 
   return {
     goConfirm: function () { self.go('confirm') },
+    backLabel: fromAccount ? 'Volver a mis compras' : 'Volver a mi reserva',
+    back: fromAccount ? function () { self.goAccount('compras') } : function () { self.go('confirm') },
     resCtx,
     foodWrap,
     foodCatChips,

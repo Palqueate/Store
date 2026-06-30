@@ -13,11 +13,14 @@ export function useFoodConfirmVM(): any {
 
   const resCtx = (s.activeRes && s.activeRes.items[0]) ? { code: s.activeRes.code, palco: s.activeRes.items[0].palcoTitle, stadium: STADIUMS[s.activeRes.items[0].stadium].name } : { code: '—', palco: 'tu palco', stadium: 'el estadio' }
 
+  const fromAccount = s.foodFrom === 'account'
+
   return {
     resCtx,
     foodLines,
     foodTotalTxt: self.money(fTotal),
-    goConfirm: function () { self.go('confirm') },
+    backLabel: fromAccount ? 'Volver a mis compras' : 'Volver a mi reserva',
+    back: fromAccount ? function () { self.goAccount('compras') } : function () { self.go('confirm') },
     goHome: function () { self.go('home') },
   }
 }

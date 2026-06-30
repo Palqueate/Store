@@ -23,6 +23,8 @@ export function useAccountVM(): any {
       hasFood: !!(o.food && o.food.length),
       foodLines: (o.food || []).map(function (f) { return { name: f.name, qty: f.qty, price: self.money(f.price * f.qty) } }),
       foodTotalTxt: self.money(o.foodTotal || 0),
+      // Sumar más botana y bebidas a esta compra (cualquier modalidad).
+      addSnacks: function () { self.addSnacksToOrder(o.code) },
     }
   })
 

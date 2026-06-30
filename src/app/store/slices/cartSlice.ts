@@ -20,6 +20,9 @@ export const createCartSlice = (set, get) => ({
   payMethod: 'card' as 'card' | 'transfer',
   paying: false,
   activeRes: null as Order | null,
+  // De dónde se entró al menú de snacks: 'confirm' (recién reservado) o
+  // 'account' (sumar snacks a una compra ya hecha). Define a dónde se vuelve.
+  foodFrom: 'confirm' as 'confirm' | 'account',
   orders: [] as Order[], // placed orders (loaded by bootstrap, appended by pay)
 
   // ---- cart ----
@@ -104,7 +107,7 @@ export const createCartSlice = (set, get) => ({
       // food/foodTotal quedan vacíos: son los snacks POST-reserva (cobro aparte).
       const order = { code, userId: user.id, items: get().cart.slice(), subtotal: sub, fee, total, date: new Date().toISOString(), contact: { name: user.name, email: user.email }, food: [], foodTotal: 0, snacksTotal: snacksTot }
       const orders = get().orders.concat([order]); createOrder(container.orders, order)
-      set({ orders, activeRes: order, cart: [], food: [], snacksTarget: 'draft', paying: false })
+      set({ orders, activeRes: order, cart: [], food: [], snacksTarget: 'draft', foodFrom: 'confirm', paying: false })
       get().go('confirm')
     }, 1300)
   },
@@ -180,6 +183,14 @@ export const createCartSlice = (set, get) => ({
       // Borrador del detalle: se mantiene para adjuntarlo al reservar.
       set({ snacksModal: false })
     }
+  },
+  // Sumar snacks a una compra YA hecha (cualquiera de las 3 modalidades): se
+  // toma esa orden como reserva activa y se abre el menú con el pedido en
+  // blanco. confirmFood la actualiza igual que a una reserva recién pagada.
+  addSnacksToOrder: (code) => {
+    const order = get().orders.find((o) => o.code === code); if (!order) return
+    set({ activeRes: order, food: [], foodCat: 'all', foodFrom: 'account' })
+    get().go('food')
   },
   confirmFood: () => {
     if (!get().foodCount()) return get().flash('Agregá algo al pedido')

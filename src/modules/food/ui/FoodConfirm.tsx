@@ -40,7 +40,7 @@ export default function FoodConfirm() {
       </Card>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', justifyContent: 'center', marginTop: '22px' }}>
-        <Btn label="Volver a mi reserva" variant="primary" onClick={vals.goConfirm} />
+        <Btn label={vals.backLabel} variant="primary" onClick={vals.back} />
         <Btn label="Ir al inicio" variant="secondary" onClick={vals.goHome} />
       </div>
     </div>

@@ -8,10 +8,10 @@ export default function Food() {
     <div style={{ maxWidth: '1240px', margin: '0 auto', padding: 'clamp(16px,2.5vw,28px) clamp(16px,4vw,40px) 90px' }}>
       {/* Back nav */}
       <Btn
-        label="Volver a mi reserva"
+        label={vals.backLabel}
         variant="ghost"
         icon="back"
-        onClick={vals.goConfirm}
+        onClick={vals.back}
         size="sm"
       />
       <div style={{ marginBottom: '16px' }} />
