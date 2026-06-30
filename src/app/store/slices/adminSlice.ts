@@ -1,4 +1,3 @@
-// @ts-nocheck
 // Admin panel: tab/navigation, event & stadium creation drafts and actions.
 import { container } from '@/app/container'
 import { createEvent } from '@/modules/events/application/use-cases/createEvent'
@@ -15,19 +14,19 @@ const DOWS = ['DOM', 'LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB']
 
 export const createAdminSlice = (set, get) => ({
   adminTab: 'dashboard',
-  adminClient: null,
+  adminClient: null as string | null,
   adminEvModal: false,
   adminStadModal: false,
-  evEditId: null,
-  stadEditId: null,
+  evEditId: null as string | null,
+  stadEditId: null as string | null,
   // Verificación de palcos: id del palco en revisión, motivo general del rechazo
   // y mapa de campos marcados como no validados ({ key: { on, label, reason } }).
-  palcoReviewId: null,
+  palcoReviewId: null as string | null,
   palcoReviewReason: '',
-  palcoReviewFlags: {},
+  palcoReviewFlags: {} as Record<string, any>,
   // `dates` son las funciones del evento (fecha + hora). Fútbol suele tener una;
   // shows y otros eventos pueden tener varias.
-  evDraft: { type: 'futbol', stadium: 'gpc', country: DEFAULT_COUNTRY, dates: [{ date: '', time: '17:00' }], comp: '', round: '', opp: '', images: [], obs: '' },
+  evDraft: { type: 'futbol', stadium: 'gpc', country: DEFAULT_COUNTRY, dates: [{ date: '', time: '17:00' }], comp: '', round: '', opp: '', images: [] as string[], obs: '' },
   stadDraft: { name: '', short: '', city: 'Montevideo', country: DEFAULT_COUNTRY, address: '', capacity: '', year: '', surface: '', levels: '2', roof: 'no', mapImage: '' },
 
   isAdmin: () => !!(get().user && get().user.admin),
@@ -66,7 +65,7 @@ export const createAdminSlice = (set, get) => ({
     const country = (firstStad && firstStad.country) || DEFAULT_COUNTRY
     const inCountry = get()._stadiumsInCountry(country)
     const stadium = inCountry.indexOf(firstId) >= 0 ? firstId : (inCountry[0] || '')
-    set({ adminEvModal: true, evEditId: null, evDraft: { type: 'futbol', stadium, country, dates: [{ date: '', time: '17:00' }], comp: '', round: '', opp: '', images: [], obs: '' } })
+    set({ adminEvModal: true, evEditId: null, evDraft: { type: 'futbol', stadium, country, dates: [{ date: '', time: '17:00' }], comp: '', round: '', opp: '', images: [] as string[], obs: '' } })
   },
   openEvModalEdit: (id) => {
     const ev = get().events.find((e) => e.id === id); if (!ev) return
@@ -79,7 +78,7 @@ export const createAdminSlice = (set, get) => ({
       },
     })
   },
-  adminAddEventImages: async (files) => {
+  adminAddEventImages: async (files: FileList | null) => {
     if (!files || !files.length) return
     const urls = await readImagesAsDataUrls(Array.from(files))
     if (urls.length) get().setEvDraft('images', get().evDraft.images.concat(urls))
@@ -100,7 +99,7 @@ export const createAdminSlice = (set, get) => ({
     })
   },
   closeStadModal: () => set({ adminStadModal: false, stadEditId: null }),
-  adminAddStadMap: async (files) => {
+  adminAddStadMap: async (files: FileList | null) => {
     const list = Array.from(files || []); if (!list.length) return
     const urls = await readImagesAsDataUrls(list)
     if (urls.length) get().setStadDraft('mapImage', urls[0])
@@ -120,7 +119,7 @@ export const createAdminSlice = (set, get) => ({
     const baseId = editId || ('e' + Date.now())
     // Construir las funciones (fecha + hora). Para fecha única, el id de la
     // función coincide con el del evento (compatibilidad de disponibilidad).
-    const occ = []
+    const occ: any[] = []
     for (let i = 0; i < rows.length; i++) {
       const fd = get()._fmtDate(rows[i].date); if (!fd) return get().flash('Fecha inválida')
       occ.push({ id: baseId + '-' + (i + 1), month: fd.month, day: fd.day, dow: fd.dow, time: rows[i].time || '17:00', iso: rows[i].date })

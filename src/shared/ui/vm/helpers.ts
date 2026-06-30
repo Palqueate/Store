@@ -1,4 +1,3 @@
-// @ts-nocheck
 // Pure view-model style helpers, lifted verbatim from the old computeVals.
 // Shared by the per-screen VM hooks. No state, no store — just string/object
 // builders for inline styles.

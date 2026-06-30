@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useFacade } from '@/shared/ui/vm/facade'
 import { evAvail } from '@/shared/ui/vm/eventVM'
 import { evTagStyle } from '@/shared/ui/vm/helpers'

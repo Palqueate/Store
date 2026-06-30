@@ -1,4 +1,3 @@
-// @ts-nocheck
 // UI / chrome state: theme, viewport, toast, account menu.
 import { THEME_ORDER } from '@/shared/domain/theme'
 import { formatMoney } from '@/shared/domain/money'

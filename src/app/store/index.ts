@@ -1,4 +1,3 @@
-// @ts-nocheck
 // Public entry for the app store: the Zustand hook and the bootstrap effect.
 // View-models live in per-screen hooks (modules/*/ui/useXxxVM, shared/ui/vm).
 import { useEffect } from 'react'

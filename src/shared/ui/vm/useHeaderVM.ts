@@ -1,7 +1,7 @@
-// @ts-nocheck
 import { useFacade } from '@/shared/ui/vm/facade'
 import { navLink } from '@/shared/ui/vm/helpers'
 import { THEMES } from '@/shared/domain/theme'
+import type { User } from '@/modules/accounts/domain/User'
 
 export function useHeaderVM(): any {
   const self = useFacade()
@@ -9,7 +9,7 @@ export function useHeaderVM(): any {
 
   const mobile = s.vw < 860
   const th = THEMES[s.theme] || THEMES.palco
-  const uu = s.user || {}
+  const uu = s.user || ({} as User)
 
   return {
     // navigation

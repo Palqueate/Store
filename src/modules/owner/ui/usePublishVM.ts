@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useFacade } from '@/shared/ui/vm/facade'
 import { selCard, sw } from '@/shared/ui/vm/helpers'
 import { COUNTRY_OPTIONS } from '@/shared/domain/countries'

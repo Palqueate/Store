@@ -1,4 +1,3 @@
-// @ts-nocheck
 // Search / events filter state. Mutations happen via the generic setState in
 // the view-model (chips toggle these keys directly), so this slice is state-only.
 //
@@ -8,7 +7,7 @@
 export const createFiltersSlice = () => ({
   // --- Palcos (explorar) ---
   fQuery: '',
-  fStadiums: [],
+  fStadiums: [] as string[],
   fType: 'all',
   fParking: false,
   fMinSeats: 0,
@@ -17,7 +16,7 @@ export const createFiltersSlice = () => ({
   sort: 'rel',
   // --- Eventos (agenda) ---
   evQuery: '',
-  evStadiums: [],
+  evStadiums: [] as string[],
   evType: 'all',
   evSeats: 0,
   evMinPrice: 0,

@@ -1,4 +1,3 @@
-// @ts-nocheck
 // Route table + navigation bridge. The URL is the source of truth for which
 // screen renders; the store keeps a mirrored `screen` value (set by
 // RouterBridge) only so the view-model layer's active-state logic keeps working.
@@ -58,6 +57,6 @@ export function screenForPath(pathname) {
 }
 
 // ---- navigate ref, bound by RouterBridge ----
-let _navigate = null
+let _navigate: ((path: string) => void) | null = null
 export function bindNavigate(fn) { _navigate = fn }
 export function routerNavigate(path) { if (_navigate) _navigate(path) }

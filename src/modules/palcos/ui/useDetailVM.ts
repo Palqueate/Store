@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useFacade } from '@/shared/ui/vm/facade'
 import { eventOccurrence } from '@/modules/events/domain/Event'
 
@@ -41,7 +40,7 @@ export function useDetailVM(): any {
     det.summary = s.mode === 'palcoYear' ? 'Palco entero · 1 año' : (s.mode === 'seatYear' ? (dvm.qty + ' asiento' + (dvm.qty === 1 ? '' : 's') + ' · anual') : (dvm.qty + ' asiento' + (dvm.qty === 1 ? '' : 's') + ' · evento'))
     det.unitNote = s.mode === 'palcoYear' ? 'Precio total del año' : (dvm.qty > 0 ? (dvm.qty + ' × ' + self.money(s.mode === 'seatYear' ? dp.modes.seatYear.price : dp.modes.seatEvent.price)) : 'Elegí tus asientos')
     var curEv = EVENTS.find(function (e) { return e.id === s.eventId })
-    var curOcc = curEv ? eventOccurrence(curEv, s.occurrenceId) : null
+    var curOcc = curEv ? eventOccurrence(curEv, s.occurrenceId ?? undefined) : null
     det.fromEvent = !!s.fromEvent && !!curEv
     det.eventName = curEv ? (curEv.comp + (curEv.round ? (' · ' + curEv.round) : '')) : ''
     det.eventOpp = curEv ? curEv.opp : ''

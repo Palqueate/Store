@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useFacade } from '@/shared/ui/vm/facade'
 import { chipS } from '@/shared/ui/vm/helpers'
 
@@ -23,7 +22,7 @@ export function useFoodVM(): any {
   const fTotal = self.foodTotal()
   const fCount = self.foodCount()
 
-  const foodLines = s.food.map(function (x) { var it = FOOD.find(function (f) { return f.id === x.id }); return { name: it.name, qty: x.qty, price: self.money(it.price * x.qty), inc: function () { self.addFood(x.id) }, dec: function () { self.decFood(x.id) } } })
+  const foodLines = s.food.map(function (x) { var it = FOOD.find(function (f) { return f.id === x.id })!; return { name: it.name, qty: x.qty, price: self.money(it.price * x.qty), inc: function () { self.addFood(x.id) }, dec: function () { self.decFood(x.id) } } })
 
   const resCtx = (s.activeRes && s.activeRes.items[0]) ? { code: s.activeRes.code, palco: s.activeRes.items[0].palcoTitle, stadium: STADIUMS[s.activeRes.items[0].stadium].name } : { code: '—', palco: 'tu palco', stadium: 'el estadio' }
 

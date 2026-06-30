@@ -1,4 +1,3 @@
-// @ts-nocheck
 // Domain catalog: collections loaded from the repositories, plus the read
 // selectors derived from them. bootstrap() is the old mount() data load.
 import { container } from '@/app/container'
@@ -12,15 +11,19 @@ import { getSession } from '@/modules/accounts/application/use-cases/accountUseC
 import { publishPalco as publishPalcoUseCase } from '@/modules/palcos/application/use-cases/publishPalco'
 import { updatePalco as updatePalcoUseCase } from '@/modules/palcos/application/use-cases/updatePalco'
 import { EVENT_TYPES } from '@/shared/infrastructure/in-memory/db'
+import type { Stadium } from '@/modules/stadiums/domain/Stadium'
+import type { Ev, EventType } from '@/modules/events/domain/Event'
+import type { Palco, PalcoStatus } from '@/modules/palcos/domain/Palco'
+import type { FoodItem, FoodCat } from '@/modules/food/domain/Food'
 
 export const createCatalogSlice = (set, get) => ({
-  stadiums: {},
-  events: [],
-  palcos: [],
-  foodCatalog: [],
-  foodCats: [],
-  eventTypes: [],
-  statusOver: {},
+  stadiums: {} as Record<string, Stadium>,
+  events: [] as Ev[],
+  palcos: [] as Palco[],
+  foodCatalog: [] as FoodItem[],
+  foodCats: [] as FoodCat[],
+  eventTypes: [] as EventType[],
+  statusOver: {} as Record<string, PalcoStatus>,
 
   // ---- bootstrap (was mount): load everything through the use cases ----
   bootstrap: async () => {
@@ -53,7 +56,7 @@ export const createCatalogSlice = (set, get) => ({
     return c
   },
   fromPrice: (p) => {
-    const m = p.modes; const opts = []
+    const m = p.modes; const opts: { v: number; l: string }[] = []
     if (m.seatEvent && m.seatEvent.on) opts.push({ v: m.seatEvent.price, l: 'desde · por evento' })
     if (m.seatYear && m.seatYear.on) opts.push({ v: m.seatYear.price, l: 'asiento / año' })
     if (m.palcoYear && m.palcoYear.on) opts.push({ v: m.palcoYear.price, l: 'palco / año' })

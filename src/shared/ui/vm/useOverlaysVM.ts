@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useFacade } from '@/shared/ui/vm/facade'
 import { bnS } from '@/shared/ui/vm/helpers'
 import { COUNTRY_OPTIONS } from '@/shared/domain/countries'
@@ -22,7 +21,7 @@ export function useOverlaysVM(): any {
 
   // ── PalcoReviewModal (verificación de palcos) ──
   const reviewP = s.palcoReviewId ? self.byId(s.palcoReviewId) : null
-  let palcoReview = null
+  let palcoReview: any = null
   if (reviewP) {
     const pay = reviewP.payout || {}
     const stadName = (s.stadiums[reviewP.stadium] || {}).name || reviewP.stadium

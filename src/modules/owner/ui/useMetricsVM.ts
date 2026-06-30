@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useFacade } from '@/shared/ui/vm/facade'
 import { statusBadge, chipS } from '@/shared/ui/vm/helpers'
 import { eventOccurrences } from '@/modules/events/domain/Event'

@@ -1,4 +1,3 @@
-// @ts-nocheck
 // Owner publish wizard state + flow.
 import { readImagesAsDataUrls } from '@/shared/lib/readImages'
 import { DEFAULT_COUNTRY } from '@/shared/domain/countries'
@@ -20,7 +19,8 @@ const isEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((v || '').trim())
 const LAST_STEP = 9
 
 export const createOwnerSlice = (set, get) => ({
-  wz: null,
+  // Borrador transitorio del asistente de publicación (forma dinámica por paso).
+  wz: null as any,
 
   // Stadiums (ids) located in a given country.
   _wzStadiumsInCountry: (country) => {
@@ -96,7 +96,7 @@ export const createOwnerSlice = (set, get) => ({
     const w = get().wz; if (!w) return
     get().wzSet({ payout: { ...(w.payout || emptyPayout()), [key]: value } })
   },
-  wzAddPayoutDoc: async (key, files) => {
+  wzAddPayoutDoc: async (key, files: FileList | null) => {
     const list = Array.from(files || []); if (!list.length) return
     const urls = await readImagesAsDataUrls(list)
     const w = get().wz; if (!w || !urls.length) return
@@ -138,7 +138,7 @@ export const createOwnerSlice = (set, get) => ({
     get().wzSet({ step: w.step + 1 }); scrollTop()
   },
   wzBack: () => { const w = get().wz; if (!w) return; if (w.step === 0) return get().go('owner'); get().wzSet({ step: w.step - 1 }); scrollTop() },
-  wzAddImages: async (files) => {
+  wzAddImages: async (files: FileList | null) => {
     const list = Array.from(files || []); if (!list.length) return
     const urls = await readImagesAsDataUrls(list)
     const w = get().wz; if (!w) return

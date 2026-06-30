@@ -1,12 +1,12 @@
-// @ts-nocheck
 import { useFacade } from '@/shared/ui/vm/facade'
+import type { User } from '@/modules/accounts/domain/User'
 
 export function useAccountVM(): any {
   const self = useFacade()
   const s = self.state
 
-  var uu = s.user || {}
-  var pf = s.profileDraft || {}
+  var uu = s.user || ({} as User)
+  var pf = s.profileDraft || ({} as Partial<User>)
   var nf = uu.notif || {}
 
   var rawOrders = self.myOrders()

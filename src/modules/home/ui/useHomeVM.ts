@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useFacade } from '@/shared/ui/vm/facade'
 import { evCardVM } from '@/shared/ui/vm/eventVM'
 

@@ -1,17 +1,18 @@
-// @ts-nocheck
 // Cart + food order: state, mutations, payment, and their selectors/VMs.
 import { container } from '@/app/container'
 import { createOrder, updateOrder } from '@/modules/orders/application/use-cases/orderUseCases'
 import { eventOccurrence } from '@/modules/events/domain/Event'
+import type { Order, OrderItem } from '@/modules/orders/domain/Order'
 
 export const createCartSlice = (set, get) => ({
-  cart: [],
-  food: [], // in-progress food order (NOT the catalog — that's foodCatalog)
+  cart: [] as OrderItem[],
+  food: [] as { id: string; qty: number }[], // in-progress food order (NOT the catalog)
   foodCat: 'all',
-  contact: { name: '', email: '' },
+  contact: { name: '', email: '' } as { name: string; email: string },
+  payMethod: 'card' as 'card' | 'transfer',
   paying: false,
-  activeRes: null,
-  orders: [], // placed orders (loaded by bootstrap, appended by pay)
+  activeRes: null as Order | null,
+  orders: [] as Order[], // placed orders (loaded by bootstrap, appended by pay)
 
   // ---- cart ----
   cartCount: () => get().cart.length + get().food.reduce((a, b) => a + b.qty, 0),
@@ -20,14 +21,16 @@ export const createCartSlice = (set, get) => ({
   setContact: (f, v) => set({ contact: { ...get().contact, [f]: v } }),
   addToCart: () => {
     const s = get(); const p = get().byId(s.pId); if (!p) return
-    const item = { uid: 'c' + Date.now() + Math.floor(Math.random() * 999), palcoId: p.id, palcoTitle: p.title, stadium: p.stadium }
+    // Builder incremental del ítem (las claves de cada modalidad se agregan
+    // según el caso); se valida contra OrderItem al hacer concat.
+    const item: any = { uid: 'c' + Date.now() + Math.floor(Math.random() * 999), palcoId: p.id, palcoTitle: p.title, stadium: p.stadium }
     if (s.mode === 'palcoYear') { item.mode = 'palcoYear'; item.modeLabel = 'Palco entero · 1 año'; item.seats = []; item.term = 'Temporada 2026 · 1 año'; item.qty = 1; item.price = p.modes.palcoYear.price }
     else if (s.mode === 'seatYear') { if (!s.seats.length) return get().flash('Elegí al menos un asiento'); item.mode = 'seatYear'; item.modeLabel = 'Asiento anual · 1 año'; item.seats = s.seats.slice().sort((a, b) => a - b); item.term = 'Temporada 2026 · 1 año'; item.qty = s.seats.length; item.price = p.modes.seatYear.price * s.seats.length }
     else { if (!s.seats.length) return get().flash('Elegí al menos un asiento'); const ev = get().events.find((e) => e.id === s.eventId); const occ = ev ? eventOccurrence(ev, s.occurrenceId) : null; item.mode = 'seatEvent'; item.modeLabel = 'Asiento · por evento'; item.seats = s.seats.slice().sort((a, b) => a - b); item.eventId = s.eventId; item.occurrenceId = s.occurrenceId; item.eventLabel = ev ? (ev.comp + (ev.round ? (' · ' + ev.round) : '')) : ''; item.eventOpp = ev ? ev.opp : ''; item.term = occ ? (occ.day + ' ' + occ.month + ' · ' + occ.time + ' hs') : ''; item.qty = s.seats.length; item.price = p.modes.seatEvent.price * s.seats.length }
     set({ cart: get().cart.concat([item]) })
     get().flash('Reserva agregada al carrito'); get().go('cart')
   },
-  pay: (forceUser) => {
+  pay: (forceUser?) => {
     const user = forceUser || get().user
     if (!user) { set({ pendingPay: true }); get().openAuth('login'); return }
     if (!get().cart.length || get().paying) return

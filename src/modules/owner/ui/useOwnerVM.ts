@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useFacade } from '@/shared/ui/vm/facade'
 import { statusBadge, tabS } from '@/shared/ui/vm/helpers'
 
@@ -12,7 +11,7 @@ export function useOwnerVM(): any {
 
   var owned = self.allPalcos().filter(function (p) { return p.host === 'Vos (demo)' }).map(function (p) {
     var st = self.statusOf(p); var b = statusBadge(st)
-    var modes = []; if (p.modes.palcoYear.on) modes.push('Palco/año'); if (p.modes.seatYear.on) modes.push('Asiento/año'); if (p.modes.seatEvent.on) modes.push('Por evento')
+    var modes: string[] = []; if (p.modes.palcoYear.on) modes.push('Palco/año'); if (p.modes.seatYear.on) modes.push('Asiento/año'); if (p.modes.seatEvent.on) modes.push('Por evento')
     var fp = self.fromPrice(p)
     var isRejected = st === 'rechazado'
     var review = (isRejected && p.review) ? {

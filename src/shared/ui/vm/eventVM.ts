@@ -1,4 +1,3 @@
-// @ts-nocheck
 // Event availability + event-card VM, lifted verbatim from computeVals. Shared
 // by Home, Events and EventPalcos. Takes the facade `self`.
 import { evTagStyle } from './helpers'
@@ -8,7 +7,7 @@ import { fallbackPoster } from '@/shared/lib/promoPosters'
 // Disponibilidad de un evento. Si `occId` viene, se calcula para esa función
 // (fecha + hora) concreta. Si no, se resume el evento completo tomando, por
 // palco, la mejor disponibilidad entre todas sus funciones (para las tarjetas).
-export function evAvail(self, ev, occId) {
+export function evAvail(self, ev, occId?) {
   var occIds = occId ? [occId] : eventOccurrences(ev).map(function (o) { return o.id })
   function freeFor(p) { return occIds.reduce(function (m, oid) { return Math.max(m, self.eventFreeSeats(p, oid)) }, 0) }
   var palcos = self.allPalcos().filter(function (p) { var st = self.statusOf(p); return p.stadium === ev.stadium && (st === 'publicado' || st === 'alquilado') && p.modes.seatEvent.on })

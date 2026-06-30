@@ -1,26 +1,26 @@
-// @ts-nocheck
 // Authentication, the logged-in user, accounts, and profile editing.
 import { container } from '@/app/container'
 import { saveAccount, setSession, clearSession } from '@/modules/accounts/application/use-cases/accountUseCases'
 import { SEED_USER } from '@/shared/infrastructure/in-memory/db'
+import type { User } from '@/modules/accounts/domain/User'
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
 
 export const createAuthSlice = (set, get) => ({
-  user: null,
-  accounts: [],
-  authView: null,
+  user: null as User | null,
+  accounts: [] as User[],
+  authView: null as 'login' | 'register' | null,
   authForm: { name: '', email: '', phone: '', pass: '' },
   authErr: '',
   pendingPay: false,
-  profileDraft: null,
+  profileDraft: null as Partial<User> | null,
 
   _saveSession: (id) => { if (id) setSession(container.session, id); else clearSession(container.session) },
 
-  openAuth: (view) => { const f = { name: '', email: '', phone: '', pass: '' }; if (view === 'login') { f.email = SEED_USER.email; f.pass = SEED_USER.pass } set({ authView: view, authErr: '', authForm: f, acctMenu: false }) },
+  openAuth: (view) => { const f = { name: '', email: '', phone: '', pass: '' }; if (view === 'login') { f.email = SEED_USER.email; f.pass = SEED_USER.pass || '' } set({ authView: view, authErr: '', authForm: f, acctMenu: false }) },
   closeAuth: () => set({ authView: null, authErr: '', pendingPay: false }),
   setAuthField: (k, v) => set({ authForm: { ...get().authForm, [k]: v }, authErr: '' }),
-  switchAuth: (view) => { const f = { ...get().authForm }; if (view === 'login') { f.email = SEED_USER.email; f.pass = SEED_USER.pass } set({ authView: view, authErr: '', authForm: f }) },
+  switchAuth: (view) => { const f = { ...get().authForm }; if (view === 'login') { f.email = SEED_USER.email; f.pass = SEED_USER.pass || '' } set({ authView: view, authErr: '', authForm: f }) },
   _afterAuth: (usr) => {
     const s = get(); const patch = { user: usr, authView: null, authErr: '', acctMenu: false, contact: { name: usr.name, email: usr.email }, pendingPay: false }
     set(patch); get().flash('¡Hola ' + usr.name.split(' ')[0] + '!')
@@ -73,10 +73,11 @@ export const createAuthSlice = (set, get) => ({
       img.onload = () => {
         const max = 256, w = img.width || max, h = img.height || max, sc = Math.min(1, max / Math.max(w, h))
         const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(w * sc)); c.height = Math.max(1, Math.round(h * sc))
-        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height)
+        const ctx = c.getContext('2d'); if (!ctx) return
+        ctx.drawImage(img, 0, 0, c.width, c.height)
         try { get().saveProfile({ id: u.id, photo: c.toDataURL('image/jpeg', 0.85) }, true); get().flash('Foto de perfil actualizada') } catch (err) { get().flash('No se pudo guardar la foto') }
       }
-      img.src = ev.target.result
+      img.src = String(ev.target?.result ?? '')
     }
     reader.readAsDataURL(file)
   },

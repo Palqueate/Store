@@ -1,4 +1,3 @@
-// @ts-nocheck
 // Routing + the palco-detail selection state, plus the detail view-model.
 import { routerNavigate, pathForScreen } from '@/app/router/navigation'
 import { eventOccurrences } from '@/modules/events/domain/Event'
@@ -7,13 +6,13 @@ const scrollTop = () => { if (typeof window !== 'undefined') { try { window.scro
 
 export const createNavigationSlice = (set, get) => ({
   screen: 'home',
-  pId: null,
+  pId: null as string | null,
   mode: 'palcoYear',
   eventId: 'e1',
   // Función (fecha + hora) elegida del evento. Para eventos de una sola fecha
   // coincide con el id del evento.
-  occurrenceId: 'e1',
-  seats: [],
+  occurrenceId: 'e1' as string | null,
+  seats: [] as number[],
   fromEvent: false,
   acctTab: 'compras',
 
@@ -71,10 +70,10 @@ export const createNavigationSlice = (set, get) => ({
       { key: 'seatYear', title: 'Asiento anual', sub: 'Tu butaca toda la temporada', term: '/año · por asiento', on: p.modes.seatYear.on, price: p.modes.seatYear.price },
       { key: 'seatEvent', title: 'Asiento por evento', sub: 'Una butaca para un evento puntual', term: '· por asiento', on: p.modes.seatEvent.on, price: p.modes.seatEvent.price },
     ]
-    let taken = []
+    let taken: number[] = []
     if (s.mode === 'seatYear') taken = p.modes.seatYear.taken || []
-    else if (s.mode === 'seatEvent') taken = (p.modes.seatEvent.taken && p.modes.seatEvent.taken[s.occurrenceId]) || []
-    const seats = []
+    else if (s.mode === 'seatEvent') taken = (s.occurrenceId && p.modes.seatEvent.taken && p.modes.seatEvent.taken[s.occurrenceId]) || []
+    const seats: any[] = []
     for (let i = 1; i <= p.seats; i++) {
       ((n) => {
         const st = s.mode === 'palcoYear' ? 'all' : (taken.indexOf(n) >= 0 ? 'taken' : (s.seats.indexOf(n) >= 0 ? 'sel' : 'free'))
@@ -83,7 +82,7 @@ export const createNavigationSlice = (set, get) => ({
     }
     // Un "chip" por función (fecha + hora) de cada evento del estadio. Permite
     // elegir directamente la función desde el detalle del palco.
-    const events = []
+    const events: any[] = []
     get().events.filter((e) => e.stadium === p.stadium).forEach((e) => {
       eventOccurrences(e).forEach((o) => {
         events.push({ eventId: e.id, occId: o.id, opp: e.opp, tag: e.tag, day: o.day, month: o.month, dow: o.dow, time: o.time, selected: o.id === s.occurrenceId })

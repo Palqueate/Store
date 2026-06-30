@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useFacade } from '@/shared/ui/vm/facade'
 import { evCardVM } from '@/shared/ui/vm/eventVM'
 import { chipS } from '@/shared/ui/vm/helpers'
@@ -47,11 +46,11 @@ export function useEventsVM(): any {
   })
 
   // Estadios multiselect, derivados de los estadios con eventos.
-  var stadiumIds = []; EVENTS.forEach(function (e) { if (stadiumIds.indexOf(e.stadium) < 0) stadiumIds.push(e.stadium) })
+  var stadiumIds: string[] = []; EVENTS.forEach(function (e) { if (stadiumIds.indexOf(e.stadium) < 0) stadiumIds.push(e.stadium) })
   var evStadiumOptions = stadiumIds.map(function (id) { var st = s.stadiums[id]; return { value: id, label: st ? (st.short + ' · ' + st.name) : id } })
 
   // Tipo de evento (Fútbol / Basket / Show…) según los tipos presentes.
-  var typesPresent = []; eventCards.forEach(function (c) { if (typesPresent.indexOf(c.type) < 0) typesPresent.push(c.type) })
+  var typesPresent: string[] = []; eventCards.forEach(function (c) { if (typesPresent.indexOf(c.type) < 0) typesPresent.push(c.type) })
   var TYPE_LABELS = {}; (s.eventTypes || []).forEach(function (t) { TYPE_LABELS[t.id] = t.name })
   var evTypeChips = [{ v: 'all', l: 'Todos' }].concat(typesPresent.map(function (t) { return { v: t, l: TYPE_LABELS[t] || (t.charAt(0).toUpperCase() + t.slice(1)) } })).map(function (o) {
     return { label: o.l, active: s.evType === o.v, style: chipS(s.evType === o.v), pick: function () { self.setState({ evType: o.v }) } }
