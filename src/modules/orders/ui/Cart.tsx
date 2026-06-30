@@ -1,5 +1,5 @@
 import { TrashIcon } from '@heroicons/react/24/outline'
-import { Btn, Card, EmptyState, IconButton, QuantityStepper, Tag, DescriptionList } from '@/lib'
+import { Btn, Card, EmptyState, QuantityStepper, Tag, DescriptionList } from '@/lib'
 import { css } from '@/shared/ui/css'
 import { useCartVM } from './useCartVM'
 
@@ -34,9 +34,9 @@ export default function Cart() {
                     <div style={css("font-size:13px; color:var(--muted-foreground,#9AA6B2);")}>{it.modeLabel}</div>
                     <div style={css("font-size:12.5px; color:var(--muted-foreground,#9AA6B2);")}>{it.meta}</div>
                   </div>
-                  <IconButton aria-label="Quitar" variant="ghost" size="sm" onClick={it.remove}>
+                  <button className="pq-trash" aria-label="Quitar reserva" onClick={it.remove}>
                     <TrashIcon />
-                  </IconButton>
+                  </button>
                 </div>
 
                 {/* Desglose del ítem: cada concepto con su importe + subtotal */}
@@ -62,9 +62,9 @@ export default function Cart() {
                           onChange={(next: number) => { if (next > sn.qty) sn.inc(); else if (next < sn.qty) sn.dec() }}
                         />
                         <span style={css("color:var(--foreground,#F4EFE6); white-space:nowrap; min-width:64px; text-align:right;")}>{sn.price}</span>
-                        <IconButton aria-label="Quitar snack" variant="ghost" size="sm" onClick={sn.remove}>
+                        <button className="pq-trash" aria-label="Quitar snack" onClick={sn.remove}>
                           <TrashIcon />
-                        </IconButton>
+                        </button>
                       </div>
                     </div>
                   ))}
