@@ -198,13 +198,19 @@ o `sold` (venta confirmada).
 | Dato | Dónde vive | Tratamiento |
 |------|-----------|-------------|
 | Contraseña | `auth_credentials.password_hash` | Hash (argon2id); nunca en claro (RNF-15) |
-| Refresh token | `sessions.refresh_token_hash` | Sólo el hash; rota (API §5.4) |
-| Access token | — (no se guarda) | JWT RS256 stateless; se verifica vía JWKS |
+| Refresh token | `sessions.refresh_token_hash` | Sólo el hash; rota; viaja en cookie httpOnly (API §1.1) |
+| Access token | — (no se guarda) | JWT RS256 stateless; cookie httpOnly; se verifica vía JWKS |
 | Clave privada de firma | `signing_keys.private_key_enc` | Cifrada / KMS; sólo las públicas en JWKS |
 | OTP de recuperación | `auth_otp_codes.code_hash` | Hash, TTL e intentos; nunca el código |
 | Tarjeta | `user_payment_methods` / `payments` | Sólo `brand` + `last4` + token; nunca PAN/CVV |
 | Cuenta bancaria | `palco_payout.account_enc` | Cifrado en reposo + `account_last4` para mostrar |
 | Documentos (CI, título) | `media_assets (is_sensitive)` + `palco_documents` | Confidenciales; nunca públicos (API §17, RNF-14) |
+
+> **Transporte por cookies (API §1.1).** Access JWT y refresh token viajan en
+> cookies `HttpOnly; Secure; SameSite=Strict` (JS no las lee → anti-XSS). La BD
+> sólo guarda el hash del refresh token (`sessions.refresh_token_hash`); el
+> access es stateless. La protección CSRF es **double-submit** (cookie legible +
+> header `X-CSRF-Token`), **sin estado en la BD** — no requiere tabla.
 
 **Los tres flujos de logging** (API §5), en el esquema `audit`:
 

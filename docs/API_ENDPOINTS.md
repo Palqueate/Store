@@ -15,7 +15,7 @@
 |------|----------|
 | Base URL | `/api/v1` |
 | Formato | `application/json` en request y response (las imágenes viajan como *data URL* en strings, igual que el front actual) |
-| Autenticación | `Authorization: Bearer <token>` (JWT). El token se obtiene en `login`/`register` |
+| Autenticación | **Cookies httpOnly** (ver §1.1). El access JWT y el refresh token se entregan como cookies `Set-Cookie` en `login`/`register`/`refresh`; el navegador las reenvía solo. No se usa `Authorization: Bearer` |
 | Dinero | Entero en pesos uruguayos (UYU). Ej: `1200000` = $U 1.200.000. **Nunca** decimales |
 | Fechas | ISO‑8601 string (`"2026-03-14T17:00:00Z"`) |
 | IDs | String opaco. El backend los genera; el front nunca los inventa |
@@ -26,10 +26,10 @@
 
 | Símbolo | Nivel | Significado |
 |---------|-------|-------------|
-| 🟢 | **Público** | No requiere token |
-| 🔵 | **Autenticado** | Requiere token válido (cualquier usuario logueado) |
-| 🟣 | **Autenticado + Dueño** | Token válido **y** ser el dueño del recurso (self / palquista del palco / titular de la orden) |
-| 🔴 | **Autenticado + Admin** | Token válido **y** rol `admin` (autorización por rol) |
+| 🟢 | **Público** | No requiere sesión |
+| 🔵 | **Autenticado** | Requiere cookie de sesión válida (cualquier usuario logueado) |
+| 🟣 | **Autenticado + Dueño** | Sesión válida **y** ser el dueño del recurso (self / palquista del palco / titular de la orden) |
+| 🔴 | **Autenticado + Admin** | Sesión válida **y** rol `admin` (autorización por rol) |
 
 ```json
 {
@@ -41,6 +41,33 @@
   }
 }
 ```
+
+### 1.1 Sesión por cookies (httpOnly)
+
+Los tokens **no** se devuelven en el cuerpo ni los maneja el front: viajan en
+**cookies httpOnly** que el servidor fija con `Set-Cookie` y el navegador reenvía
+automáticamente en cada request (con `credentials: 'include'`). Al ser
+`HttpOnly`, **JavaScript no puede leerlas** (mitiga el robo de token por XSS).
+
+| Cookie | Contenido | Atributos |
+|--------|-----------|-----------|
+| `access_token` | Access JWT (RS256), vida corta | `HttpOnly; Secure; SameSite=Strict; Path=/api/v1; Max-Age=access_token_ttl_seconds` |
+| `refresh_token` | Refresh token opaco, vida larga | `HttpOnly; Secure; SameSite=Strict; Path=/api/v1/auth/refresh; Max-Age=refresh_token_ttl_seconds` |
+| `csrf_token` | Token CSRF (legible por JS) | `Secure; SameSite=Strict` (sin `HttpOnly`) |
+
+- El `refresh_token` se acota con `Path` al endpoint de refresh: no se envía en
+  las demás llamadas, reduciendo su exposición.
+- **CSRF (double-submit):** como las cookies se envían solas, las requests que
+  **mutan estado** (POST/PUT/PATCH/DELETE) deben incluir el header
+  `X-CSRF-Token` con el valor de la cookie `csrf_token`; el backend exige que
+  coincidan. `SameSite=Strict` es la primera barrera; el token, la segunda.
+- **CORS:** si el front vive en otro origen, el backend responde
+  `Access-Control-Allow-Credentials: true` y un origen explícito (no `*`).
+- **logout / rotación:** `logout` borra las cookies (`Max-Age=0`) y revoca el
+  refresh token; `refresh` rota y reescribe ambas cookies.
+- El cuerpo de `login`/`register`/`refresh` sólo devuelve `expiresIn` (segundos
+  de vida del access) para que el front agende el refresh silencioso; el usuario
+  se obtiene con `GET /me` o `GET /bootstrap`.
 
 ---
 
@@ -100,10 +127,10 @@ tabla y en JSON), nivel de acceso, y la **respuesta** con su tipo de dato.
 ### 1. `GET /bootstrap` 🟢
 
 Una sola llamada al abrir la app. Reemplaza las 8 llamadas paralelas que hoy hace
-`bootstrap()`. Si se manda token, además resuelve la sesión y devuelve al usuario con
-sus pedidos.
+`bootstrap()`. Si llega la cookie de sesión, además resuelve la sesión y devuelve
+al usuario con sus pedidos.
 
-**Headers:** `Authorization: Bearer <token>` *(opcional)*
+**Auth:** cookie `access_token` *(opcional)* — el navegador la envía sola.
 
 Sin path ni query params. Sin body.
 
@@ -127,16 +154,17 @@ Sin path ni query params. Sin body.
 
 ---
 
-> **Modelo de tokens (auth real).** El `token` es un **access token JWT firmado
-> con RS256** (asimétrico): de vida corta (`expiresIn` segundos) y **stateless**,
-> se verifica con las claves públicas de `GET /.well-known/jwks.json`. El
-> `refreshToken` es **opaco**, se guarda **hasheado** del lado servidor y **rota**
-> en cada uso (`POST /auth/refresh`). El usuario y sus pedidos se obtienen con
-> `GET /me` o `GET /bootstrap`.
+> **Modelo de tokens (auth real).** El access token es un **JWT firmado con
+> RS256** (asimétrico): de vida corta (`expiresIn` segundos) y **stateless**, se
+> verifica con las claves públicas de `GET /.well-known/jwks.json`. El refresh
+> token es **opaco**, se guarda **hasheado** del lado servidor y **rota** en cada
+> uso (`POST /auth/refresh`). **Ambos viajan en cookies httpOnly** (§1.1), no en
+> el cuerpo. El usuario y sus pedidos se obtienen con `GET /me` o `GET /bootstrap`.
 
 ### 2. `POST /auth/register` 🟢
 
-Crea la cuenta, abre sesión y devuelve los tokens.
+Crea la cuenta y abre sesión: fija las cookies `access_token` y `refresh_token`
+(+ `csrf_token`) vía `Set-Cookie`.
 
 **Body**
 
@@ -151,10 +179,10 @@ Crea la cuenta, abre sesión y devuelve los tokens.
 { "name": "string", "email": "string", "phone": "string?", "password": "string" }
 ```
 
-**Respuesta `201`:**
+**Respuesta `201`:** `Set-Cookie: access_token`, `refresh_token`, `csrf_token`.
 
 ```json
-{ "token": "string", "refreshToken": "string", "expiresIn": 0 }
+{ "expiresIn": 0 }
 ```
 
 **Errores:** `409` email ya registrado · `422` validación (`error.fields`).
@@ -163,8 +191,8 @@ Crea la cuenta, abre sesión y devuelve los tokens.
 
 ### 3. `POST /auth/login` 🟢
 
-Valida credenciales y abre sesión: devuelve el access token (JWT RS256), el
-refresh token y la vida del access en segundos.
+Valida credenciales y abre sesión: fija las cookies `access_token`,
+`refresh_token` y `csrf_token` vía `Set-Cookie`.
 
 **Body**
 
@@ -177,10 +205,10 @@ refresh token y la vida del access en segundos.
 { "email": "string", "password": "string" }
 ```
 
-**Respuesta `200`:**
+**Respuesta `200`:** `Set-Cookie: access_token`, `refresh_token`, `csrf_token`.
 
 ```json
-{ "token": "string", "refreshToken": "string", "expiresIn": 0 }
+{ "expiresIn": 0 }
 ```
 
 **Errores:** `401` credenciales inválidas.
@@ -189,24 +217,17 @@ refresh token y la vida del access en segundos.
 
 ### 3.1 `POST /auth/refresh` 🟢
 
-Renueva el access token a partir del refresh token. **Rota** el refresh token
-(invalida el anterior y entrega uno nuevo, encadenado a la sesión). Si llega un
+Renueva el access token leyendo la cookie `refresh_token` (no hay body).
+**Rota** el refresh token (invalida el anterior y emite uno nuevo, encadenado a
+la sesión) y reescribe las cookies `access_token` y `refresh_token`. Si llega un
 refresh token ya rotado/revocado, se rechaza (posible robo → `401`).
 
-**Body**
+**Auth:** cookie `refresh_token` + header `X-CSRF-Token`. Sin body.
 
-| Campo | Tipo | Req. |
-|-------|------|------|
-| `refreshToken` | string | sí |
+**Respuesta `200`:** `Set-Cookie: access_token`, `refresh_token` (rotadas).
 
 ```json
-{ "refreshToken": "string" }
-```
-
-**Respuesta `200`:**
-
-```json
-{ "token": "string", "refreshToken": "string", "expiresIn": 0 }
+{ "expiresIn": 0 }
 ```
 
 **Errores:** `401` refresh token inválido, vencido o ya rotado.
@@ -215,10 +236,11 @@ refresh token ya rotado/revocado, se rechaza (posible robo → `401`).
 
 ### 4. `POST /auth/logout` 🔵
 
-Cierra la sesión actual: **revoca el refresh token** (la sesión queda `revoked`).
-El access token, al ser de vida corta, expira solo. Sin body.
+Cierra la sesión actual: **revoca el refresh token** (la sesión queda `revoked`)
+y **borra las cookies** (`Set-Cookie` con `Max-Age=0`). El access token, al ser
+de vida corta, expira solo. Sin body.
 
-**Respuesta `204`:** *(sin cuerpo)*
+**Respuesta `204`:** *(sin cuerpo)* — borra `access_token`, `refresh_token`, `csrf_token`.
 
 ---
 
@@ -1316,7 +1338,7 @@ Eventos sensibles para detección de abuso/fraude.
 | Dato | Tratamiento |
 |------|-------------|
 | `password` / contraseñas | Nunca; se reemplaza por `"[REDACTED]"` |
-| Token / `Authorization` | Nunca; se loguea sólo un hash o el `sessionId` |
+| Tokens / `Authorization` / `Cookie` / `Set-Cookie` | Nunca; se loguea sólo un hash o el `sessionId` (el header `Cookie` lleva el access/refresh) |
 | Datos de tarjeta (`card`, PAN, CVV) | Nunca; sólo `brand` + `last4` si hace falta |
 | `payout` (cuenta bancaria, SWIFT) | Nunca en claro; sólo referencia |
 | Documentos / imágenes (data URLs: `idFront`, `idBack`, `proofOfAddress`, `propertyTitle`, fotos) | Nunca el contenido; se loguea sólo tamaño/hash |
@@ -1325,9 +1347,9 @@ Eventos sensibles para detección de abuso/fraude.
 ```json
 {
   "redaction": {
-    "drop": ["password", "authorization", "card.number", "card.cvv", "payout", "idFront", "idBack", "proofOfAddress", "propertyTitle"],
+    "drop": ["password", "authorization", "cookie", "set-cookie", "card.number", "card.cvv", "payout", "idFront", "idBack", "proofOfAddress", "propertyTitle"],
     "mask": ["email", "phone", "ci", "ip"],
-    "hashOnly": ["token", "dataUrls"]
+    "hashOnly": ["token", "refreshToken", "dataUrls"]
   },
   "retention": {
     "accessLog": "30d",
