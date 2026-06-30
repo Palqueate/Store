@@ -145,10 +145,10 @@ Crea la cuenta, abre sesión y devuelve los tokens.
 | `name` | string | sí | mín. 2 caracteres |
 | `email` | string | sí | email válido, único |
 | `phone` | string | no | — |
-| `pass` | string | sí | mín. 4 caracteres |
+| `password` | string | sí | mín. 4 caracteres |
 
 ```json
-{ "name": "string", "email": "string", "phone": "string?", "pass": "string" }
+{ "name": "string", "email": "string", "phone": "string?", "password": "string" }
 ```
 
 **Respuesta `201`:**
@@ -171,10 +171,10 @@ refresh token y la vida del access en segundos.
 | Campo | Tipo | Req. |
 |-------|------|------|
 | `email` | string | sí |
-| `pass` | string | sí |
+| `password` | string | sí |
 
 ```json
-{ "email": "string", "pass": "string" }
+{ "email": "string", "password": "string" }
 ```
 
 **Respuesta `200`:**
@@ -1314,7 +1314,7 @@ Eventos sensibles para detección de abuso/fraude.
 
 | Dato | Tratamiento |
 |------|-------------|
-| `pass` / contraseñas | Nunca; se reemplaza por `"[REDACTED]"` |
+| `password` / contraseñas | Nunca; se reemplaza por `"[REDACTED]"` |
 | Token / `Authorization` | Nunca; se loguea sólo un hash o el `sessionId` |
 | Datos de tarjeta (`card`, PAN, CVV) | Nunca; sólo `brand` + `last4` si hace falta |
 | `payout` (cuenta bancaria, SWIFT) | Nunca en claro; sólo referencia |
@@ -1324,7 +1324,7 @@ Eventos sensibles para detección de abuso/fraude.
 ```json
 {
   "redaction": {
-    "drop": ["pass", "authorization", "card.number", "card.cvv", "payout", "idFront", "idBack", "proofOfAddress", "propertyTitle"],
+    "drop": ["password", "authorization", "card.number", "card.cvv", "payout", "idFront", "idBack", "proofOfAddress", "propertyTitle"],
     "mask": ["email", "phone", "ci", "ip"],
     "hashOnly": ["token", "dataUrls"]
   },
