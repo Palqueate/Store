@@ -5,6 +5,7 @@ import { eventOccurrence } from '@/modules/events/domain/Event'
 import {
   palcoOccupancy, withCart, palcoYearAvailable, seatYearAvailable, seatEventAvailable,
 } from '@/modules/palcos/domain/availability'
+import { orderSnackable, todayISO } from '@/modules/orders/domain/snacks'
 import type { Order, OrderItem } from '@/modules/orders/domain/Order'
 
 export const createCartSlice = (set, get) => ({
@@ -189,6 +190,8 @@ export const createCartSlice = (set, get) => ({
   // blanco. confirmFood la actualiza igual que a una reserva recién pagada.
   addSnacksToOrder: (code) => {
     const order = get().orders.find((o) => o.code === code); if (!order) return
+    // Sólo si el evento todavía no pasó: no se sirve botana para algo ya ocurrido.
+    if (!orderSnackable(order, get().events, todayISO())) return get().flash('El evento ya pasó: no se puede sumar botana')
     set({ activeRes: order, food: [], foodCat: 'all', foodFrom: 'account' })
     get().go('food')
   },

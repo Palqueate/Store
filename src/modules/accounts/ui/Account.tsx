@@ -96,12 +96,14 @@ function OrderCard({ o }: { o: any }) {
         </Stack>
       </div>
 
-      {/* footer: sumar más botana y bebidas a esta compra */}
+      {/* footer: sumar más botana y bebidas a esta compra (si el evento no pasó) */}
       <div style={css("display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; padding:13px 18px; border-top:1px solid var(--border,rgba(255,255,255,.08));")}>
         <span style={css("font-size:12.5px; color:var(--muted-foreground,#9AA6B2);")}>
-          {o.hasFood ? '¿Querés sumar más botana y bebidas?' : '¿Sumás botana y bebidas para el día del evento?'}
+          {!o.canAddSnacks
+            ? 'El evento ya pasó · botana no disponible'
+            : (o.hasFood ? '¿Querés sumar más botana y bebidas?' : '¿Sumás botana y bebidas para el día del evento?')}
         </span>
-        <Btn label={o.hasFood ? 'Sumar más snacks' : 'Agregar snacks'} icon="plus" variant="secondary" size="sm" onClick={o.addSnacks} />
+        <Btn label={o.hasFood ? 'Sumar más snacks' : 'Agregar snacks'} icon="plus" variant="secondary" size="sm" disabled={!o.canAddSnacks} onClick={o.addSnacks} />
       </div>
     </Card>
   )

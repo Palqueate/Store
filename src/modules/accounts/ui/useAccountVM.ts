@@ -1,4 +1,5 @@
 import { useFacade } from '@/shared/ui/vm/facade'
+import { orderSnackable, todayISO } from '@/modules/orders/domain/snacks'
 import type { User } from '@/modules/accounts/domain/User'
 
 export function useAccountVM(): any {
@@ -13,7 +14,12 @@ export function useAccountVM(): any {
   var acctTotalSpent = rawOrders.reduce(function (a, o) { return a + (o.total || 0) + (o.foodTotal || 0) }, 0)
   var acctReservas = rawOrders.reduce(function (a, o) { return a + o.items.reduce(function (x, it) { return x + (it.mode === 'palcoYear' ? 1 : (it.seats ? it.seats.length : (it.qty || 1))) }, 0) }, 0)
 
+  var today = todayISO()
+
   var myOrders = self.myOrders().map(function (o) {
+    // Botana sólo si el evento todavía no pasó (los alquileres anuales valen
+    // toda la temporada). Si pasó, se muestra deshabilitado con su motivo.
+    var canSnack = orderSnackable(o, s.events, today)
     return {
       code: o.code,
       date: (function () { try { return new Date(o.date).toLocaleDateString('es-UY', { day: '2-digit', month: 'short', year: 'numeric' }) } catch (e) { return '' } })(),
@@ -23,7 +29,9 @@ export function useAccountVM(): any {
       hasFood: !!(o.food && o.food.length),
       foodLines: (o.food || []).map(function (f) { return { name: f.name, qty: f.qty, price: self.money(f.price * f.qty) } }),
       foodTotalTxt: self.money(o.foodTotal || 0),
-      // Sumar más botana y bebidas a esta compra (cualquier modalidad).
+      // Sumar más botana y bebidas a esta compra (cualquier modalidad), sólo si
+      // el evento todavía no pasó.
+      canAddSnacks: canSnack,
       addSnacks: function () { self.addSnacksToOrder(o.code) },
     }
   })
