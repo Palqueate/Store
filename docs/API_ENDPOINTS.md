@@ -145,10 +145,10 @@ Crea la cuenta, abre sesión y devuelve los tokens.
 | `name` | string | sí | mín. 2 caracteres |
 | `email` | string | sí | email válido, único |
 | `phone` | string | no | — |
-| `password` | string | sí | mín. 4 caracteres |
+| `pass` | string | sí | mín. 4 caracteres |
 
 ```json
-{ "name": "string", "email": "string", "phone": "string?", "password": "string" }
+{ "name": "string", "email": "string", "phone": "string?", "pass": "string" }
 ```
 
 **Respuesta `201`:**
@@ -171,10 +171,10 @@ refresh token y la vida del access en segundos.
 | Campo | Tipo | Req. |
 |-------|------|------|
 | `email` | string | sí |
-| `password` | string | sí |
+| `pass` | string | sí |
 
 ```json
-{ "email": "string", "password": "string" }
+{ "email": "string", "pass": "string" }
 ```
 
 **Respuesta `200`:**
@@ -246,7 +246,7 @@ Verifica que un OTP sea válido (vigente, no consumido, dentro de los intentos)
 **Body**
 
 ```json
-{ "email": "string", "code-otp": "string" }
+{ "email": "string", "codeOtp": "string" }
 ```
 
 **Respuesta `200`:** `boolean` (`true` si el código es válido).
@@ -264,11 +264,11 @@ abiertas de la cuenta.
 | Campo | Tipo | Req. | Regla |
 |-------|------|------|-------|
 | `email` | string | sí | |
-| `code-otp` | string | sí | OTP vigente |
-| `new-password` | string | sí | mín. 4 caracteres |
+| `codeOtp` | string | sí | OTP vigente |
+| `newPass` | string | sí | mín. 4 caracteres |
 
 ```json
-{ "email": "string", "code-otp": "string", "new-password": "string" }
+{ "email": "string", "codeOtp": "string", "newPass": "string" }
 ```
 
 **Respuesta `200`:** `boolean` (`true` si se cambió).
