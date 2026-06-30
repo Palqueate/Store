@@ -1,5 +1,5 @@
 -- ============================================================================
--- PALQUEATE · ESQUEMA COMPLETO DE BASE DE DATOS (PostgreSQL 16)
+-- PALQUEATE · ESQUEMA COMPLETO DE BASE DE DATOS (PostgreSQL 18)
 -- ----------------------------------------------------------------------------
 -- Script único, idempotente en intención y autocontenido: crea TODO el modelo
 -- (esquemas palqueate + audit), datos de referencia, funciones, triggers y
@@ -15,8 +15,10 @@
 -- db/README.md.
 --
 -- Convenciones: identificadores en inglés (como la API), comentarios en
--- español; PK uuid opacas; dinero entero en UYU (money_amount); tiempos en
--- timestamptz (UTC); created_at/updated_at en toda tabla mutable.
+-- español; PK uuid opacas y ORDENADAS POR TIEMPO con uuidv7() (nativa en PG18,
+-- mejor localidad de índice que el v4 aleatorio); dinero entero en UYU
+-- (money_amount); tiempos en timestamptz (UTC); created_at/updated_at en toda
+-- tabla mutable.
 -- ============================================================================
 
 BEGIN;
@@ -38,8 +40,10 @@ SET search_path = palqueate, public;
 -- Convenciones del proyecto:
 --   · Identificadores SQL en INGLÉS (igual que la API); comentarios en español.
 --   · snake_case para tablas y columnas; plural para nombres de tablas.
---   · Claves primarias UUID opacas (gen_random_uuid) — el backend nunca expone
---     ids secuenciales y el front "nunca los inventa" (ver API_ENDPOINTS §1).
+--   · Claves primarias UUID opacas y ordenadas por tiempo (uuidv7(), nativa en
+--     PG18) — el backend nunca expone ids secuenciales y el front "nunca los
+--     inventa" (ver API_ENDPOINTS §1). uuidv7 da mejor localidad de índice que
+--     el v4 aleatorio sin revelar un contador.
 --   · Dinero: enteros en pesos uruguayos, SIN decimales (dominio money_amount).
 --   · Tiempos: siempre timestamptz (UTC). Las fechas "humanas" del front
 --     (month/day/dow) se derivan en la capa de presentación, no se persisten.
@@ -49,7 +53,7 @@ SET search_path = palqueate, public;
 
 
 -- --- Extensiones ------------------------------------------------------------
-CREATE EXTENSION IF NOT EXISTS pgcrypto;   -- gen_random_uuid(), digest() para hashes
+CREATE EXTENSION IF NOT EXISTS pgcrypto;   -- digest()/crypt() para hashes (uuidv7() es core en PG18)
 CREATE EXTENSION IF NOT EXISTS citext;     -- email case-insensitive con unicidad
 CREATE EXTENSION IF NOT EXISTS btree_gist; -- constraints de exclusión (anti-doble-reserva)
 CREATE EXTENSION IF NOT EXISTS pg_trgm;    -- búsqueda por texto en catálogo/CRM
@@ -227,7 +231,7 @@ INSERT INTO currencies (code, name, symbol) VALUES
 -- El alquiler "anual" (palcoYear/seatYear) cubre una temporada completa. La
 -- ocupación anual se gestiona a nivel temporada (RN-11), por eso es una entidad.
 CREATE TABLE seasons (
-  id          uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  id          uuid        PRIMARY KEY DEFAULT uuidv7(),
   name        text        NOT NULL,                 -- "Temporada 2026"
   year        integer     NOT NULL,
   starts_on   date        NOT NULL,
@@ -248,7 +252,7 @@ VALUES ('Temporada 2026', 2026, '2026-01-01', '2026-12-31', true);
 -- Catálogo de amenities (Wi-Fi, Cocina, Heladera, TV, Baño, Aire, Bar,
 -- Parrillero...). Normalizado para filtrar y reusar; el palquista referencia.
 CREATE TABLE amenities (
-  id          uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  id          uuid        PRIMARY KEY DEFAULT uuidv7(),
   slug        text        NOT NULL UNIQUE,    -- 'wifi', 'kitchen'...
   name        text        NOT NULL,           -- etiqueta mostrada
   icon        text,                            -- nombre de ícono opcional
@@ -300,7 +304,7 @@ INSERT INTO food_categories (id, name, sort_order) VALUES
   ('dulce', 'Dulce', 60);
 
 CREATE TABLE food_items (
-  id           uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  id           uuid        PRIMARY KEY DEFAULT uuidv7(),
   category_id  text        NOT NULL REFERENCES food_categories(id),
   name         text        NOT NULL,
   description  text        NOT NULL DEFAULT '',
@@ -408,7 +412,7 @@ CREATE TYPE media_kind AS ENUM
   ('user_photo', 'stadium_map', 'event_image', 'palco_photo', 'palco_document', 'promo_poster');
 
 CREATE TABLE media_assets (
-  id           uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  id           uuid        PRIMARY KEY DEFAULT uuidv7(),
   kind         media_kind  NOT NULL,
   mime_type    text        NOT NULL DEFAULT 'image/png',
   byte_size    bigint      CHECK (byte_size IS NULL OR byte_size >= 0),
@@ -436,7 +440,7 @@ CREATE INDEX ix_media_assets_sha ON media_assets (content_sha256) WHERE content_
 
 -- --- Usuarios ---------------------------------------------------------------
 CREATE TABLE users (
-  id            uuid         PRIMARY KEY DEFAULT gen_random_uuid(),
+  id            uuid         PRIMARY KEY DEFAULT uuidv7(),
   name          text         NOT NULL CHECK (char_length(trim(name)) >= 2),  -- RN-10
   email         email        NOT NULL,
   phone         text,
@@ -522,7 +526,7 @@ CREATE TRIGGER trg_user_notif_updated
 
 -- --- Medios de pago (tokenizados) -------------------------------------------
 CREATE TABLE user_payment_methods (
-  id          uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  id          uuid        PRIMARY KEY DEFAULT uuidv7(),
   user_id     uuid        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   brand       text,                               -- 'Visa'
   last4       char(4)     CHECK (last4 ~ '^[0-9]{4}$'),
@@ -552,7 +556,7 @@ CREATE TRIGGER trg_user_billing_updated
 -- --- Sesiones / tokens ------------------------------------------------------
 -- Soporta sesión de usuario y "sesión anónima por token" del carrito (API §4).
 CREATE TABLE sessions (
-  id            uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  id            uuid        PRIMARY KEY DEFAULT uuidv7(),
   user_id       uuid        REFERENCES users(id) ON DELETE CASCADE,  -- NULL = anónima
   kind          text        NOT NULL DEFAULT 'user'
                   CHECK (kind IN ('guest', 'user')),
@@ -587,7 +591,7 @@ CREATE INDEX ix_sessions_active ON sessions (expires_at) WHERE revoked_at IS NUL
 
 -- --- Estadios ---------------------------------------------------------------
 CREATE TABLE stadiums (
-  id            uuid         PRIMARY KEY DEFAULT gen_random_uuid(),
+  id            uuid         PRIMARY KEY DEFAULT uuidv7(),
   name          text         NOT NULL,
   short_name    text         NOT NULL,             -- abreviatura (se deriva si falta, API §9)
   city          text,
@@ -621,7 +625,7 @@ ALTER TABLE users
 
 -- --- Eventos ----------------------------------------------------------------
 CREATE TABLE events (
-  id            uuid         PRIMARY KEY DEFAULT gen_random_uuid(),
+  id            uuid         PRIMARY KEY DEFAULT uuidv7(),
   stadium_id    uuid         NOT NULL REFERENCES stadiums(id),
   country_code  country_code REFERENCES countries(code),  -- default: el del estadio
   type_id       text         NOT NULL REFERENCES event_types(id),
@@ -646,7 +650,7 @@ CREATE TRIGGER trg_events_updated
 
 -- --- Funciones del evento (fecha + hora) ------------------------------------
 CREATE TABLE event_occurrences (
-  id            uuid         PRIMARY KEY DEFAULT gen_random_uuid(),
+  id            uuid         PRIMARY KEY DEFAULT uuidv7(),
   event_id      uuid         NOT NULL REFERENCES events(id) ON DELETE CASCADE,
   -- Momento exacto de la función en UTC. month/day/dow/time del front se
   -- derivan de aquí en presentación; no se persisten redundantes.
@@ -687,7 +691,7 @@ COMMENT ON TABLE event_images IS 'Afiches/imágenes opcionales del evento (RD-02
 
 -- --- Palcos -----------------------------------------------------------------
 CREATE TABLE palcos (
-  id            uuid         PRIMARY KEY DEFAULT gen_random_uuid(),
+  id            uuid         PRIMARY KEY DEFAULT uuidv7(),
   stadium_id    uuid         NOT NULL REFERENCES stadiums(id),
   country_code  country_code REFERENCES countries(code),   -- derivado del estadio
   owner_id      uuid         REFERENCES users(id),          -- palquista titular
@@ -740,7 +744,7 @@ COMMENT ON TABLE palco_modes IS 'Modalidades (palcoYear/seatYear/seatEvent) con 
 -- Una fila por butaca del palco (1..seat_count). Es el inventario contra el que
 -- se calcula la disponibilidad y se evita la doble venta (0007).
 CREATE TABLE palco_seats (
-  id          uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  id          uuid        PRIMARY KEY DEFAULT uuidv7(),
   palco_id    uuid        NOT NULL REFERENCES palcos(id) ON DELETE CASCADE,
   seat_number integer     NOT NULL CHECK (seat_number >= 1),
   label       text,                               -- etiqueta opcional ("A1")
@@ -751,7 +755,7 @@ CREATE INDEX ix_palco_seats_palco ON palco_seats (palco_id);
 
 -- --- Co-propietarios --------------------------------------------------------
 CREATE TABLE palco_co_owners (
-  id          uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  id          uuid        PRIMARY KEY DEFAULT uuidv7(),
   palco_id    uuid        NOT NULL REFERENCES palcos(id) ON DELETE CASCADE,
   name        text        NOT NULL,
   email       email       NOT NULL,
@@ -809,7 +813,7 @@ COMMENT ON TABLE palco_images IS 'Fotos del palco (RN-06 exige >= 3 para publica
 -- Traza cada transición del ciclo de vida (RN-04/05/07/08/09). Da auditoría de
 -- "cuándo y por qué" cambió de estado, además del log de auditoría general.
 CREATE TABLE palco_status_history (
-  id          uuid         PRIMARY KEY DEFAULT gen_random_uuid(),
+  id          uuid         PRIMARY KEY DEFAULT uuidv7(),
   palco_id    uuid         NOT NULL REFERENCES palcos(id) ON DELETE CASCADE,
   from_status palco_status,
   to_status   palco_status NOT NULL,
@@ -837,7 +841,7 @@ CREATE INDEX ix_palco_status_history_palco ON palco_status_history (palco_id, ch
 
 -- --- Revisiones -------------------------------------------------------------
 CREATE TABLE palco_reviews (
-  id           uuid            PRIMARY KEY DEFAULT gen_random_uuid(),
+  id           uuid            PRIMARY KEY DEFAULT uuidv7(),
   palco_id     uuid            NOT NULL REFERENCES palcos(id) ON DELETE CASCADE,
   decision     review_decision NOT NULL,
   reason       text,                                  -- motivo general (sólo en reject)
@@ -856,7 +860,7 @@ CREATE UNIQUE INDEX uq_palco_reviews_current ON palco_reviews (palco_id) WHERE i
 
 -- --- Campos observados ------------------------------------------------------
 CREATE TABLE palco_review_field_flags (
-  id            uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  id            uuid        PRIMARY KEY DEFAULT uuidv7(),
   review_id     uuid        NOT NULL REFERENCES palco_reviews(id) ON DELETE CASCADE,
   field_key     text        NOT NULL REFERENCES palco_review_field_defs(key),
   -- Motivo por el que el admin lo marcó (RN-09: cada campo observado lo lleva).
@@ -894,7 +898,7 @@ CREATE INDEX ix_review_flags_review ON palco_review_field_flags (review_id);
 
 -- --- Carrito ----------------------------------------------------------------
 CREATE TABLE carts (
-  id          uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  id          uuid        PRIMARY KEY DEFAULT uuidv7(),
   user_id     uuid        REFERENCES users(id) ON DELETE CASCADE,
   session_id  uuid        REFERENCES sessions(id) ON DELETE CASCADE,
   status      text        NOT NULL DEFAULT 'open'
@@ -914,7 +918,7 @@ CREATE TRIGGER trg_carts_updated
 -- --- Ítems del carrito ------------------------------------------------------
 -- El id de la fila es el `uid` que expone la API (DELETE /cart/items/{uid}).
 CREATE TABLE cart_items (
-  id            uuid         PRIMARY KEY DEFAULT gen_random_uuid(),
+  id            uuid         PRIMARY KEY DEFAULT uuidv7(),
   cart_id       uuid         NOT NULL REFERENCES carts(id) ON DELETE CASCADE,
   palco_id      uuid         NOT NULL REFERENCES palcos(id),
   mode          palco_mode   NOT NULL,
@@ -935,7 +939,7 @@ CREATE INDEX ix_cart_items_palco ON cart_items (palco_id);
 
 -- --- Holds (reservas temporales) --------------------------------------------
 CREATE TABLE holds (
-  id            uuid         PRIMARY KEY DEFAULT gen_random_uuid(),
+  id            uuid         PRIMARY KEY DEFAULT uuidv7(),
   cart_item_id  uuid         UNIQUE REFERENCES cart_items(id) ON DELETE CASCADE, -- 1:1 con el ítem
   user_id       uuid         REFERENCES users(id) ON DELETE CASCADE,
   palco_id      uuid         NOT NULL REFERENCES palcos(id),
@@ -959,7 +963,7 @@ CREATE INDEX ix_holds_active_expiry ON holds (expires_at) WHERE status = 'active
 -- queda en holds). Al confirmar el checkout, pasa a 'sold'. Los índices únicos
 -- parciales por ámbito garantizan a lo sumo un bloqueo por asiento.
 CREATE TABLE seat_reservations (
-  id            uuid         PRIMARY KEY DEFAULT gen_random_uuid(),
+  id            uuid         PRIMARY KEY DEFAULT uuidv7(),
   palco_id      uuid         NOT NULL REFERENCES palcos(id),
   mode          palco_mode   NOT NULL,
   season_id     uuid         REFERENCES seasons(id),
@@ -1009,7 +1013,7 @@ CREATE UNIQUE INDEX uq_seat_res_palcoyear
 
 -- --- Órdenes ----------------------------------------------------------------
 CREATE TABLE orders (
-  id              uuid         PRIMARY KEY DEFAULT gen_random_uuid(),
+  id              uuid         PRIMARY KEY DEFAULT uuidv7(),
   code            text         NOT NULL UNIQUE,     -- "PLQ-ME02" (código de acceso/QR)
   user_id         uuid         NOT NULL REFERENCES users(id),
   status          order_status NOT NULL DEFAULT 'paid',
@@ -1048,7 +1052,7 @@ CREATE TRIGGER trg_orders_updated
 
 -- --- Ítems de la orden ------------------------------------------------------
 CREATE TABLE order_items (
-  id            uuid         PRIMARY KEY DEFAULT gen_random_uuid(),  -- uid expuesto
+  id            uuid         PRIMARY KEY DEFAULT uuidv7(),  -- uid expuesto
   order_id      uuid         NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
   palco_id      uuid         NOT NULL REFERENCES palcos(id),
   palco_title   text         NOT NULL,             -- snapshot
@@ -1091,7 +1095,7 @@ COMMENT ON TABLE order_item_seats IS 'Butacas concretas vendidas en un ítem (va
 -- reserva (snack_items con order_id) y se pagan combinados (orders.total).
 -- Los snacks no pagan comisión ni entran al payout: son ingreso aparte.
 CREATE TABLE snack_orders (
-  id              uuid         PRIMARY KEY DEFAULT gen_random_uuid(),
+  id              uuid         PRIMARY KEY DEFAULT uuidv7(),
   code            text         NOT NULL UNIQUE,     -- "PLQ-S-7F3A" (ticket de snacks)
   reservation_id  uuid         NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
   user_id         uuid         NOT NULL REFERENCES users(id),
@@ -1117,7 +1121,7 @@ CREATE TRIGGER trg_snack_orders_updated
 --   · snack_order_id  → snacks de una compra posterior (checkout separado).
 -- El CHECK garantiza exactamente un padre. Guarda snapshots (precio/nombre).
 CREATE TABLE snack_items (
-  id             uuid         PRIMARY KEY DEFAULT gen_random_uuid(),
+  id             uuid         PRIMARY KEY DEFAULT uuidv7(),
   order_id       uuid         REFERENCES orders(id) ON DELETE CASCADE,
   snack_order_id uuid         REFERENCES snack_orders(id) ON DELETE CASCADE,
   food_item_id   uuid         REFERENCES food_items(id),  -- NULL si el ítem se dio de baja
@@ -1136,7 +1140,7 @@ CREATE INDEX ix_snack_items_snack_order ON snack_items (snack_order_id) WHERE sn
 -- Hoy el pago es SIMULADO (REQUERIMIENTOS §2.2). El modelo ya soporta el ciclo
 -- real (autorización/captura/reembolso) para cuando se integre la pasarela.
 CREATE TABLE payments (
-  id             uuid         PRIMARY KEY DEFAULT gen_random_uuid(),
+  id             uuid         PRIMARY KEY DEFAULT uuidv7(),
   -- Un pago cubre una reserva (palco + snacks iniciales) O una orden de snacks
   -- posterior; exactamente uno de los dos padres.
   order_id       uuid         REFERENCES orders(id) ON DELETE CASCADE,
@@ -1164,7 +1168,7 @@ CREATE TRIGGER trg_payments_updated
 -- payout = subtotal del palco − comisión (RN-02). Se desglosa por palco/dueño
 -- porque una orden puede incluir ítems de distintos palcos/palquistas.
 CREATE TABLE payouts (
-  id                uuid          PRIMARY KEY DEFAULT gen_random_uuid(),
+  id                uuid          PRIMARY KEY DEFAULT uuidv7(),
   order_id          uuid          NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
   palco_id          uuid          NOT NULL REFERENCES palcos(id),
   owner_id          uuid          REFERENCES users(id),
@@ -1243,7 +1247,7 @@ CREATE INDEX ix_palco_favorites_palco ON palco_favorites (palco_id);
 -- Calificación del cliente tras usar el palco. Es el ORIGEN del rating mostrado
 -- (palcos.rating se recalcula como promedio). Una calificación por orden+palco.
 CREATE TABLE palco_ratings (
-  id          uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  id          uuid        PRIMARY KEY DEFAULT uuidv7(),
   palco_id    uuid        NOT NULL REFERENCES palcos(id) ON DELETE CASCADE,
   user_id     uuid        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   order_id    uuid        REFERENCES orders(id) ON DELETE SET NULL,
@@ -1260,7 +1264,7 @@ CREATE TYPE notification_status AS ENUM
   ('queued', 'sent', 'failed', 'read', 'suppressed');
 
 CREATE TABLE notifications (
-  id            uuid                 PRIMARY KEY DEFAULT gen_random_uuid(),
+  id            uuid                 PRIMARY KEY DEFAULT uuidv7(),
   user_id       uuid                 NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   channel       notification_channel NOT NULL,
   type          text                 NOT NULL,      -- 'palco.reviewed' | 'order.confirmed'...
@@ -1371,7 +1375,7 @@ CREATE TABLE audit.access_log_default PARTITION OF audit.access_log DEFAULT;
 -- --- 5.2 Log de auditoría de dominio ----------------------------------------
 CREATE TABLE audit.audit_log (
   id          bigint             GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  audit_id    uuid               NOT NULL DEFAULT gen_random_uuid(),
+  audit_id    uuid               NOT NULL DEFAULT uuidv7(),
   request_id  uuid,                                  -- enlaza con access_log
   ts          timestamptz        NOT NULL DEFAULT now(),
   actor_id    uuid,                                  -- usuario que ejecuta
@@ -1708,7 +1712,7 @@ COMMENT ON VIEW v_food_revenue IS 'Ingreso por botana (snacks iniciales + órden
 CREATE TYPE discount_kind AS ENUM ('percentage', 'fixed');
 
 CREATE TABLE discount_codes (
-  id              uuid          PRIMARY KEY DEFAULT gen_random_uuid(),
+  id              uuid          PRIMARY KEY DEFAULT uuidv7(),
   code            citext        NOT NULL UNIQUE,     -- lo que tipea el usuario (case-insensitive)
   description     text          NOT NULL DEFAULT '',
   kind            discount_kind NOT NULL,
@@ -1759,7 +1763,7 @@ ALTER TABLE orders
 
 -- --- Usos (libro mayor) -----------------------------------------------------
 CREATE TABLE discount_redemptions (
-  id               uuid         PRIMARY KEY DEFAULT gen_random_uuid(),
+  id               uuid         PRIMARY KEY DEFAULT uuidv7(),
   discount_code_id uuid         NOT NULL REFERENCES discount_codes(id),
   order_id         uuid         NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
   user_id          uuid         REFERENCES users(id),

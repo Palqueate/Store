@@ -9,7 +9,7 @@
 
 | | |
 |---|---|
-| **Motor** | PostgreSQL 16 (validado: aplica y pasa pruebas funcionales) |
+| **Motor** | PostgreSQL 18 (usa `uuidv7()` nativo para las PK) |
 | **Esquemas** | `palqueate` (negocio) · `audit` (trazabilidad) |
 | **Script** | `db/schema.sql` (único, autocontenido) |
 | **Convención de nombres** | identificadores en inglés (como la API), comentarios en español |
@@ -61,8 +61,10 @@ facilitar su lectura; cada bloque corresponde a un área del modelo.
 
 ## 3. Convenciones transversales
 
-- **PK**: `uuid` opaco (`gen_random_uuid()`); el backend los genera, el front no
-  los inventa (API §1). Los logs de alto volumen usan `bigint` de identidad.
+- **PK**: `uuid` opaco y **ordenado por tiempo** (`uuidv7()`, nativo en PG18); el
+  backend los genera, el front no los inventa (API §1). UUIDv7 mejora la
+  localidad de índice frente al v4 aleatorio (inserciones casi secuenciales) sin
+  exponer un contador. Los logs de alto volumen usan `bigint` de identidad.
 - **Dinero**: dominio `money_amount` = `bigint` ≥ 0, **sin decimales** (UYU); la
   moneda viaja en columnas `currency` (default `UYU`) — RN-14, API §1.
 - **Tiempo**: siempre `timestamptz` (UTC). Los campos "humanos" del front
@@ -311,8 +313,10 @@ reserva **o** una orden de snacks).
 
 ## 11. Validación realizada
 
-El esquema completo se aplicó sobre **PostgreSQL 16** y se ejecutaron pruebas de
-humo que confirman las reglas críticas:
+El esquema apunta a **PostgreSQL 18** (PK con `uuidv7()` nativo). Se ejecutaron
+pruebas de humo que confirman las reglas críticas (validadas estructuralmente
+sobre PG16 con un *shim* `uuidv7()`→`gen_random_uuid()`, idéntico salvo el
+ordenamiento temporal del id):
 
 - comisión del 4 % (`commission_for(13000) = 520`),
 - bloqueo y liberación de butacas (`taken_seats` correcto),
