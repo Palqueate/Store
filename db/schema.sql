@@ -1232,6 +1232,9 @@ CREATE TABLE order_items (
   parking_qty        integer      NOT NULL DEFAULT 0 CHECK (parking_qty >= 0),
   parking_unit_price money_amount NOT NULL DEFAULT 0,   -- precio por lugar congelado
   parking_total      money_amount NOT NULL DEFAULT 0,   -- parking_unit_price * parking_qty
+  -- Botana y bebidas elegidas para ESTE palco (snacks iniciales por ítem).
+  -- Las líneas viven en snack_items (order_item_id); acá va el total denormalizado.
+  snacks_total       money_amount NOT NULL DEFAULT 0,
   created_at    timestamptz  NOT NULL DEFAULT now()
 );
 COMMENT ON TABLE order_items IS 'Líneas de la reserva con snapshots inmutables (RD-06).';
@@ -1255,8 +1258,8 @@ COMMENT ON TABLE order_item_seats IS 'Butacas concretas vendidas en un ítem (va
 -- --- Órdenes de snacks (botana) ---------------------------------------------
 -- Una reserva (orders) puede tener 0..N órdenes de snacks compradas DESPUÉS, y
 -- cada una se cobra por SEPARADO (checkout propio). Los snacks elegidos al
--- momento de reservar NO crean una snack_order: van como líneas en la propia
--- reserva (snack_items con order_id) y se pagan combinados (orders.total).
+-- momento de reservar NO crean una snack_order: van como líneas de cada palco
+-- (snack_items con order_item_id) y se pagan combinados (orders.total).
 -- Los snacks no pagan comisión ni entran al payout: son ingreso aparte.
 CREATE TABLE snack_orders (
   id              uuid         PRIMARY KEY DEFAULT uuidv7(),
@@ -1280,12 +1283,14 @@ CREATE TRIGGER trg_snack_orders_updated
   FOR EACH ROW EXECUTE FUNCTION palqueate.set_updated_at();
 
 -- --- Líneas de snacks -------------------------------------------------------
--- Una sola tabla para TODAS las líneas de botana, con dos posibles padres:
---   · order_id        → snacks iniciales, pagados con la reserva.
+-- Una sola tabla para TODAS las líneas de botana, con tres posibles padres:
+--   · order_item_id   → snacks iniciales de UN palco (van con la reserva).
+--   · order_id        → snacks iniciales a nivel reserva (legado/compatibilidad).
 --   · snack_order_id  → snacks de una compra posterior (checkout separado).
 -- El CHECK garantiza exactamente un padre. Guarda snapshots (precio/nombre).
 CREATE TABLE snack_items (
   id             uuid         PRIMARY KEY DEFAULT uuidv7(),
+  order_item_id  uuid         REFERENCES order_items(id) ON DELETE CASCADE,
   order_id       uuid         REFERENCES orders(id) ON DELETE CASCADE,
   snack_order_id uuid         REFERENCES snack_orders(id) ON DELETE CASCADE,
   food_item_id   uuid         REFERENCES food_items(id),  -- NULL si el ítem se dio de baja
@@ -1294,10 +1299,11 @@ CREATE TABLE snack_items (
   unit_price     money_amount NOT NULL,             -- snapshot
   line_total     money_amount NOT NULL,             -- unit_price * qty
   created_at     timestamptz  NOT NULL DEFAULT now(),
-  CHECK (num_nonnulls(order_id, snack_order_id) = 1)
+  CHECK (num_nonnulls(order_item_id, order_id, snack_order_id) = 1)
 );
-COMMENT ON TABLE snack_items IS 'Líneas de botana: padre = reserva (snacks iniciales) o snack_order (compra posterior).';
+COMMENT ON TABLE snack_items IS 'Líneas de botana: padre = palco (order_item, snacks iniciales por palco), reserva o snack_order (compra posterior).';
 CREATE INDEX ix_snack_items_order ON snack_items (order_id) WHERE order_id IS NOT NULL;
+CREATE INDEX ix_snack_items_order_item ON snack_items (order_item_id) WHERE order_item_id IS NOT NULL;
 CREATE INDEX ix_snack_items_snack_order ON snack_items (snack_order_id) WHERE snack_order_id IS NOT NULL;
 
 -- --- Pagos ------------------------------------------------------------------

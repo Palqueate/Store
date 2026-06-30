@@ -804,7 +804,6 @@ los holds en `taken`), **crea la orden** (palco + snacks iniciales en un único 
 | `contact` | object | no | `{ name, email }` (default: los del usuario) |
 | `payMethod` | enum | no | `card` \| `transfer` (default `card`) |
 | `discountCode` | string | no | Código de descuento a aplicar al subtotal del palco |
-| `snacks` | array | no | Snacks iniciales `[{ id, qty }]` (ids del catálogo de comida) |
 | `idempotencyKey` | string | no | Evita doble cobro si el botón se reenvía |
 
 ```json
@@ -812,13 +811,14 @@ los holds en `taken`), **crea la orden** (palco + snacks iniciales en un único 
   "contact": { "name": "string?", "email": "string?" },
   "payMethod": "'card' | 'transfer'?",
   "discountCode": "string?",
-  "snacks": [ { "id": "string", "qty": "number" } ],
   "idempotencyKey": "string?"
 }
 ```
 
 > El front **no** manda ítems del palco, precios ni totales: el backend los toma del
-> carrito y del palco/catálogo (fuente de verdad del precio, evita manipulación).
+> carrito y del palco/catálogo (fuente de verdad del precio, evita manipulación). Los
+> **snacks iniciales viajan por palco** dentro de cada ítem del carrito (se eligen con
+> `POST /cart/items`), no en el cuerpo del checkout.
 
 **Respuesta `201`:** `Order`.
 
@@ -835,16 +835,21 @@ los holds en `taken`), **crea la orden** (palco + snacks iniciales en un único 
       "term": "string", "qty": "number", "price": "number",
       "eventId": "string?", "occurrenceId": "string?",
       "eventLabel": "string?", "eventOpp": "string?",
-      "parkingQty": "number?", "parkingPrice": "number?", "parkingTotal": "number?"
+      "parkingQty": "number?", "parkingPrice": "number?", "parkingTotal": "number?",
+      "snacks": "Array<{ id: string, name: string, qty: number, price: number }>?",
+      "snacksTotal": "number?"
     }
   ],
   "food": "Array<{ id: string, name: string, qty: number, price: number }>",
-  "foodTotal": "number"
+  "foodTotal": "number",
+  "snacksTotal": "number"
 }
 ```
 
-> `total` = `subtotal` + `fee` − `discountTotal` + `foodTotal`. El `subtotal` incluye el
-> estacionamiento (`parkingTotal` de cada ítem) además del palco/asientos.
+> `total` = `subtotal` + `fee` − `discountTotal` + `snacksTotal` (+ `foodTotal` de snacks
+> post-reserva). El `subtotal` incluye el estacionamiento (`parkingTotal` de cada ítem);
+> los **snacks van por palco** (`items[].snacksTotal`) y no pagan comisión. `food`/`foodTotal`
+> quedan para los snacks comprados **después** de la reserva.
 
 **Errores:** `409` un hold venció o el asiento ya fue tomado (carrera) → el front
 refresca disponibilidad · `422` carrito vacío · `401` sin sesión.
@@ -1142,6 +1147,7 @@ con un TTL y recalcula el precio. Si alguien ya los tiene tomados o en hold → 
 | `eventId` | string | sólo `seatEvent` | |
 | `occurrenceId` | string | sólo `seatEvent` | función (fecha+hora) |
 | `parkingQty` | number | no | lugares de estacionamiento a sumar (0..`parking.n`); el backend recalcula el costo con `parking.price` |
+| `snacks` | array | no | Botana y bebidas de ESTE palco `[{ id, qty }]`; el backend recalcula el costo con el catálogo |
 
 ```json
 {
@@ -1150,7 +1156,8 @@ con un TTL y recalcula el precio. Si alguien ya los tiene tomados o en hold → 
   "seats": "number[]",
   "eventId": "string?",
   "occurrenceId": "string?",
-  "parkingQty": "number?"
+  "parkingQty": "number?",
+  "snacks": [ { "id": "string", "qty": "number" } ]
 }
 ```
 
