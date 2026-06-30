@@ -485,28 +485,31 @@ export function SnacksModal() {
         ))}
       </div>
 
-      <div style={css(vals.snackGrid)}>
-        {(vals.snackItems || []).map((it: any, i: number) => (
-          <Card key={i} padding="12px" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <div>
-              <h4 style={{ margin: '0 0 2px', fontFamily: "'Archivo'", fontWeight: 700, fontSize: '14px', color: 'var(--foreground,#F4EFE6)', lineHeight: 1.2 }}>{it.name}</h4>
-              <div style={{ fontSize: '11.5px', color: 'var(--muted-foreground,#9AA6B2)' }}>{it.desc}</div>
-            </div>
-            <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-              <span style={{ fontFamily: "'Archivo'", fontWeight: 800, fontSize: '14px', color: 'var(--primary,#C9A24B)' }}>{it.price}</span>
-              {it.noQty ? (
-                <Btn label="Agregar" icon="plus" size="sm" variant="secondary" onClick={it.add} />
-              ) : (
-                <QuantityStepper
-                  value={it.qty}
-                  min={0}
-                  max={99}
-                  onChange={(next: number) => { if (next > it.qty) it.add(); else it.dec() }}
-                />
-              )}
-            </div>
-          </Card>
-        ))}
+      {/* Solo la grilla de productos scrollea; header, chips y footer quedan fijos. */}
+      <div style={{ maxHeight: '48vh', overflowY: 'auto', overflowX: 'hidden', margin: '0 -4px', padding: '2px 4px' }}>
+        <div style={css(vals.snackGrid)}>
+          {(vals.snackItems || []).map((it: any, i: number) => (
+            <Card key={i} padding="12px" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div>
+                <h4 style={{ margin: '0 0 2px', fontFamily: "'Archivo'", fontWeight: 700, fontSize: '14px', color: 'var(--foreground,#F4EFE6)', lineHeight: 1.2 }}>{it.name}</h4>
+                <div style={{ fontSize: '11.5px', color: 'var(--muted-foreground,#9AA6B2)' }}>{it.desc}</div>
+              </div>
+              <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                <span style={{ fontFamily: "'Archivo'", fontWeight: 800, fontSize: '14px', color: 'var(--primary,#C9A24B)' }}>{it.price}</span>
+                {it.noQty ? (
+                  <Btn label="Agregar" icon="plus" size="sm" variant="secondary" onClick={it.add} />
+                ) : (
+                  <QuantityStepper
+                    value={it.qty}
+                    min={0}
+                    max={99}
+                    onChange={(next: number) => { if (next > it.qty) it.add(); else it.dec() }}
+                  />
+                )}
+              </div>
+            </Card>
+          ))}
+        </div>
       </div>
     </Modal>
   )
