@@ -218,7 +218,7 @@ export default function Detail() {
                 {vals.snackCount > 0 ? ('Snacks · ' + vals.snackCount + ' agregados') : 'Agregar snacks'}
               </span>
               <span style={{ fontFamily: "'Space Mono'", fontSize: '12px', color: 'var(--primary,#C9A24B)' }}>
-                {vals.snackCount > 0 ? 'Editar' : '+ Botana y bebidas'}
+                {vals.snackCount > 0 ? ('Editar · ' + vals.det.snacksTotalTxt) : '+ Botana y bebidas'}
               </span>
             </button>
 

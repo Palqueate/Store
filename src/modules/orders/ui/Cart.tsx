@@ -51,6 +51,18 @@ export default function Cart() {
                       <span style={css("color:var(--foreground,#F4EFE6); white-space:nowrap;")}>{it.parkingPrice}</span>
                     </div>
                   ) : null}
+                  {(it.snackLines || []).map((sn: any, j: number) => (
+                    <div key={j} style={css("display:flex; justify-content:space-between; gap:12px; font-size:13px;")}>
+                      <span style={css("color:var(--muted-foreground,#9AA6B2);")}>🍿 {sn.qty} × {sn.name}</span>
+                      <span style={css("color:var(--foreground,#F4EFE6); white-space:nowrap;")}>{sn.price}</span>
+                    </div>
+                  ))}
+                  <button
+                    onClick={it.editSnacks}
+                    style={css("align-self:flex-start; margin-top:2px; background:none; border:none; cursor:pointer; padding:0; font-family:'Archivo'; font-weight:700; font-size:12.5px; color:var(--primary,#C9A24B);")}
+                  >
+                    {it.hasSnacks ? '🍿 Editar botana y bebidas' : '🍿 Agregar botana y bebidas'}
+                  </button>
                   <div style={css("display:flex; justify-content:space-between; gap:12px; align-items:baseline; margin-top:4px;")}>
                     <span style={css("font-family:'Archivo'; font-weight:700; font-size:13px; color:var(--subtle-foreground,#6B7480);")}>Subtotal del ítem</span>
                     <span style={css("font-family:'Archivo'; font-weight:800; font-size:18px; color:var(--foreground,#F4EFE6); white-space:nowrap;")}>{it.lineTotal}</span>
@@ -65,8 +77,9 @@ export default function Cart() {
               <div style={css("font-family:'Archivo'; font-weight:800; font-size:16px; color:var(--foreground,#F4EFE6); margin-bottom:16px;")}>Resumen</div>
               <DescriptionList
                 items={[
-                  { term: 'Subtotal', value: vals.cartSub },
+                  { term: 'Subtotal palco', value: vals.cartSub },
                   { term: 'Comisión de servicio', value: vals.cartFee },
+                  ...(vals.hasSnacks ? [{ term: 'Botana y bebidas', value: vals.cartSnacks }] : []),
                 ]}
               />
               <div style={css("display:flex; justify-content:space-between; align-items:baseline; margin-top:16px; padding-top:14px; border-top:1px solid var(--border,rgba(255,255,255,.1));")}>

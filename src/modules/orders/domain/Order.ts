@@ -20,6 +20,10 @@ export interface OrderItem {
   parkingPrice?: number
   /** Costo total del estacionamiento del ítem (parkingQty × parkingPrice). */
   parkingTotal?: number
+  /** Botana y bebidas elegidas para ESTE palco (snapshot al reservar). */
+  snacks?: Array<{ id: string; name: string; qty: number; price: number }>
+  /** Costo total de los snacks del ítem. */
+  snacksTotal?: number
 }
 
 export interface Order {
@@ -30,7 +34,10 @@ export interface Order {
   total: number
   date: string
   contact: { name: string; email: string }
+  /** Snacks agregados DESPUÉS de la reserva (cobro aparte, post-reserva). */
   food: Array<{ id: string; name: string; qty: number; price: number }>
   foodTotal: number
+  /** Snacks iniciales: suma de los snacks por palco (items[].snacksTotal). */
+  snacksTotal?: number
   items: OrderItem[]
 }

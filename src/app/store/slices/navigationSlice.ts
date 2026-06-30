@@ -39,10 +39,10 @@ export const createNavigationSlice = (set, get) => ({
     const defMode = (p.modes.palcoYear && p.modes.palcoYear.on) ? 'palcoYear' : (p.modes.seatYear && p.modes.seatYear.on) ? 'seatYear' : 'seatEvent'
     const ev = get().events.filter((e) => e.stadium === p.stadium)
     const eid = ev[0] ? ev[0].id : get().eventId
-    set({ pId: id, mode: defMode, eventId: eid, occurrenceId: get()._firstOcc(eid), seats: [], parkSel: 0, fromEvent: false })
+    set({ pId: id, mode: defMode, eventId: eid, occurrenceId: get()._firstOcc(eid), seats: [], parkSel: 0, food: [], snacksTarget: 'draft', fromEvent: false })
   },
   openDetail: (id) => { get().selectPalco(id); get().go('detail') },
-  openDetailEvent: (pid, eid, occId) => { set({ pId: pid, mode: 'seatEvent', eventId: eid, occurrenceId: occId || get()._firstOcc(eid), seats: [], parkSel: 0, fromEvent: true }); get().go('detail') },
+  openDetailEvent: (pid, eid, occId) => { set({ pId: pid, mode: 'seatEvent', eventId: eid, occurrenceId: occId || get()._firstOcc(eid), seats: [], parkSel: 0, food: [], snacksTarget: 'draft', fromEvent: true }); get().go('detail') },
   setMode: (m) => set({ mode: m, seats: [] }),
   setEvent: (id) => set({ eventId: id, occurrenceId: get()._firstOcc(id), seats: [] }),
   // Elige la función (fecha + hora) dentro del evento actual.

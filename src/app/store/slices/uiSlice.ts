@@ -16,9 +16,6 @@ export const createUiSlice = (set, get) => ({
   // transitional view-model for inline filter/tab updates.
   setState: (patch) => set(patch),
 
-  openSnacks: () => set({ snacksModal: true }),
-  closeSnacks: () => set({ snacksModal: false }),
-
   money: (n) => formatMoney(n),
   cycleTheme: () => { const i = THEME_ORDER.indexOf(get().theme); set({ theme: THEME_ORDER[(i + 1) % THEME_ORDER.length] }) },
   flash: (msg) => {

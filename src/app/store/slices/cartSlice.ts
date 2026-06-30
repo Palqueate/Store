@@ -6,7 +6,12 @@ import type { Order, OrderItem } from '@/modules/orders/domain/Order'
 
 export const createCartSlice = (set, get) => ({
   cart: [] as OrderItem[],
-  food: [] as { id: string; qty: number }[], // in-progress food order (NOT the catalog)
+  // `food` es el borrador de snacks en edición: para el palco que se está
+  // configurando en el detalle, o el de un ítem del carrito (ver snacksTarget).
+  food: [] as { id: string; qty: number }[],
+  // Destino del borrador de snacks: 'draft' (palco nuevo del detalle) o el uid
+  // de un ítem del carrito que se está editando.
+  snacksTarget: 'draft' as string,
   foodCat: 'all',
   contact: { name: '', email: '' } as { name: string; email: string },
   payMethod: 'card' as 'card' | 'transfer',
@@ -15,8 +20,11 @@ export const createCartSlice = (set, get) => ({
   orders: [] as Order[], // placed orders (loaded by bootstrap, appended by pay)
 
   // ---- cart ----
-  cartCount: () => get().cart.length + get().food.reduce((a, b) => a + b.qty, 0),
+  cartCount: () => get().cart.length,
+  // Subtotal del palco (base de la comisión): palco + estacionamiento.
   cartSubtotal: () => get().cart.reduce((a, b) => a + b.price + (b.parkingTotal || 0), 0),
+  // Snacks de todos los palcos del carrito (no pagan comisión).
+  cartSnacksTotal: () => get().cart.reduce((a, b) => a + (b.snacksTotal || 0), 0),
   removeCart: (uid) => set({ cart: get().cart.filter((i) => i.uid !== uid) }),
   setContact: (f, v) => set({ contact: { ...get().contact, [f]: v } }),
   addToCart: () => {
@@ -31,7 +39,11 @@ export const createCartSlice = (set, get) => ({
     const parkAvail = p.parking.has ? p.parking.n : 0
     const parkSel = Math.max(0, Math.min(parkAvail, s.parkSel || 0))
     if (parkSel > 0) { item.parkingQty = parkSel; item.parkingPrice = p.parking.price || 0; item.parkingTotal = parkSel * (p.parking.price || 0) }
-    set({ cart: get().cart.concat([item]), parkSel: 0 })
+    // Snacks elegidos para ESTE palco (borrador en food) → snapshot en el ítem.
+    const snap = get()._snackSnapshot()
+    if (snap.list.length) { item.snacks = snap.list; item.snacksTotal = snap.total }
+    // Limpiamos el borrador de snacks y el estacionamiento para el próximo palco.
+    set({ cart: get().cart.concat([item]), parkSel: 0, food: [], snacksTarget: 'draft' })
     get().flash('Reserva agregada al carrito'); get().go('cart')
   },
   pay: (forceUser?) => {
@@ -41,16 +53,15 @@ export const createCartSlice = (set, get) => ({
     set({ paying: true })
     setTimeout(() => {
       const sub = get().cartSubtotal(), fee = Math.round(sub * 0.04)
-      // Snacks iniciales elegidos en el checkout: se cobran junto con el palco,
-      // sin comisión (RN-15). El total = subtotal + comisión + snacks.
-      const foodCatalog = get().foodCatalog
-      const foodArr = get().food.map((x) => { const it = foodCatalog.find((f) => f.id === x.id)!; return { id: x.id, name: it.name, qty: x.qty, price: it.price } })
-      const foodTot = get().foodTotal()
-      const total = sub + fee + foodTot
+      // Snacks iniciales (por palco): se cobran junto con la reserva, sin
+      // comisión (RN-15). El total = subtotal palco + comisión + snacks.
+      const snacksTot = get().cartSnacksTotal()
+      const total = sub + fee + snacksTot
       const code = 'PLQ-' + Math.random().toString(36).slice(2, 6).toUpperCase()
-      const order = { code, userId: user.id, items: get().cart.slice(), subtotal: sub, fee, total, date: new Date().toISOString(), contact: { name: user.name, email: user.email }, food: foodArr, foodTotal: foodTot }
+      // food/foodTotal quedan vacíos: son los snacks POST-reserva (cobro aparte).
+      const order = { code, userId: user.id, items: get().cart.slice(), subtotal: sub, fee, total, date: new Date().toISOString(), contact: { name: user.name, email: user.email }, food: [], foodTotal: 0, snacksTotal: snacksTot }
       const orders = get().orders.concat([order]); createOrder(container.orders, order)
-      set({ orders, activeRes: order, cart: [], food: [], paying: false })
+      set({ orders, activeRes: order, cart: [], food: [], snacksTarget: 'draft', paying: false })
       get().go('confirm')
     }, 1300)
   },
@@ -67,6 +78,11 @@ export const createCartSlice = (set, get) => ({
     const seatUnit = seatQty > 0 ? Math.round(it.price / seatQty) : it.price
     const qtyNote = (it.mode !== 'palcoYear' && seatQty > 1) ? (' · ' + get().money(seatUnit) + ' × ' + seatQty + ' asientos') : ''
     const parkingUnitNote = (hasParking && it.parkingQty > 1) ? (' · ' + get().money(it.parkingPrice) + ' × ' + it.parkingQty + ' estacionamientos') : ''
+    // Snacks de este palco (botana y bebidas).
+    const snacks = it.snacks || []
+    const hasSnacks = snacks.length > 0
+    const snackCount = snacks.reduce((a, b) => a + b.qty, 0)
+    const snackLines = snacks.map((sn) => ({ name: sn.name, qty: sn.qty, price: get().money(sn.price * sn.qty) }))
     return {
       uid: it.uid, title: it.palcoTitle, stadiumName: get().stadiums[it.stadium].name, modeLabel: it.modeLabel, seatsText, meta, tag,
       baseLabel: seatsText, qtyNote,
@@ -75,17 +91,50 @@ export const createCartSlice = (set, get) => ({
       parkingText: hasParking ? ('Estacionamiento · ' + it.parkingQty + (it.parkingQty > 1 ? ' lugares' : ' lugar')) : '',
       parkingUnitNote,
       parkingPrice: hasParking ? get().money(it.parkingTotal) : '',
-      lineTotal: get().money(it.price + (it.parkingTotal || 0)),
+      hasSnacks, snackCount, snackLines,
+      snacksTotalTxt: hasSnacks ? get().money(it.snacksTotal) : '',
+      editSnacks: () => get().openSnacksForItem(it.uid),
+      lineTotal: get().money(it.price + (it.parkingTotal || 0) + (it.snacksTotal || 0)),
     }
   },
 
-  // ---- food order ----
+  // ---- food / snacks draft ----
   foodQty: (id) => { const f = get().food.find((x) => x.id === id); return f ? f.qty : 0 },
   foodCount: () => get().food.reduce((a, b) => a + b.qty, 0),
   foodTotal: () => { const FOOD = get().foodCatalog; return get().food.reduce((a, b) => { const it = FOOD.find((f) => f.id === b.id); return a + (it ? it.price * b.qty : 0) }, 0) },
   setFoodCat: (c) => set({ foodCat: c }),
   addFood: (id) => { const arr = get().food.map((x) => ({ ...x })); const f = arr.find((x) => x.id === id); if (f) f.qty++; else arr.push({ id, qty: 1 }); set({ food: arr }) },
   decFood: (id) => { const arr = get().food.map((x) => ({ ...x })); const i = arr.findIndex((x) => x.id === id); if (i >= 0) { arr[i].qty--; if (arr[i].qty <= 0) arr.splice(i, 1) } set({ food: arr }) },
+
+  // Snapshot del borrador de snacks (food) con nombre y precio del catálogo.
+  _snackSnapshot: () => {
+    const FOOD = get().foodCatalog
+    const list = get().food.map((x) => { const it = FOOD.find((f) => f.id === x.id)!; return { id: x.id, name: it.name, qty: x.qty, price: it.price } })
+    const total = list.reduce((a, b) => a + b.price * b.qty, 0)
+    return { list, total }
+  },
+
+  // ---- snacks modal (por palco) ----
+  // Detalle: edita el borrador del palco que se está por reservar.
+  openSnacks: () => set({ snacksTarget: 'draft', snacksModal: true }),
+  // Carrito: edita los snacks de un ítem ya agregado (carga su selección).
+  openSnacksForItem: (uid) => {
+    const item = get().cart.find((i) => i.uid === uid); if (!item) return
+    const draft = (item.snacks || []).map((sn) => ({ id: sn.id, qty: sn.qty }))
+    set({ food: draft, foodCat: 'all', snacksTarget: uid, snacksModal: true })
+  },
+  closeSnacks: () => {
+    const target = get().snacksTarget
+    if (target && target !== 'draft') {
+      // Confirmar la edición: escribir el borrador en el ítem del carrito.
+      const snap = get()._snackSnapshot()
+      const cart = get().cart.map((i) => i.uid === target ? { ...i, snacks: snap.list, snacksTotal: snap.total } : i)
+      set({ cart, food: [], snacksTarget: 'draft', snacksModal: false })
+    } else {
+      // Borrador del detalle: se mantiene para adjuntarlo al reservar.
+      set({ snacksModal: false })
+    }
+  },
   confirmFood: () => {
     if (!get().foodCount()) return get().flash('Agregá algo al pedido')
     const foodCatalog = get().foodCatalog

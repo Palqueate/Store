@@ -8,7 +8,8 @@ export function useCartVM(): any {
   const cartItems = s.cart.map(function (it) { return self.cartItemVM(it) })
   const cSub = self.cartSubtotal()
   const cFee = Math.round(cSub * 0.04)
-  const cTot = cSub + cFee
+  const cSnacks = self.cartSnacksTotal()
+  const cTot = cSub + cFee + cSnacks
 
   return {
     cartEmpty: s.cart.length === 0,
@@ -16,6 +17,8 @@ export function useCartVM(): any {
     cartItems: cartItems,
     cartSub: self.money(cSub),
     cartFee: self.money(cFee),
+    hasSnacks: cSnacks > 0,
+    cartSnacks: self.money(cSnacks),
     cartTotal: self.money(cTot),
     cartCol: mobile
       ? 'display:flex; flex-direction:column; gap:18px;'
