@@ -32,19 +32,28 @@ export default function Cart() {
                     </div>
                     <h3 style={css("margin:0 0 3px; font-family:'Archivo'; font-weight:800; font-size:17px; color:var(--foreground,#F4EFE6);")}>{it.title}</h3>
                     <div style={css("font-size:13px; color:var(--muted-foreground,#9AA6B2);")}>{it.modeLabel}</div>
-                    <div style={css("font-size:12.5px; color:var(--muted-foreground,#9AA6B2);")}>{it.seatsText} · {it.meta}</div>
-                    {it.hasParking ? (
-                      <div style={css("margin-top:4px; font-size:12.5px; color:var(--muted-foreground,#9AA6B2); display:flex; gap:6px; align-items:center;")}>
-                        <span>🅿️ {it.parkingText}</span>
-                        <span style={css("color:var(--foreground,#F4EFE6); font-weight:700;")}>+{it.parkingPrice}</span>
-                      </div>
-                    ) : null}
+                    <div style={css("font-size:12.5px; color:var(--muted-foreground,#9AA6B2);")}>{it.meta}</div>
                   </div>
-                  <div style={css("display:flex; flex-direction:column; align-items:flex-end; justify-content:space-between;")}>
-                    <IconButton aria-label="Quitar" variant="ghost" size="sm" onClick={it.remove}>
-                      <TrashIcon />
-                    </IconButton>
-                    <div style={css("font-family:'Archivo'; font-weight:800; font-size:18px; color:var(--foreground,#F4EFE6); white-space:nowrap;")}>{it.price}</div>
+                  <IconButton aria-label="Quitar" variant="ghost" size="sm" onClick={it.remove}>
+                    <TrashIcon />
+                  </IconButton>
+                </div>
+
+                {/* Desglose del ítem: cada concepto con su importe + subtotal */}
+                <div style={css("margin-top:12px; padding-top:12px; border-top:1px solid var(--border,rgba(255,255,255,.1)); display:flex; flex-direction:column; gap:6px;")}>
+                  <div style={css("display:flex; justify-content:space-between; gap:12px; font-size:13px;")}>
+                    <span style={css("color:var(--muted-foreground,#9AA6B2);")}>{it.baseLabel}{it.qtyNote}</span>
+                    <span style={css("color:var(--foreground,#F4EFE6); white-space:nowrap;")}>{it.price}</span>
+                  </div>
+                  {it.hasParking ? (
+                    <div style={css("display:flex; justify-content:space-between; gap:12px; font-size:13px;")}>
+                      <span style={css("color:var(--muted-foreground,#9AA6B2);")}>🅿️ {it.parkingText}{it.parkingUnitNote}</span>
+                      <span style={css("color:var(--foreground,#F4EFE6); white-space:nowrap;")}>{it.parkingPrice}</span>
+                    </div>
+                  ) : null}
+                  <div style={css("display:flex; justify-content:space-between; gap:12px; align-items:baseline; margin-top:4px;")}>
+                    <span style={css("font-family:'Archivo'; font-weight:700; font-size:13px; color:var(--subtle-foreground,#6B7480);")}>Subtotal del ítem</span>
+                    <span style={css("font-family:'Archivo'; font-weight:800; font-size:18px; color:var(--foreground,#F4EFE6); white-space:nowrap;")}>{it.lineTotal}</span>
                   </div>
                 </div>
               </Card>

@@ -55,11 +55,19 @@ export const createCartSlice = (set, get) => ({
     else { seatsText = 'Asiento' + (it.seats.length > 1 ? 's' : '') + ' ' + it.seats.join(' · '); meta = it.eventLabel }
     const tag = it.mode === 'palcoYear' ? 'PALCO' : 'ASIENTO'
     const hasParking = !!(it.parkingQty && it.parkingQty > 0)
+    // Nota de unitario × cantidad cuando hay más de una unidad, para que el
+    // importe de cada línea sea verificable de un vistazo.
+    const seatQty = it.qty || (it.seats ? it.seats.length : 1)
+    const seatUnit = seatQty > 0 ? Math.round(it.price / seatQty) : it.price
+    const qtyNote = (it.mode !== 'palcoYear' && seatQty > 1) ? (' · ' + seatQty + ' × ' + get().money(seatUnit)) : ''
+    const parkingUnitNote = (hasParking && it.parkingQty > 1) ? (' · ' + it.parkingQty + ' × ' + get().money(it.parkingPrice)) : ''
     return {
       uid: it.uid, title: it.palcoTitle, stadiumName: get().stadiums[it.stadium].name, modeLabel: it.modeLabel, seatsText, meta, tag,
+      baseLabel: seatsText, qtyNote,
       price: get().money(it.price), remove: () => get().removeCart(it.uid),
       hasParking,
       parkingText: hasParking ? ('Estacionamiento · ' + it.parkingQty + (it.parkingQty > 1 ? ' lugares' : ' lugar')) : '',
+      parkingUnitNote,
       parkingPrice: hasParking ? get().money(it.parkingTotal) : '',
       lineTotal: get().money(it.price + (it.parkingTotal || 0)),
     }
