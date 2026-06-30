@@ -13,10 +13,8 @@ const emptyPayout = () => ({ country: DEFAULT_COUNTRY, swift: '', bank: '', bene
 
 const isEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((v || '').trim())
 
-// Wizard step indices: 0 País · 1 Estadio · 2 Ubicación · 3 Asientos ·
-// 4 Estacionamiento · 5 Comodidades · 6 Fotos · 7 Co-propietarios ·
-// 8 Cobro · 9 Precios. Precios (9) es el paso final que publica.
-const LAST_STEP = 9
+// La carga es una sola página con secciones (Dónde está · El palco · Fotos ·
+// Co-propietarios · Cobro · Modalidades). wzSubmit valida todo junto y publica.
 
 export const createOwnerSlice = (set, get) => ({
   // Borrador transitorio del asistente de publicación (forma dinámica por paso).
@@ -32,14 +30,14 @@ export const createOwnerSlice = (set, get) => ({
     const country = DEFAULT_COUNTRY
     const inCountry = get()._wzStadiumsInCountry(country)
     const stadium = inCountry.indexOf('gpc') >= 0 ? 'gpc' : (inCountry[0] || '')
-    set({ wz: { editId: null, step: 0, country, stadium, x: null, y: null, title: '', seats: 10, parkHas: true, parkN: 2, parkPrice: 80000, amenities: [], coOwners: [], images: [], payout: emptyPayout(), mPalco: true, pricePalco: 1200000, mSeatY: true, priceSeatY: 95000, mSeatE: true, priceSeatE: 6500 } })
+    set({ wz: { editId: null, country, stadium, x: null, y: null, title: '', seats: 10, parkHas: true, parkN: 2, parkPrice: 80000, amenities: [], coOwners: [], images: [], payout: emptyPayout(), mPalco: true, pricePalco: 1200000, mSeatY: true, priceSeatY: 95000, mSeatE: true, priceSeatE: 6500 } })
     get().go('publish')
   },
   startEditWizard: (id) => {
     const p = get().byId(id); if (!p) return
     const stadCountry = (get().stadiums[p.stadium] || {}).country || DEFAULT_COUNTRY
     set({ wz: {
-      editId: p.id, step: 0, country: p.country || stadCountry, stadium: p.stadium, x: p.map.x, y: p.map.y, title: p.title,
+      editId: p.id, country: p.country || stadCountry, stadium: p.stadium, x: p.map.x, y: p.map.y, title: p.title,
       seats: p.seats,
       parkHas: p.parking.has, parkN: p.parking.n || 1, parkPrice: p.parking.price || 0,
       amenities: (p.amenities || []).slice(),
@@ -107,37 +105,35 @@ export const createOwnerSlice = (set, get) => ({
     get().wzSet({ payout: { ...(w.payout || emptyPayout()), [key]: '' } })
   },
 
-  wzNext: () => {
+  // Carga en una sola página: valida TODO junto (mismas reglas que el asistente
+  // por pasos) y publica. Ante el primer faltante, avisa y sube al inicio.
+  wzSubmit: () => {
     const w = get().wz; if (!w) return
-    if (w.step === 0 && !w.stadium) return get().flash('Agregá o elegí un estadio en ese país')
-    if (w.step === 1 && !w.stadium) return get().flash('Elegí el estadio donde está tu palco')
-    if (w.step === 2 && w.x == null) return get().flash('Tocá el plano para ubicar el palco')
-    if (w.step === 3 && (!w.seats || w.seats < 1)) return get().flash('Indicá cuántos asientos tiene')
-    if (w.step === 5 && (!(w.amenities || []).length)) return get().flash('Elegí al menos una comodidad')
-    if (w.step === 6 && (w.images || []).length < MIN_PHOTOS) return get().flash('Subí al menos ' + MIN_PHOTOS + ' fotos del palco')
-    if (w.step === 7) {
-      const co = w.coOwners || []
-      for (let i = 0; i < co.length; i++) {
-        if (!(co[i].name || '').trim()) return get().flash('Completá el nombre del co-propietario ' + (i + 1))
-        if (!isEmail(co[i].email)) return get().flash('Ingresá un email válido para el co-propietario ' + (i + 1))
-      }
+    const fail = (msg) => { get().flash(msg); scrollTop(); return false }
+    if (!w.stadium) return fail('Elegí el estadio donde está tu palco')
+    if (w.x == null) return fail('Tocá el plano para ubicar el palco')
+    if (!w.seats || w.seats < 1) return fail('Indicá cuántos asientos tiene')
+    if (!(w.amenities || []).length) return fail('Elegí al menos una comodidad')
+    if ((w.images || []).length < MIN_PHOTOS) return fail('Subí al menos ' + MIN_PHOTOS + ' fotos del palco')
+    const co = w.coOwners || []
+    for (let i = 0; i < co.length; i++) {
+      if (!(co[i].name || '').trim()) return fail('Completá el nombre del co-propietario ' + (i + 1))
+      if (!isEmail(co[i].email)) return fail('Ingresá un email válido para el co-propietario ' + (i + 1))
     }
-    if (w.step === 8) {
-      const p = w.payout || {}
-      if (!(p.country || '').trim()) return get().flash('Indicá el país de la cuenta bancaria')
-      if (!(p.bank || '').trim()) return get().flash('Indicá el banco')
-      if (!(p.beneficiary || '').trim()) return get().flash('Indicá el nombre del beneficiario bancario')
-      if (!(p.accountNumber || '').trim()) return get().flash('Indicá el número de cuenta bancaria')
-      if (!(p.branch || '').trim()) return get().flash('Indicá la sucursal del banco')
-      if (!p.idFront) return get().flash('Subí el anverso del documento de identidad')
-      if (!p.idBack) return get().flash('Subí el reverso del documento de identidad')
-      if (!p.proofOfAddress) return get().flash('Subí el comprobante de domicilio')
-      if (!p.propertyTitle) return get().flash('Subí el título de propiedad del palco')
-    }
-    if (w.step === LAST_STEP) { if (!(w.mPalco || w.mSeatY || w.mSeatE)) return get().flash('Activá al menos una modalidad'); return get().publishPalco() }
-    get().wzSet({ step: w.step + 1 }); scrollTop()
+    const p = w.payout || {}
+    if (!(p.country || '').trim()) return fail('Indicá el país de la cuenta bancaria')
+    if (!(p.bank || '').trim()) return fail('Indicá el banco')
+    if (!(p.beneficiary || '').trim()) return fail('Indicá el nombre del beneficiario bancario')
+    if (!(p.accountNumber || '').trim()) return fail('Indicá el número de cuenta bancaria')
+    if (!(p.branch || '').trim()) return fail('Indicá la sucursal del banco')
+    if (!p.idFront) return fail('Subí el anverso del documento de identidad')
+    if (!p.idBack) return fail('Subí el reverso del documento de identidad')
+    if (!p.proofOfAddress) return fail('Subí el comprobante de domicilio')
+    if (!p.propertyTitle) return fail('Subí el título de propiedad del palco')
+    if (!(w.mPalco || w.mSeatY || w.mSeatE)) return fail('Activá al menos una modalidad')
+    get().publishPalco()
   },
-  wzBack: () => { const w = get().wz; if (!w) return; if (w.step === 0) return get().go('owner'); get().wzSet({ step: w.step - 1 }); scrollTop() },
+  wzCancel: () => { set({ wz: null }); get().go('owner') },
   wzAddImages: async (files: FileList | null) => {
     const list = Array.from(files || []); if (!list.length) return
     const urls = await readImagesAsDataUrls(list)

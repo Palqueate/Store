@@ -16,10 +16,8 @@ export function usePublishVM(): any {
 
   if (w) {
     var editing = !!w.editId
-    var stepNames = ['País', 'Estadio', 'Ubicación', 'Asientos', 'Estacionamiento', 'Comodidades', 'Fotos', 'Co-propietarios', 'Cobro', 'Precios']
-    var lastStep = stepNames.length - 1
 
-    // Estadios del país elegido (paso 1): lista buscable y ordenada. Escala a
+    // Estadios del país elegido: lista buscable y ordenada. Escala a
     // cientos de estadios — la UI la virtualiza, así que sólo filtramos acá.
     var sQuery = w.stadiumQuery || ''
     var sNeedle = sQuery.trim().toLowerCase()
@@ -44,15 +42,6 @@ export function usePublishVM(): any {
 
     wiz = {
       editing: editing,
-      step: w.step, stepName: stepNames[w.step], progress: Math.round(((w.step + 1) / stepNames.length) * 100),
-      steps: stepNames.map(function (nm, i) {
-        return {
-          name: nm, num: String(i + 1), active: i === w.step,
-          dotStyle: { width: '26px', height: '26px', borderRadius: '50%', display: 'grid', placeItems: 'center', fontFamily: 'Space Mono', fontWeight: '700', fontSize: '12px', flex: '0 0 auto', background: (i < w.step ? 'var(--success)' : (i === w.step ? 'var(--primary)' : 'var(--muted)')), color: (i < w.step ? 'var(--success-foreground)' : (i === w.step ? 'var(--primary-foreground)' : 'var(--subtle-foreground)')) },
-          labelStyle: { whiteSpace: 'nowrap', fontFamily: 'Archivo', fontWeight: (i === w.step ? '700' : '500'), fontSize: '13px', color: (i === w.step ? 'var(--foreground)' : 'var(--subtle-foreground)') },
-        }
-      }),
-      s0: w.step === 0, s1: w.step === 1, s2: w.step === 2, s3: w.step === 3, s4: w.step === 4, s5: w.step === 5, s6: w.step === 6, s7: w.step === 7, s8: w.step === 8, s9: w.step === 9,
 
       // País
       country: w.country,
@@ -117,7 +106,7 @@ export function usePublishVM(): any {
       pricePalcoTxt: self.money(w.pricePalco), priceSeatYTxt: self.money(w.priceSeatY), priceSeatETxt: self.money(w.priceSeatE),
       markers: (w.x != null) ? [{ x: w.x, y: w.y, active: true, label: 'Acá' }] : [],
       locTxt: (w.x != null ? 'Ubicación marcada ✓' : 'Tocá el plano para marcar'),
-      nextLabel: w.step >= lastStep ? (editing ? 'Guardar cambios' : 'Publicar palco') : 'Continuar',
+      submitLabel: editing ? 'Guardar cambios' : 'Publicar palco',
       stadiumQuery: sQuery,
       setStadiumQuery: function (v) { self.wzSet({ stadiumQuery: v }) },
       clearStadiumQuery: function () { self.wzSet({ stadiumQuery: '' }) },
@@ -147,8 +136,8 @@ export function usePublishVM(): any {
       setPricePalco: function (e) { self.wzSet({ pricePalco: parseInt((e.target.value || '').replace(/[^0-9]/g, ''), 10) || 0 }) },
       setPriceSeatY: function (e) { self.wzSet({ priceSeatY: parseInt((e.target.value || '').replace(/[^0-9]/g, ''), 10) || 0 }) },
       setPriceSeatE: function (e) { self.wzSet({ priceSeatE: parseInt((e.target.value || '').replace(/[^0-9]/g, ''), 10) || 0 }) },
-      next: function () { self.wzNext() },
-      back: function () { self.wzBack() },
+      submit: function () { self.wzSubmit() },
+      cancel: function () { self.wzCancel() },
     }
   }
 
