@@ -522,18 +522,20 @@ export function SnacksModal() {
                   <h4 style={{ margin: '0 0 2px', fontFamily: "'Archivo'", fontWeight: 700, fontSize: '14px', color: 'var(--foreground,#F4EFE6)', lineHeight: 1.2 }}>{it.name}</h4>
                   <div style={{ fontSize: '11.5px', color: 'var(--muted-foreground,#9AA6B2)' }}>{it.desc}</div>
                 </div>
-                <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '8px' }}>
+                <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: '8px' }}>
                   <span style={{ fontFamily: "'Archivo'", fontWeight: 800, fontSize: '15px', color: 'var(--primary,#C9A24B)' }}>{it.price}</span>
-                  {it.noQty ? (
-                    <Btn label="Agregar" icon="plus" size="sm" variant="secondary" block onClick={it.add} />
-                  ) : (
-                    <QuantityStepper
-                      value={it.qty}
-                      min={0}
-                      max={99}
-                      onChange={(next: number) => { if (next > it.qty) it.add(); else it.dec() }}
-                    />
-                  )}
+                  <div style={{ display: 'flex', justifyContent: 'center' }}>
+                    {it.noQty ? (
+                      <Btn label="Agregar" icon="plus" size="sm" variant="secondary" block onClick={it.add} />
+                    ) : (
+                      <QuantityStepper
+                        value={it.qty}
+                        min={0}
+                        max={99}
+                        onChange={(next: number) => { if (next > it.qty) it.add(); else it.dec() }}
+                      />
+                    )}
+                  </div>
                 </div>
               </div>
             </Card>
