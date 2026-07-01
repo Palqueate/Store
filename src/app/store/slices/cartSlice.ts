@@ -136,7 +136,7 @@ export const createCartSlice = (set, get) => ({
       remove: () => get().removeItemSnack(it.uid, sn.id),
     }))
     return {
-      uid: it.uid, title: it.palcoTitle, stadiumName: get().stadiums[it.stadium].name, modeLabel: it.modeLabel, seatsText, meta, tag,
+      uid: it.uid, title: it.palcoTitle, stadiumName: (get().stadiums[it.stadium] || {}).name || it.stadium, modeLabel: it.modeLabel, seatsText, meta, tag,
       baseLabel: seatsText, qtyNote,
       price: get().money(it.price), remove: () => get().removeCart(it.uid),
       hasParking,

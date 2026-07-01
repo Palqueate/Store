@@ -29,6 +29,7 @@ import { HttpFoodRepository } from '../modules/food/infrastructure/HttpFoodRepos
 import { HttpAccountRepository } from '../modules/accounts/infrastructure/HttpAccountRepository'
 import { HttpOrderRepository } from '../modules/orders/infrastructure/HttpOrderRepository'
 import { FetchHttpClient } from '../shared/infrastructure/http/FetchHttpClient'
+import { resetPersistenceOnSeedChange } from '../shared/infrastructure/in-memory/seed-version'
 
 export interface Container {
   stadiums: StadiumRepository
@@ -72,6 +73,10 @@ function buildMemory(): Container {
     orders: new InMemoryOrderRepository(),
   }
 }
+
+// Descarta el estado persistido viejo si cambió el seed, ANTES de construir los
+// repositorios (sus constructores rehidratan desde localStorage al instanciarse).
+resetPersistenceOnSeedChange()
 
 /** Singleton container wired for the current DATA_SOURCE. */
 export const container: Container = DATA_SOURCE === 'http' ? buildHttp() : buildMemory()
