@@ -96,7 +96,7 @@ automáticamente en cada request (con `credentials: 'include'`). Al ser
 | 14 | POST | `/events` | 🔴 | Alta de evento: arma las funciones (fecha+hora) desde el array de fechas |
 | 15 | PUT | `/events/{id}` | 🔴 | Edición de evento |
 | 16 | GET | `/palcos` | 🟢 | Catálogo público filtrado + rango de precios (filtros server‑side) |
-| 17 | GET | `/palcos/{id}` | 🟢 | Detalle de palco con disponibilidad por modalidad |
+| 17 | GET | `/palcos/{id}` | 🟢 | Detalle de palco con disponibilidad por función |
 | 18 | POST | `/palcos` | 🔵 | Publica palco nuevo (queda `pendiente` de verificación) |
 | 19 | PUT | `/palcos/{id}` | 🟣 | Edita palco propio (vuelve a `pendiente`) |
 | 20 | PUT | `/palcos/{id}/status` | 🟣 | Pausa / reactiva publicación |
@@ -578,7 +578,6 @@ cliente.
 |-------|------|------|-------------|
 | `q` | string | no | búsqueda por texto (título/sector/host/estadio) |
 | `stadium` | string (CSV) | no | uno o varios ids de estadio |
-| `type` | enum | no | `palcoYear` \| `seatYear` \| `seatEvent` |
 | `parking` | boolean | no | sólo con estacionamiento |
 | `minSeats` | number | no | mínimo de asientos |
 | `minPrice` | number | no | precio "desde" ≥ |
@@ -589,7 +588,7 @@ cliente.
 
 ```json
 {
-  "q": "string?", "stadium": "string?", "type": "string?",
+  "q": "string?", "stadium": "string?",
   "parking": "boolean?", "minSeats": "number?",
   "minPrice": "number?", "maxPrice": "number?", "sort": "string?",
   "page": "number?", "pageSize": "number?"
@@ -610,7 +609,7 @@ cliente.
 
 ### 17. `GET /palcos/{id}` 🟢
 
-Detalle de palco con disponibilidad por modalidad (`modes.*.taken`).
+Detalle de palco con disponibilidad por función (`modes.seatEvent.taken`).
 
 **Path params:** `{ "id": "string" }`.
 
@@ -627,8 +626,6 @@ Detalle de palco con disponibilidad por modalidad (`modes.*.taken`).
   "coOwners": [ { "name": "string", "email": "string" } ],
   "host": "string", "rating": "number", "photos": "number", "images": "string[]",
   "modes": {
-    "palcoYear": { "on": "boolean", "price": "number" },
-    "seatYear":  { "on": "boolean", "price": "number", "taken": "number[]" },
     "seatEvent": { "on": "boolean", "price": "number", "taken": "Record<string, number[]>" }
   },
   "status": "'pendiente' | 'rechazado' | 'publicado' | 'pausado' | 'alquilado'",
@@ -660,7 +657,7 @@ Publica un palco nuevo desde el wizard del palquista. El backend lo crea en esta
 | `coOwners` | array | no | `[{ name, email }]` |
 | `payout` | object | sí | datos de cobro + documentos (ver `PalcoPayout`) |
 | `images` | string[] | sí | ≥ 3 data URLs |
-| `modes` | object | sí | al menos una modalidad `on` |
+| `modes` | object | sí | define el precio de `seatEvent` |
 
 ```json
 {
@@ -678,8 +675,6 @@ Publica un palco nuevo desde el wizard del palquista. El backend lo crea en esta
   },
   "images": "string[]",
   "modes": {
-    "palcoYear": { "on": "boolean", "price": "number" },
-    "seatYear":  { "on": "boolean", "price": "number" },
     "seatEvent": { "on": "boolean", "price": "number" }
   }
 }
@@ -687,7 +682,7 @@ Publica un palco nuevo desde el wizard del palquista. El backend lo crea en esta
 
 **Respuesta `201`:** `Palco` (status `pendiente`).
 
-**Errores:** `422` validación (fotos < 3, sin modalidad, payout incompleto…).
+**Errores:** `422` validación (fotos < 3, precio de `seatEvent` faltante, payout incompleto…).
 
 ---
 
@@ -831,7 +826,7 @@ los holds en `taken`), **crea la orden** (palco + snacks iniciales en un único 
   "items": [
     {
       "uid": "string", "palcoId": "string", "palcoTitle": "string", "stadium": "string",
-      "mode": "string", "modeLabel": "string", "seats": "number[]",
+      "mode": "'seatEvent'", "modeLabel": "string", "seats": "number[]",
       "term": "string", "qty": "number", "price": "number",
       "eventId": "string?", "occurrenceId": "string?",
       "eventLabel": "string?", "eventOpp": "string?",
@@ -927,7 +922,7 @@ publicado, pausado, alquilado) — incluye `review` y `payout` propios.
 ### 26. `GET /owner/metrics` 🔵
 
 Métricas agregadas del palquista, calculadas en el backend (hoy se computan en cliente
-en `useMetricsVM`). Una llamada devuelve KPIs, recaudación por modalidad, ventas por
+en `useMetricsVM`). Una llamada devuelve KPIs, recaudación por evento, ventas por
 evento, tendencia y la tabla por palco.
 
 **Query params**
@@ -947,14 +942,11 @@ evento, tendencia y la tabla por palco.
   "scope": "string",
   "kpis": {
     "revenue": "number",
-    "annualOccupancy": "number",
-    "annualSeats": "number",
-    "annualCapacity": "number",
     "eventTickets": "number",
     "views": "number",
     "conversion": "number"
   },
-  "revenueByMode": { "annual": "number", "perEvent": "number" },
+  "revenueByEvent": [ { "eventId": "string", "opp": "string", "value": "number" } ],
   "byEvent": [ { "eventId": "string", "opp": "string", "day": "string", "month": "string", "sold": "number", "revenue": "number" } ],
   "trend": [ { "month": "string", "value": "number" } ],
   "palcos": [
@@ -962,7 +954,6 @@ evento, tendencia y la tabla por palco.
       "id": "string", "title": "string", "stadiumName": "string",
       "rating": "number", "status": "string",
       "revenue": "number", "occupancy": "number",
-      "annualSeats": "number", "annualCapacity": "number",
       "views": "number", "favs": "number", "eventTickets": "number"
     }
   ]
@@ -976,7 +967,7 @@ evento, tendencia y la tabla por palco.
 **Todo el panel admin en una llamada.** Reemplaza ~10 cálculos que hoy corren en
 cliente sobre todas las órdenes, palcos y cuentas (GMV, comisión, payout, ingreso
 botana, entradas vendidas, ticket promedio, ocupación media, ventas por estadio, ventas
-por mes, mix de modalidades, top de eventos, reservas recientes).
+por mes, top de eventos, reservas recientes).
 
 **Query params**
 
@@ -1001,9 +992,7 @@ por mes, mix de modalidades, top de eventos, reservas recientes).
   },
   "revenueByStadium": [ { "stadiumId": "string", "name": "string", "value": "number" } ],
   "monthlySales": [ { "month": "string", "value": "number" } ],
-  "modality": {
-    "palcoYear": "number", "seatYear": "number", "seatEvent": "number"
-  },
+  "revenueByEvent": [ { "eventId": "string", "opp": "string", "value": "number" } ],
   "topEvents": [ { "eventId": "string", "opp": "string", "comp": "string", "date": "string", "revenue": "number" } ],
   "recentOrders": [ { "code": "string", "client": "string", "total": "number", "date": "string" } ],
   "finance": {
@@ -1109,7 +1098,7 @@ Sin params.
   "items": [
     {
       "uid": "string", "palcoId": "string", "palcoTitle": "string", "stadium": "string",
-      "mode": "'palcoYear' | 'seatYear' | 'seatEvent'", "modeLabel": "string",
+      "mode": "'seatEvent'", "modeLabel": "string",
       "seats": "number[]", "term": "string", "qty": "number", "price": "number",
       "eventId": "string?", "occurrenceId": "string?",
       "hold": {
@@ -1142,20 +1131,20 @@ con un TTL y recalcula el precio. Si alguien ya los tiene tomados o en hold → 
 | Campo | Tipo | Req. | Descripción |
 |-------|------|------|-------------|
 | `palcoId` | string | sí | |
-| `mode` | enum | sí | `palcoYear` \| `seatYear` \| `seatEvent` |
-| `seats` | number[] | según modo | vacío en `palcoYear`; ≥ 1 en los de asiento |
-| `eventId` | string | sólo `seatEvent` | |
-| `occurrenceId` | string | sólo `seatEvent` | función (fecha+hora) |
+| `mode` | enum | sí | `seatEvent` (única opción) |
+| `seats` | number[] | sí | ≥ 1 asiento |
+| `eventId` | string | sí | |
+| `occurrenceId` | string | sí | función (fecha+hora) |
 | `parkingQty` | number | no | lugares de estacionamiento a sumar (0..`parking.n`); el backend recalcula el costo con `parking.price` |
 | `snacks` | array | no | Botana y bebidas de ESTE palco `[{ id, qty }]`; el backend recalcula el costo con el catálogo |
 
 ```json
 {
   "palcoId": "string",
-  "mode": "'palcoYear' | 'seatYear' | 'seatEvent'",
+  "mode": "'seatEvent'",
   "seats": "number[]",
-  "eventId": "string?",
-  "occurrenceId": "string?",
+  "eventId": "string",
+  "occurrenceId": "string",
   "parkingQty": "number?",
   "snacks": [ { "id": "string", "qty": "number" } ]
 }
@@ -1203,7 +1192,7 @@ evita condiciones de carrera al comprar el mismo asiento.
   "userId": "string",
   "cartItemUid": "string",
   "palcoId": "string",
-  "mode": "'palcoYear' | 'seatYear' | 'seatEvent'",
+  "mode": "'seatEvent'",
   "seats": "number[]",
   "eventId": "string | null",
   "occurrenceId": "string | null",

@@ -43,7 +43,7 @@ facilitar su lectura; cada bloque corresponde a un área del modelo.
    registro histórico que no cambia aunque el palco o el evento se editen luego.
 3. **Concurrencia correcta por construcción.** El anti-doble-venta no depende de
    la aplicación: lo impone un **índice único parcial** sobre `seat_reservations`
-   por ámbito (función / temporada). Dos compras simultáneas del mismo asiento →
+   por función. Dos compras simultáneas del mismo asiento →
    una falla con violación de unicidad (el `409 Conflict` de la API §4).
 4. **Seguridad y confidencialidad de datos.** Contraseñas, tokens, datos
    bancarios y documentos viven **separados** del perfil/listado, cifrados o
@@ -139,7 +139,6 @@ erDiagram
   holds ||--o{ seat_reservations : "held"
   palcos ||--o{ seat_reservations : ""
   event_occurrences ||--o{ seat_reservations : "seatEvent"
-  seasons ||--o{ seat_reservations : "anual"
 
   users ||--o{ orders : ""
   orders ||--o{ order_items : ""
@@ -168,15 +167,14 @@ erDiagram
 
 ## 6. El sistema de reservas y la concurrencia (lo más delicado)
 
-La disponibilidad se gestiona **por modalidad** (RN-11) y el bloqueo es
+La disponibilidad se gestiona **por función** (RN-11) y el bloqueo es
 **atómico** (API §4). La pieza clave es `seat_reservations`, la tabla de
 **bloqueos vivos**: una fila por butaca bloqueada, en estado `held` (hold activo)
 o `sold` (venta confirmada).
 
-- Tres ámbitos independientes, cada uno con su índice único parcial:
-  - `seatEvent` → único `(palco_id, occurrence_id, seat_number)`
-  - `seatYear`  → único `(palco_id, season_id, seat_number)`
-  - `palcoYear` → único `(palco_id, season_id)` (palco entero, sin asiento)
+- Única modalidad, `seatEvent`: índice único parcial por función
+  `(palco_id, occurrence_id, seat_number)`. Una butaca puede estar libre para
+  una función y ocupada para otra.
 - **Agregar al carrito** (`POST /cart/items`) inserta el hold y sus filas
   `held`. Si el asiento ya está bloqueado → violación de unicidad → `409`.
 - **Liberar / vencer** elimina las filas `held` (el historial queda en `holds`).
@@ -184,7 +182,7 @@ o `sold` (venta confirmada).
 - **Checkout** (`POST /orders`) revalida los holds y convierte `held` → `sold`
   dentro de la misma transacción que crea la orden.
 - **Disponibilidad** = `seat_count − taken`, donde `taken` =
-  `taken_seats(palco, mode, season, occurrence)` (cuenta `sold` + `held` vigente).
+  `taken_seats(palco, occurrence)` (cuenta `sold` + `held` vigente).
 
 > Probado: dos inserciones del mismo asiento ⇒ la segunda falla; al vencer el
 > hold, el asiento vuelve a estar libre.
@@ -324,7 +322,7 @@ salen solas del JWKS al pasar su `expires_at` (un job luego las borra). Los
 | RN-04/05/07/08/09 ciclo de verificación | `palcos.status`, `palco_status_history`, `palco_reviews` |
 | RN-13 acceso admin | `roles`, `user_roles`, `is_admin()` |
 | RF-39 métricas del palquista · `/owner/metrics` | `v_owner_palco_metrics`, `palco_view_events`, `palco_favorites` |
-| RF-46/48/49 CRM, finanzas, dashboard · `/admin/*` | `v_client_crm`, `v_finance_by_stadium`, `v_monthly_sales`, `v_modality_mix` |
+| RF-46/48/49 CRM, finanzas, dashboard · `/admin/*` | `v_client_crm`, `v_finance_by_stadium`, `v_monthly_sales`, `v_revenue_by_event` |
 | RF-32 preferencias / notificaciones | `user_notification_prefs`, `notifications` |
 | API §5 logging | `audit.access_log`, `audit.audit_log`, `audit.security_log` |
 

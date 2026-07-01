@@ -54,30 +54,21 @@ Una misma persona puede ser cliente y palquista a la vez.
 
 ---
 
-## 4. El producto que se alquila: las tres modalidades
+## 4. El producto que se alquila: asiento por evento
 
-La gran flexibilidad de Palqueate es que un palco no se alquila de una sola
-forma. Hay **tres modalidades**, y cada dueño decide cuáles ofrecer:
+Palqueate tiene **una modalidad de reserva**:
 
-1. **Palco entero (por temporada / 1 año).**
-   El hincha alquila **todo el palco** —todos sus asientos— por la temporada
-   completa. Es la opción para una familia, un grupo de amigos o una empresa que
-   quiere "su" palco fijo todo el año.
-
-2. **Asiento anual (por temporada / 1 año).**
-   El hincha alquila **una butaca** dentro del palco, pero por **toda la
-   temporada**. Comparte el palco con otros, pero tiene su lugar asegurado en
-   cada fecha. Ideal para el hincha fiel que va a todos los partidos pero no
-   necesita el palco entero.
-
-3. **Asiento por evento (puntual).**
+1. **Asiento por evento (puntual).**
    El hincha alquila **una butaca para un partido o show específico**. Es la
    opción de menor compromiso: "este sábado quiero ir, y nada más". Es la puerta
    de entrada para quien quiere probar la experiencia.
 
-Esto convierte cada palco en algo parecido a un mini-negocio: el dueño puede,
-por ejemplo, alquilar el palco entero a una empresa, o vender butacas sueltas
-fecha a fecha, o un mix.
+Esto convierte cada palco en algo parecido a un mini-negocio: el dueño vende
+butacas sueltas fecha a fecha y aprovecha las fechas en las que no usa el palco.
+
+> El alquiler del **palco entero** o de un **asiento anual** (por temporada
+> completa) queda como una posible extensión a futuro, pero hoy no forma parte
+> del producto.
 
 ---
 
@@ -95,22 +86,21 @@ sensación de estar accediendo a algo exclusivo. Hay **dos puntos de entrada**:
 4. Entra al palco que le gusta y **elige sus asientos**.
 5. Suma la reserva al **carrito**, paga y recibe su **confirmación**.
 
-### 5.2 Empezar por la temporada ("quiero un palco para el año")
+### 5.2 Empezar por el catálogo de palcos
 
 1. El hincha explora el **catálogo de palcos** con filtros (estadio, precio,
    cantidad de asientos, estacionamiento, etc.).
 2. Entra al detalle de un palco: ve sus fotos, ubicación en el estadio,
-   comodidades y las **modalidades disponibles** con sus precios.
-3. Elige la modalidad (palco entero, asiento anual o asiento por evento) y,
-   según corresponda, sus asientos.
+   comodidades y el **precio del asiento por evento**.
+3. Elige el **evento o función** en el que quiere ir y sus **asientos**.
 4. Reserva, paga y confirma.
 
 ### 5.3 La elección de asientos
 
-Cuando aplica, el hincha ve un **mapa de butacas del palco**: las disponibles se
-pueden elegir, las ya tomadas aparecen ocupadas. La disponibilidad depende de la
-modalidad y, en el caso "por evento", **de la función específica** (una butaca
-puede estar libre para un partido y ocupada para otro).
+El hincha ve un **mapa de butacas del palco**: las disponibles se
+pueden elegir, las ya tomadas aparecen ocupadas. La disponibilidad depende
+**de la función específica** (una butaca puede estar libre para un partido y
+ocupada para otro).
 
 ### 5.4 El pago y la confirmación
 
@@ -156,7 +146,7 @@ pagarle al dueño. En orden, el dueño carga:
 9. **Datos de cobro y documentación**: cuenta bancaria del beneficiario y
    documentos que respaldan la titularidad (documento de identidad, comprobante
    de domicilio y título de propiedad del palco).
-10. **Precios** de cada modalidad que quiera ofrecer.
+10. **Precio** del asiento por evento.
 
 Al terminar, **el palco no se publica automáticamente**: queda **pendiente de
 verificación** por parte del equipo de Palqueate (ver §7). Esto protege a los
@@ -174,8 +164,8 @@ hinchas: nadie alquila algo que no fue revisado.
 El palquista tiene un tablero con sus números: **recaudación**, **ocupación**
 (cuántas butacas vendió sobre las disponibles), **entradas vendidas por evento**,
 **visitas a sus publicaciones** y **conversión**, además de gráficos de ingresos
-por modalidad y por evento, y la evolución en el tiempo. Le sirve para decidir
-precios y qué modalidades conviene ofrecer.
+por evento y la evolución en el tiempo. Le sirve para decidir el precio del
+asiento por evento.
 
 ### 6.4 Responder a una verificación rechazada
 
@@ -233,7 +223,7 @@ Reúne los indicadores clave del negocio en un vistazo: ventas totales (GMV),
 comisión, payout, ingreso por botana, entradas vendidas, ticket promedio,
 cantidad de clientes, ocupación media, palcos activos y cantidad de eventos y
 estadios en la plataforma; más gráficos de ventas por mes, ingresos por
-modalidad y los eventos que más recaudan.
+evento y los eventos que más recaudan.
 
 ---
 
@@ -257,10 +247,10 @@ modalidad y los eventos que más recaudan.
 |---------|----------------|
 | **Palco** | Box privado en un estadio, con varios asientos y comodidades |
 | **Palquista** | El dueño de un palco que lo publica para alquilar |
-| **Modalidad** | La forma de alquiler: palco entero, asiento anual o asiento por evento |
+| **Modalidad** | La forma de alquiler: asiento por evento (una butaca para una función puntual) |
 | **Evento** | Un partido o show en un estadio |
 | **Función** | Una fecha y hora concreta de un evento (un show puede tener varias) |
-| **Temporada** | El año deportivo; los alquileres "anuales" cubren toda la temporada |
+| **Temporada** | El año deportivo en el que se juegan los eventos |
 | **Botana** | El menú de comidas y bebidas que se pide para el palco |
 | **Verificación** | La revisión que hace Palqueate antes de publicar un palco |
 | **Comisión** | El 4 % que retiene la plataforma sobre cada reserva |
@@ -288,8 +278,9 @@ Entender estos estados ayuda a seguir cualquier publicación:
 - Palqueate es un **intermediario de confianza** entre dueños de palcos e hinchas.
 - Su valor está en **tres lados**: oferta para el dueño, acceso para el hincha y
   control de calidad por parte del equipo.
-- La **flexibilidad de modalidades** (palco entero / asiento anual / por evento)
-  es lo que abre el mercado a muchos más usuarios.
+- El alquiler de **asientos por evento** (una butaca para una función puntual)
+  es lo que abre el mercado a muchos más usuarios, sin que nadie tenga que
+  comprar un palco entero.
 - La **verificación** y la **claridad en el cobro** son lo que sostiene la
   confianza, que es el activo más importante del negocio.
 - El ingreso principal es la **comisión del 4 %**, complementada por la **botana**.

@@ -102,10 +102,12 @@ CREATE DOMAIN ratio AS numeric(6,5)
 CREATE TYPE palco_status AS ENUM
   ('pendiente', 'rechazado', 'publicado', 'pausado', 'alquilado');
 
--- Modalidades de alquiler. Se conservan EXACTO los literales del contrato
--- (API/dominio) para evitar mapeos error-prone entre capas.
+-- Modalidad de alquiler. Hoy la ÚNICA es "asiento por evento" (seatEvent). Las
+-- modalidades anuales (palco entero / asiento anual) se removieron del producto;
+-- quedan como posible extensión a futuro. Se mantiene el ENUM y la columna `mode`
+-- para poder reincorporarlas sin migrar el esquema.
 CREATE TYPE palco_mode AS ENUM
-  ('palcoYear', 'seatYear', 'seatEvent');
+  ('seatEvent');
 
 -- Medio de pago del checkout (API §23).
 CREATE TYPE pay_method AS ENUM
@@ -243,8 +245,9 @@ INSERT INTO currencies (code, name, symbol) VALUES
   ('UYU', 'Peso uruguayo', '$U');
 
 -- --- Temporadas -------------------------------------------------------------
--- El alquiler "anual" (palcoYear/seatYear) cubre una temporada completa. La
--- ocupación anual se gestiona a nivel temporada (RN-11), por eso es una entidad.
+-- Temporada deportiva (un año). Agrupa los eventos del período; se conserva como
+-- marco temporal de referencia. (Antes anclaba los alquileres anuales, hoy
+-- removidos del producto.)
 CREATE TABLE seasons (
   id          uuid        PRIMARY KEY DEFAULT uuidv7(),
   name        text        NOT NULL,                 -- "Temporada 2026"
@@ -256,7 +259,7 @@ CREATE TABLE seasons (
   CHECK (ends_on > starts_on),
   UNIQUE (year)
 );
-COMMENT ON TABLE seasons IS 'Temporadas deportivas; ancla de los alquileres anuales (RN-11).';
+COMMENT ON TABLE seasons IS 'Temporadas deportivas (marco temporal que agrupa los eventos del año).';
 -- A lo sumo una temporada vigente.
 CREATE UNIQUE INDEX uq_seasons_current ON seasons (is_current) WHERE is_current;
 
@@ -887,8 +890,8 @@ CREATE TRIGGER trg_palcos_updated
   FOR EACH ROW EXECUTE FUNCTION palqueate.set_updated_at();
 
 -- --- Modalidades de un palco ------------------------------------------------
--- Una fila por modalidad ofrecida (RD-03). is_on indica si está activa; el
--- precio aplica a esa modalidad. RN-06 exige al menos una modalidad activa.
+-- Una fila por modalidad ofrecida (RD-03). Hoy la única es seatEvent (asiento
+-- por evento); is_on indica si está activa y price es su precio por asiento.
 CREATE TABLE palco_modes (
   palco_id    uuid         NOT NULL REFERENCES palcos(id) ON DELETE CASCADE,
   mode        palco_mode   NOT NULL,
@@ -898,7 +901,7 @@ CREATE TABLE palco_modes (
   PRIMARY KEY (palco_id, mode),
   CHECK (NOT is_on OR price > 0)        -- una modalidad activa debe tener precio
 );
-COMMENT ON TABLE palco_modes IS 'Modalidades (palcoYear/seatYear/seatEvent) con activación y precio (RD-03).';
+COMMENT ON TABLE palco_modes IS 'Modalidad seatEvent (asiento por evento) con activación y precio (RD-03).';
 
 -- --- Butacas (inventario físico) --------------------------------------------
 -- Una fila por butaca del palco (1..seat_count). Es el inventario contra el que
@@ -1045,14 +1048,13 @@ CREATE INDEX ix_review_flags_review ON palco_review_field_flags (review_id);
 -- El carrito vive en el servidor (API §4). Agregar un ítem crea un HOLD: una
 -- reserva temporal de asientos con TTL. La pieza central anti-doble-venta es
 -- `seat_reservations`: la tabla de bloqueos VIVOS (holds activos + ventas
--- confirmadas). Un índice único parcial por ámbito (temporada/función) impone,
--- de forma ATÓMICA, que un asiento tenga a lo sumo un bloqueo: dos checkouts o
--- dos "agregar al carrito" concurrentes sobre el mismo asiento → uno falla (409).
+-- confirmadas). Un índice único parcial por función impone, de forma ATÓMICA,
+-- que un asiento tenga a lo sumo un bloqueo: dos checkouts o dos "agregar al
+-- carrito" concurrentes sobre el mismo asiento → uno falla (409).
 --
--- Ámbitos de ocupación (RN-11), independientes por modalidad:
---   · palcoYear  → palco entero por TEMPORADA (sin asiento puntual).
---   · seatYear   → butaca por TEMPORADA.
---   · seatEvent  → butaca por FUNCIÓN (event_occurrence).
+-- Ocupación (RN-11): la única modalidad es seatEvent → butaca por FUNCIÓN
+-- (event_occurrence). Una butaca puede estar libre para una función y ocupada
+-- para otra.
 -- ============================================================================
 
 
@@ -1082,16 +1084,14 @@ CREATE TABLE cart_items (
   cart_id       uuid         NOT NULL REFERENCES carts(id) ON DELETE CASCADE,
   palco_id      uuid         NOT NULL REFERENCES palcos(id),
   mode          palco_mode   NOT NULL,
-  season_id     uuid         REFERENCES seasons(id),            -- modos anuales
-  event_id      uuid         REFERENCES events(id),             -- sólo seatEvent
-  occurrence_id uuid         REFERENCES event_occurrences(id),  -- sólo seatEvent
+  event_id      uuid         REFERENCES events(id),             -- seatEvent
+  occurrence_id uuid         REFERENCES event_occurrences(id),  -- seatEvent
   term          text         NOT NULL DEFAULT '',               -- etiqueta de período (display)
   qty           integer      NOT NULL CHECK (qty >= 1),
   unit_price    money_amount NOT NULL,            -- snapshot p/ mostrar; checkout recalcula
   created_at    timestamptz  NOT NULL DEFAULT now(),
-  -- seatEvent exige función; los modos anuales exigen temporada.
-  CHECK ( (mode = 'seatEvent' AND occurrence_id IS NOT NULL AND event_id IS NOT NULL)
-       OR (mode IN ('palcoYear','seatYear') AND season_id IS NOT NULL) )
+  -- seatEvent exige función (fecha + hora) y su evento.
+  CHECK (mode = 'seatEvent' AND occurrence_id IS NOT NULL AND event_id IS NOT NULL)
 );
 COMMENT ON TABLE cart_items IS 'Líneas del carrito. id = uid expuesto por la API.';
 CREATE INDEX ix_cart_items_cart ON cart_items (cart_id);
@@ -1104,7 +1104,6 @@ CREATE TABLE holds (
   user_id       uuid         REFERENCES users(id) ON DELETE CASCADE,
   palco_id      uuid         NOT NULL REFERENCES palcos(id),
   mode          palco_mode   NOT NULL,
-  season_id     uuid         REFERENCES seasons(id),
   event_id      uuid         REFERENCES events(id),
   occurrence_id uuid         REFERENCES event_occurrences(id),
   status        hold_status  NOT NULL DEFAULT 'active',
@@ -1120,25 +1119,22 @@ CREATE INDEX ix_holds_active_expiry ON holds (expires_at) WHERE status = 'active
 -- --- Bloqueos vivos de butacas (anti-doble-venta) ---------------------------
 -- Una fila por butaca bloqueada: 'held' (hold activo) o 'sold' (venta
 -- confirmada). Al liberar/vencer un hold, su fila se ELIMINA (el historial
--- queda en holds). Al confirmar el checkout, pasa a 'sold'. Los índices únicos
--- parciales por ámbito garantizan a lo sumo un bloqueo por asiento.
+-- queda en holds). Al confirmar el checkout, pasa a 'sold'. El índice único
+-- parcial por función garantiza a lo sumo un bloqueo por asiento y función.
 CREATE TABLE seat_reservations (
   id            uuid         PRIMARY KEY DEFAULT uuidv7(),
   palco_id      uuid         NOT NULL REFERENCES palcos(id),
   mode          palco_mode   NOT NULL,
-  season_id     uuid         REFERENCES seasons(id),
   occurrence_id uuid         REFERENCES event_occurrences(id),
-  seat_number   integer,                            -- NULL en palcoYear (palco entero)
+  seat_number   integer,
   state         text         NOT NULL CHECK (state IN ('held', 'sold')),
   hold_id       uuid         REFERENCES holds(id) ON DELETE CASCADE,
   order_item_id uuid,                               -- FK a order_items (se agrega en 0008)
   user_id       uuid         REFERENCES users(id),
   created_at    timestamptz  NOT NULL DEFAULT now(),
   expires_at    timestamptz,                        -- sólo cuando state='held'
-  -- Coherencia ámbito/modalidad
-  CHECK ( (mode = 'seatEvent'  AND occurrence_id IS NOT NULL AND seat_number IS NOT NULL)
-       OR (mode = 'seatYear'   AND season_id IS NOT NULL     AND seat_number IS NOT NULL)
-       OR (mode = 'palcoYear'  AND season_id IS NOT NULL     AND seat_number IS NULL) ),
+  -- Coherencia ámbito/modalidad: seatEvent exige función y butaca.
+  CHECK (mode = 'seatEvent' AND occurrence_id IS NOT NULL AND seat_number IS NOT NULL),
   CHECK ( (state = 'held' AND hold_id IS NOT NULL)
        OR (state = 'sold' AND order_item_id IS NOT NULL) )
 );
@@ -1146,13 +1142,9 @@ COMMENT ON TABLE seat_reservations IS 'Bloqueos vivos de butacas (held/sold). N�
 CREATE INDEX ix_seat_res_hold ON seat_reservations (hold_id) WHERE hold_id IS NOT NULL;
 CREATE INDEX ix_seat_res_held_expiry ON seat_reservations (expires_at) WHERE state = 'held';
 
--- Unicidad atómica por ámbito: a lo sumo UN bloqueo (held o sold) por asiento.
+-- Unicidad atómica por función: a lo sumo UN bloqueo (held o sold) por asiento.
 CREATE UNIQUE INDEX uq_seat_res_seatevent
   ON seat_reservations (palco_id, occurrence_id, seat_number) WHERE mode = 'seatEvent';
-CREATE UNIQUE INDEX uq_seat_res_seatyear
-  ON seat_reservations (palco_id, season_id, seat_number) WHERE mode = 'seatYear';
-CREATE UNIQUE INDEX uq_seat_res_palcoyear
-  ON seat_reservations (palco_id, season_id) WHERE mode = 'palcoYear';
 
 
 -- ####################################################################
@@ -1218,8 +1210,7 @@ CREATE TABLE order_items (
   palco_title   text         NOT NULL,             -- snapshot
   stadium_id    uuid         REFERENCES stadiums(id),
   mode          palco_mode   NOT NULL,
-  mode_label    text         NOT NULL,             -- "Asiento anual · 1 año" (snapshot)
-  season_id     uuid         REFERENCES seasons(id),
+  mode_label    text         NOT NULL,             -- "Asiento · por evento" (snapshot)
   event_id      uuid         REFERENCES events(id),
   occurrence_id uuid         REFERENCES event_occurrences(id),
   event_label   text,                               -- snapshot ("Torneo Apertura · Fecha 7")
@@ -1253,7 +1244,7 @@ CREATE TABLE order_item_seats (
   seat_number   integer  NOT NULL,
   PRIMARY KEY (order_item_id, seat_number)
 );
-COMMENT ON TABLE order_item_seats IS 'Butacas concretas vendidas en un ítem (vacío en palcoYear).';
+COMMENT ON TABLE order_item_seats IS 'Butacas concretas vendidas en un ítem (por evento).';
 
 -- --- Órdenes de snacks (botana) ---------------------------------------------
 -- Una reserva (orders) puede tener 0..N órdenes de snacks compradas DESPUÉS, y
@@ -1692,33 +1683,22 @@ END;
 $$;
 COMMENT ON FUNCTION palqueate.expire_holds() IS 'Vence holds y libera asientos (job + lazy-on-read, API §4).';
 
--- --- Disponibilidad por ámbito (RN-11) --------------------------------------
--- Devuelve las butacas TOMADAS (held + sold) de un palco en un ámbito concreto.
--- Para seatEvent se pasa la función (occurrence); para seatYear, la temporada.
+-- --- Disponibilidad por función (RN-11) -------------------------------------
+-- Devuelve las butacas TOMADAS (held + sold) de un palco en una función concreta
+-- (occurrence). Única modalidad: asiento por evento.
 CREATE OR REPLACE FUNCTION palqueate.taken_seats(
-  p_palco uuid, p_mode palco_mode, p_season uuid DEFAULT NULL, p_occurrence uuid DEFAULT NULL
+  p_palco uuid, p_occurrence uuid
 ) RETURNS integer[] LANGUAGE sql STABLE AS $$
   SELECT coalesce(array_agg(seat_number ORDER BY seat_number), '{}')
   FROM palqueate.seat_reservations sr
   WHERE sr.palco_id = p_palco
-    AND sr.mode = p_mode
+    AND sr.mode = 'seatEvent'
+    AND sr.occurrence_id = p_occurrence
     AND sr.seat_number IS NOT NULL
-    AND (sr.state = 'sold' OR sr.expires_at > now())
-    AND ( (p_mode = 'seatEvent' AND sr.occurrence_id = p_occurrence)
-       OR (p_mode = 'seatYear'  AND sr.season_id = p_season) );
+    AND (sr.state = 'sold' OR sr.expires_at > now());
 $$;
-COMMENT ON FUNCTION palqueate.taken_seats(uuid, palco_mode, uuid, uuid)
-  IS 'Butacas ocupadas (vendidas + en hold vigente) por ámbito (RN-11).';
-
--- ¿Está el palco entero tomado para una temporada (palcoYear)?
-CREATE OR REPLACE FUNCTION palqueate.palco_year_taken(p_palco uuid, p_season uuid)
-RETURNS boolean LANGUAGE sql STABLE AS $$
-  SELECT EXISTS (
-    SELECT 1 FROM palqueate.seat_reservations sr
-     WHERE sr.palco_id = p_palco AND sr.mode = 'palcoYear' AND sr.season_id = p_season
-       AND (sr.state = 'sold' OR sr.expires_at > now())
-  );
-$$;
+COMMENT ON FUNCTION palqueate.taken_seats(uuid, uuid)
+  IS 'Butacas ocupadas (vendidas + en hold vigente) por función (RN-11).';
 
 -- --- Recálculo del rating del palco -----------------------------------------
 CREATE OR REPLACE FUNCTION palqueate.refresh_palco_rating()
@@ -1768,13 +1748,13 @@ COMMENT ON FUNCTION palqueate.generate_palco_seats(uuid) IS 'Materializa el inve
 -- ============================================================================
 
 
--- --- Precio "desde" de cada palco (modalidad activa más barata) -------------
+-- --- Precio "desde" de cada palco (precio del asiento por evento) -----------
 CREATE OR REPLACE VIEW v_palco_min_price AS
 SELECT m.palco_id,
        min(m.price) FILTER (WHERE m.is_on) AS from_price
 FROM palco_modes m
 GROUP BY m.palco_id;
-COMMENT ON VIEW v_palco_min_price IS 'Precio "desde" (modalidad activa más económica) — RF-09.';
+COMMENT ON VIEW v_palco_min_price IS 'Precio "desde" (precio del asiento por evento) — RF-09.';
 
 -- --- Catálogo público -------------------------------------------------------
 -- Sólo palcos publicado/alquilado (RN-03), con datos de tarjeta del catálogo.
@@ -1810,11 +1790,7 @@ SELECT p.id AS palco_id, p.owner_id, p.title, p.status, p.rating,
        s.name AS stadium_name, p.seat_count,
        -- Recaudación: suma de líneas de orden de este palco.
        COALESCE((SELECT sum(oi.line_total) FROM order_items oi WHERE oi.palco_id = p.id), 0)::bigint AS revenue,
-       -- Butacas anuales vendidas (temporada vigente) y su capacidad.
-       (SELECT count(*) FROM seat_reservations sr
-          WHERE sr.palco_id = p.id AND sr.mode = 'seatYear' AND sr.state = 'sold') AS annual_seats,
-       p.seat_count AS annual_capacity,
-       -- Entradas vendidas por evento (modalidad seatEvent).
+       -- Entradas vendidas por evento (única modalidad, seatEvent).
        (SELECT count(*) FROM seat_reservations sr
           WHERE sr.palco_id = p.id AND sr.mode = 'seatEvent' AND sr.state = 'sold') AS event_tickets,
        (SELECT count(*) FROM palco_view_events v WHERE v.palco_id = p.id) AS views,
@@ -1849,13 +1825,14 @@ GROUP BY 1
 ORDER BY 1;
 COMMENT ON VIEW v_monthly_sales IS 'Serie mensual de ventas para el dashboard (RF-48/49, API §27).';
 
--- --- Mix por modalidad (admin) ----------------------------------------------
-CREATE OR REPLACE VIEW v_modality_mix AS
-SELECT oi.mode, sum(oi.line_total)::bigint AS revenue, count(*) AS lines
+-- --- Recaudación por evento (admin) -----------------------------------------
+CREATE OR REPLACE VIEW v_revenue_by_event AS
+SELECT oi.event_id, sum(oi.line_total)::bigint AS revenue, count(*) AS lines
 FROM order_items oi
 JOIN orders o ON o.id = oi.order_id AND o.status = 'paid'
-GROUP BY oi.mode;
-COMMENT ON VIEW v_modality_mix IS 'Ingresos por modalidad para el dashboard (API §27).';
+WHERE oi.event_id IS NOT NULL
+GROUP BY oi.event_id;
+COMMENT ON VIEW v_revenue_by_event IS 'Recaudación por evento para el dashboard (API §27).';
 
 -- --- Ingresos por botana (admin) --------------------------------------------
 -- Suma TODA la botana: snacks iniciales (líneas con order_id, pagados con la

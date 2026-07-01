@@ -36,7 +36,7 @@ incorporaciones que necesiten una referencia precisa del comportamiento esperado
 
 ### 1.4 Definiciones
 Ver glosario en `DOCUMENTACION.md`. Términos centrales: *palco, palquista, hincha,
-modalidad, evento, función, temporada, botana, verificación, comisión, payout, GMV*.
+evento, función, temporada, botana, verificación, comisión, payout, GMV*.
 
 ### 1.5 Convenciones
 Los requerimientos se identifican con prefijos:
@@ -89,7 +89,7 @@ administrador es una atribución especial de la cuenta.
 
 ### 3.1 Generales y de navegación
 - **RF-01** El sistema debe ofrecer una página de inicio con accesos a explorar
-  **eventos** (agenda) y **palcos** (catálogo / alquiler por temporada).
+  **eventos** (agenda) y **palcos** (catálogo / reserva de asientos por evento).
 - **RF-02** El sistema debe permitir navegar entre todas las secciones sin
   recargar la página, manteniendo direcciones (URLs) propias para cada vista de
   modo que puedan compartirse o recargarse.
@@ -111,10 +111,10 @@ administrador es una atribución especial de la cuenta.
 ### 3.3 Exploración de palcos (catálogo)
 - **RF-09** El sistema debe mostrar un **catálogo de palcos** con su título,
   estadio, calificación, cantidad de asientos, estacionamiento y **precio
-  "desde"** (la modalidad activa más económica).
+  "desde"** (el precio del asiento por evento).
 - **RF-10** El sistema debe permitir **buscar y filtrar** palcos por texto
   (título, sector, estadio, dueño), por **estadio** (selección múltiple), por
-  **modalidad**, por **estacionamiento**, por **mínimo de asientos** y por
+  **estacionamiento**, por **mínimo de asientos** y por
   **rango de precio**.
 - **RF-11** El sistema debe permitir **ordenar** el catálogo por relevancia,
   precio, cantidad de asientos o calificación.
@@ -123,17 +123,19 @@ administrador es una atribución especial de la cuenta.
 
 ### 3.4 Detalle del palco y selección
 - **RF-13** El detalle de un palco debe mostrar fotos, **ubicación en el mapa del
-  estadio**, comodidades, calificación y las **modalidades ofrecidas** con sus
-  precios.
-- **RF-14** El sistema debe permitir elegir la **modalidad** (palco entero,
-  asiento anual o asiento por evento) entre las que el palco tenga activas.
-- **RF-15** Para las modalidades por asiento, el sistema debe mostrar un **mapa de
+  estadio**, comodidades, calificación y el **precio del asiento por evento**.
+  *(Nota: las modalidades anuales "palco entero" y "asiento anual" quedan como
+  posible extensión a futuro; hoy la única modalidad es el asiento por evento.)*
+- **RF-14** La reserva es siempre **por evento (por función)**: el sistema debe
+  permitir al hincha **elegir butacas** para la función seleccionada, sin elección
+  de modalidad.
+- **RF-15** El sistema debe mostrar un **mapa de
   butacas** indicando cuáles están **disponibles** y cuáles **ocupadas**, y
   permitir seleccionar una o más butacas disponibles.
-- **RF-16** Para la modalidad por evento, la disponibilidad de butacas debe
-  corresponder a la **función específica** seleccionada.
-- **RF-17** Para la modalidad "palco entero", no se seleccionan butacas
-  individuales: se alquila el palco completo.
+- **RF-16** La disponibilidad de butacas debe corresponder a la **función
+  específica** seleccionada.
+- **RF-17** *(No aplica)* La reserva se realiza siempre por asiento y por evento;
+  no existe alquiler de palco completo en el estado actual.
 - **RF-18** El sistema debe calcular y mostrar el **subtotal** de la selección
   (precio × cantidad) antes de agregar al carrito.
 
@@ -181,7 +183,7 @@ administrador es una atribución especial de la cuenta.
 - **RF-34** El sistema debe ofrecer un **asistente de publicación guiado** que
   recoja, en orden: país, estadio, ubicación en el plano, cantidad de asientos,
   estacionamiento, comodidades, fotos, co-propietarios, datos de cobro y
-  documentación, y precios por modalidad.
+  documentación, y el precio del asiento por evento.
 - **RF-35** El asistente debe **validar cada paso** antes de avanzar (ver RN-06).
 - **RF-36** Todo palco publicado debe ingresar en estado **pendiente de
   verificación** (ver RN-04) y no ser visible al público hasta su aprobación.
@@ -191,7 +193,7 @@ administrador es una atribución especial de la cuenta.
   salvo cuando el palco esté alquilado (RN-07).
 - **RF-39** El palquista debe poder **ver estadísticas** de sus palcos:
   recaudación, ocupación, entradas vendidas por evento, visitas y conversión, con
-  desgloses por modalidad y evento y evolución temporal.
+  desgloses por evento y evolución temporal.
 - **RF-40** Cuando un palco sea rechazado, el palquista debe ver **qué campos** se
   observaron y por qué, poder **aclararlos/corregirlos** y **reenviar** a revisión.
 
@@ -240,8 +242,8 @@ administrador es una atribución especial de la cuenta.
 - **RN-06 (Completitud de la publicación):** El asistente debe exigir como mínimo:
   un estadio válido, la ubicación marcada en el plano, al menos **1 asiento**, al
   menos **1 comodidad**, al menos **3 fotos**, datos de cobro completos con sus
-  documentos de respaldo, datos válidos de cada co-propietario declarado y al
-  menos **una modalidad activa** con precio.
+  documentos de respaldo, datos válidos de cada co-propietario declarado y el
+  **precio del asiento por evento**.
 - **RN-07 (Pausa restringida):** Un palco en estado **alquilado** no puede
   pausarse.
 - **RN-08 (Aprobación):** Al aprobar, el palco pasa a **publicado** y queda
@@ -252,10 +254,9 @@ administrador es una atribución especial de la cuenta.
 - **RN-10 (Validación de registro):** El registro debe exigir nombre (mínimo 2
   caracteres), email con formato válido y contraseña (mínimo 4 caracteres), y
   **rechazar** emails ya registrados.
-- **RN-11 (Disponibilidad por modalidad):** La ocupación de butacas se gestiona
-  por modalidad: para **asiento anual**, a nivel temporada; para **asiento por
-  evento**, por **función** (fecha + hora). Una butaca puede estar libre para una
-  función y ocupada para otra.
+- **RN-11 (Disponibilidad por función):** La ocupación de butacas se gestiona por
+  **función** (fecha + hora): la reserva de un asiento aplica a la función
+  seleccionada. Una butaca puede estar libre para una función y ocupada para otra.
 - **RN-12 (Sesión en modo demo):** En el estado actual, el inicio de sesión
   ingresa a la cuenta de demostración. Esta regla es transitoria y se reemplaza al
   integrar autenticación real (sección 9).
@@ -336,9 +337,9 @@ administrador es una atribución especial de la cuenta.
 - **RD-03** El sistema debe registrar **palcos** con: estadio y país, título,
   sector, ubicación en el plano, cantidad de asientos, estacionamiento,
   comodidades, fotos, dueño, calificación, co-propietarios, datos de cobro,
-  **modalidades** (con activación y precio) y **estado**.
+  el **precio del asiento por evento** y **estado**.
 - **RD-04** Para cada palco, el sistema debe registrar la **ocupación de butacas**
-  por modalidad (anual y por función).
+  por función (fecha + hora).
 - **RD-05** El sistema debe registrar **cuentas de usuario** con: nombre, email,
   teléfono, documento, datos de contacto, preferencias, puntos, atribución de
   administrador y, opcionalmente, foto, medio de pago y datos de facturación.
