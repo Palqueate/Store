@@ -29,7 +29,7 @@ export const createOwnerSlice = (set, get) => ({
   startWizard: () => {
     const country = DEFAULT_COUNTRY
     const inCountry = get()._wzStadiumsInCountry(country)
-    const stadium = inCountry.indexOf('gpc') >= 0 ? 'gpc' : (inCountry[0] || '')
+    const stadium = inCountry[0] || ''
     set({ wz: { editId: null, country, stadium, x: null, y: null, title: '', seats: 10, parkHas: true, parkN: 2, parkPrice: 80000, amenities: [], coOwners: [], images: [], payout: emptyPayout(), mPalco: true, pricePalco: 1200000, mSeatY: true, priceSeatY: 95000, mSeatE: true, priceSeatE: 6500 } })
     get().go('publish')
   },

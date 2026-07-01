@@ -6,6 +6,13 @@
 // across the client exactly like the original. The day a real backend
 // exists, the HTTP adapters replace these reads/writes — this module is
 // the single source of truth that the in-memory adapters wrap.
+//
+// Los datos ejercitan los modelos vigentes:
+//  · palcoYear.taken → un palco entero puede estar alquilado por la temporada
+//    (RN-11): ver p2 (Palco Presidencial). Bloquea asiento anual y por evento.
+//  · seatYear/seatEvent.taken → butacas ocupadas por temporada / por función,
+//    coherentes entre sí y con las compras sembradas (SEED_ORDERS).
+//  · Órdenes con evento pasado (botana no disponible), futuro y anual.
 // ============================================================
 import type { Stadium } from '../../../modules/stadiums/domain/Stadium'
 import type { Ev, EventType } from '../../../modules/events/domain/Event'
@@ -16,8 +23,9 @@ import type { Order } from '../../../modules/orders/domain/Order'
 import { promoPoster } from '../../lib/promoPosters'
 
 export const STADIUMS: Record<string, Stadium> = {
-  gpc: { id: 'gpc', name: 'Gran Parque Central', short: 'GPC', city: 'Montevideo', country: 'Uruguay', shape: 'rect', capacity: 34000, year: 1900, surface: 'Césped natural', levels: 2, address: 'Carlos Anaya 2900', roof: false },
-  cds: { id: 'cds', name: 'Campeón del Siglo', short: 'CDS', city: 'Montevideo', country: 'Uruguay', shape: 'bowl', capacity: 40000, year: 2016, surface: 'Césped natural', levels: 3, address: 'Cno. Maldonado 4000', roof: false },
+  cen: { id: 'cen', name: 'Estadio Centenario', short: 'CEN', city: 'Montevideo', country: 'Uruguay', shape: 'bowl', capacity: 60000, year: 1930, surface: 'Césped natural', levels: 3, address: 'Av. Dr. Américo Ricaldoni s/n', roof: false },
+  franzini: { id: 'franzini', name: 'Estadio Luis Franzini', short: 'FRA', city: 'Montevideo', country: 'Uruguay', shape: 'rect', capacity: 18000, year: 1961, surface: 'Césped natural', levels: 1, address: 'Bulevar Artigas 1442', roof: false },
+  saroldi: { id: 'saroldi', name: 'Estadio Parque Saroldi', short: 'SAR', city: 'Montevideo', country: 'Uruguay', shape: 'rect', capacity: 12000, year: 1936, surface: 'Césped natural', levels: 2, address: 'Cno. Edison 3400', roof: false },
 }
 
 // Los eventos de muestra se construyen con `buildEvent`, que replica la forma
@@ -66,28 +74,30 @@ function buildEvent(s: SeedEvent): Ev {
   }
 }
 
+// Hoy es 2026-06-30 en el entorno de la demo. e4 es una fecha YA PASADA (para
+// demostrar que a una compra de un evento vencido no se le puede sumar botana);
+// el resto son funciones por venir.
 export const EVENTS: Ev[] = [
-  buildEvent({ id: 'e1', stadium: 'gpc', type: 'futbol', comp: 'Torneo Apertura', round: 'Fecha 7', opp: 'Costa FC', tag: 'Local',
-    functions: [{ iso: '2026-07-11', time: '17:00' }] }),
-  buildEvent({ id: 'e2', stadium: 'gpc', type: 'futbol', comp: 'Copa Nacional', round: 'Octavos · vuelta', opp: 'Atlético Litoral', tag: 'Copa',
-    functions: [{ iso: '2026-07-25', time: '20:15' }],
-    images: [promoPoster({ title: 'Atlético Litoral', from: '#10243A', to: '#0B1622', accent: '#C9A24B' })] }),
-  buildEvent({ id: 'e3', stadium: 'gpc', type: 'futbol', comp: 'Torneo Apertura', round: 'Fecha 11', opp: 'Club Aurora', tag: 'Destacado',
-    functions: [{ iso: '2026-08-08', time: '17:30' }],
-    images: [promoPoster({ title: 'Club Aurora', from: '#2A1530', to: '#120A18', accent: '#E0A6FF' })] }),
-  buildEvent({ id: 'e4', stadium: 'cds', type: 'futbol', comp: 'Torneo Apertura', round: 'Fecha 8', opp: 'Deportivo Pradera', tag: 'Local',
-    functions: [{ iso: '2026-07-18', time: '16:00' }] }),
-  buildEvent({ id: 'e5', stadium: 'cds', type: 'futbol', comp: 'Copa Libertadores', round: 'Fase de grupos', opp: 'Estuario FC', tag: 'Copa',
-    functions: [{ iso: '2026-07-29', time: '21:30' }], obs: 'Partido internacional: el ingreso al estadio cierra 30 minutos antes del inicio.',
-    images: [promoPoster({ title: 'Estuario FC', from: '#0C2A22', to: '#08130F', accent: '#34D17E' })] }),
-  // Show con varias funciones: el cliente elige fecha y hora antes de ver palcos.
-  buildEvent({ id: 'e6', stadium: 'gpc', type: 'show', comp: 'Gira Mundial', round: '', opp: 'Banda Aurora', tag: 'Destacado',
-    functions: [{ iso: '2026-08-21', time: '21:00' }, { iso: '2026-08-22', time: '21:00' }, { iso: '2026-08-23', time: '19:00' }],
-    images: [promoPoster({ title: 'Banda Aurora', from: '#3A1438', to: '#160A1E', accent: '#FF8CC8' })] }),
-  // Concierto de Ghost: show internacional con dos funciones en el CDS.
-  buildEvent({ id: 'e7', stadium: 'cds', type: 'show', comp: 'Skeletour World Tour', round: '', opp: 'Ghost', tag: 'Destacado',
-    functions: [{ iso: '2026-09-11', time: '21:00' }, { iso: '2026-09-12', time: '21:00' }], obs: 'Apertura de puertas 19:00. No se permite el ingreso con cámaras profesionales.',
-    images: [promoPoster({ title: 'Ghost', from: '#1A1D24', to: '#05060A', accent: '#C9A24B' })] }),
+  buildEvent({ id: 'e1', stadium: 'cen', type: 'futbol', comp: 'Torneo Clausura', round: 'Fecha 3', opp: 'Racing', tag: 'Local',
+    functions: [{ iso: '2026-07-05', time: '16:00' }] }),
+  buildEvent({ id: 'e2', stadium: 'cen', type: 'futbol', comp: 'Copa Libertadores', round: 'Cuartos · ida', opp: 'Palmeiras', tag: 'Copa',
+    functions: [{ iso: '2026-07-22', time: '19:30' }], obs: 'Partido internacional: el ingreso al estadio cierra 30 minutos antes del inicio.',
+    images: [promoPoster({ title: 'Palmeiras', from: '#0C2A22', to: '#08130F', accent: '#34D17E' })] }),
+  buildEvent({ id: 'e3', stadium: 'franzini', type: 'futbol', comp: 'Torneo Clausura', round: 'Fecha 4', opp: 'Danubio', tag: 'Local',
+    functions: [{ iso: '2026-07-12', time: '15:00' }] }),
+  // Evento YA JUGADO (24 de mayo): base de la compra PLQ-VR01, que no admite botana.
+  buildEvent({ id: 'e4', stadium: 'saroldi', type: 'futbol', comp: 'Torneo Clausura', round: 'Fecha 2', opp: 'Cerro', tag: 'Local',
+    functions: [{ iso: '2026-05-24', time: '15:30' }] }),
+  // Show con dos funciones: el cliente elige fecha y hora antes de ver palcos.
+  buildEvent({ id: 'e5', stadium: 'cen', type: 'show', comp: 'Noche de Estadio', round: '', opp: 'La Vela Puerca', tag: 'Destacado',
+    functions: [{ iso: '2026-08-15', time: '21:00' }, { iso: '2026-08-16', time: '21:00' }],
+    images: [promoPoster({ title: 'La Vela Puerca', from: '#2A1530', to: '#120A18', accent: '#E0A6FF' })] }),
+  buildEvent({ id: 'e6', stadium: 'franzini', type: 'futbol', comp: 'Copa AUF Uruguay', round: 'Octavos', opp: 'Wanderers', tag: 'Copa',
+    functions: [{ iso: '2026-08-02', time: '20:00' }],
+    images: [promoPoster({ title: 'Wanderers', from: '#10243A', to: '#0B1622', accent: '#C9A24B' })] }),
+  buildEvent({ id: 'e7', stadium: 'saroldi', type: 'show', comp: 'Gira Aniversario', round: '', opp: 'Jaime Roos', tag: 'Destacado',
+    functions: [{ iso: '2026-09-05', time: '21:00' }], obs: 'Apertura de puertas 19:00.',
+    images: [promoPoster({ title: 'Jaime Roos', from: '#3A1438', to: '#160A1E', accent: '#FF8CC8' })] }),
 ]
 
 export const EVENT_TYPES: EventType[] = [
@@ -97,35 +107,37 @@ export const EVENT_TYPES: EventType[] = [
 ]
 
 export const PALCOS: Palco[] = [
-  { id: 'p1', stadium: 'gpc', title: 'Palco Atilio García', sector: 'Tribuna Atilio García · Nivel Palcos', map: { x: 50, y: 13.5 }, seats: 10, parking: { has: true, n: 2, price: 78000 }, host: 'Familia Méndez', rating: 4.9, photos: 3, images: [],
-    modes: { palcoYear: { on: true, price: 1180000 }, seatYear: { on: true, price: 96000, taken: [3, 4] }, seatEvent: { on: true, price: 6500, taken: { e1: [1, 2], e2: [], e3: [1, 2, 3, 4, 5], 'e6-1': [1, 2, 3], 'e6-2': [], 'e6-3': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] } } }, status: 'publicado' },
-  { id: 'p2', stadium: 'cds', title: 'Palco Henderson', sector: 'Tribuna Henderson · Platea Alta', map: { x: 50, y: 12 }, seats: 12, parking: { has: true, n: 3, price: 88000 }, host: 'Grupo Aurinegro SA', rating: 4.8, photos: 4, images: [],
-    modes: { palcoYear: { on: true, price: 1450000 }, seatYear: { on: true, price: 108000, taken: [7, 8, 9] }, seatEvent: { on: true, price: 7200, taken: { e4: [1], e5: [1, 2, 3], 'e7-1': [1, 2, 3, 4], 'e7-2': [] } } }, status: 'publicado' },
-  { id: 'p3', stadium: 'gpc', title: 'Palco Esquina Norte', sector: 'Codo Norte · Nivel Palcos', map: { x: 78, y: 24 }, seats: 8, parking: { has: false, n: 0, price: 0 }, host: 'Vos (demo)', rating: 4.7, photos: 2, images: [],
-    modes: { palcoYear: { on: false, price: 980000 }, seatYear: { on: true, price: 84000, taken: [1, 2, 5] }, seatEvent: { on: true, price: 5400, taken: { e1: [3, 4], e2: [3, 4, 5], e3: [6], 'e6-1': [1], 'e6-2': [3, 4, 5], 'e6-3': [6] } } }, status: 'publicado' },
-  { id: 'p4', stadium: 'cds', title: 'Palco Olímpico', sector: 'Tribuna Olímpica · Platea Alta', map: { x: 24, y: 30 }, seats: 10, parking: { has: true, n: 2, price: 82000 }, host: 'Inversiones del Sur', rating: 4.6, photos: 3, images: [],
-    modes: { palcoYear: { on: true, price: 1290000 }, seatYear: { on: false, price: 99000, taken: [] }, seatEvent: { on: true, price: 6800, taken: { e4: [5, 6], e5: [], 'e7-1': [], 'e7-2': [5, 6, 7] } } }, status: 'publicado' },
-  { id: 'p5', stadium: 'gpc', title: 'Palco Abdón Porte', sector: 'Tribuna Abdón Porte · Centro', map: { x: 50, y: 86.5 }, seats: 14, parking: { has: true, n: 4, price: 95000 }, host: 'Estudio Caraballo', rating: 5.0, photos: 5, images: [],
-    modes: { palcoYear: { on: true, price: 1620000 }, seatYear: { on: true, price: 118000, taken: [2] }, seatEvent: { on: true, price: 8200, taken: { e1: [1, 2, 3], e2: [], e3: [], 'e6-1': [1, 2], 'e6-2': [], 'e6-3': [1, 2, 3] } } }, status: 'publicado' },
-  { id: 'p6', stadium: 'cds', title: 'Palco Palacio', sector: 'Codo Sur · Nivel Palcos', map: { x: 74, y: 74 }, seats: 8, parking: { has: true, n: 1, price: 70000 }, host: 'Vos (demo)', rating: 4.5, photos: 2, images: [],
-    modes: { palcoYear: { on: true, price: 1040000 }, seatYear: { on: true, price: 88000, taken: [3, 4, 5, 6] }, seatEvent: { on: true, price: 5900, taken: { e4: [1, 2], e5: [7, 8], 'e7-1': [1], 'e7-2': [2, 3] } } }, status: 'pausado' },
+  { id: 'p1', stadium: 'cen', title: 'Palco Olímpico Norte', sector: 'Tribuna Olímpica · Nivel Palcos', map: { x: 50, y: 13.5 }, seats: 10, parking: { has: true, n: 2, price: 82000 }, host: 'Familia Sosa', rating: 4.8, photos: 3, images: [], amenities: ['Wi-Fi', 'Heladera', 'Televisión', 'Baño'],
+    modes: { palcoYear: { on: true, price: 1200000 }, seatYear: { on: true, price: 92000, taken: [2, 5] }, seatEvent: { on: true, price: 6800, taken: { e1: [1, 3], e2: [4], 'e5-1': [1, 2, 3, 4], 'e5-2': [] } } }, status: 'publicado' },
+  // Palco ENTERO alquilado por la temporada (palcoYear.taken): no admite asiento
+  // anual ni por evento. Sus arrays de butacas quedan vacíos (coherencia RN-11).
+  { id: 'p2', stadium: 'cen', title: 'Palco Presidencial', sector: 'Tribuna América · Platea Preferencial', map: { x: 50, y: 86.5 }, seats: 12, parking: { has: true, n: 3, price: 90000 }, host: 'Grupo Aurora SA', rating: 4.9, photos: 4, images: [], amenities: ['Wi-Fi', 'Cocina', 'Bar', 'Aire acondicionado', 'Baño'],
+    modes: { palcoYear: { on: true, price: 1650000, taken: true }, seatYear: { on: true, price: 125000, taken: [] }, seatEvent: { on: true, price: 8500, taken: {} } }, status: 'alquilado' },
+  { id: 'p3', stadium: 'franzini', title: 'Palco Bulevar', sector: 'Tribuna Bulevar · Nivel Palcos', map: { x: 76, y: 26 }, seats: 8, parking: { has: false, n: 0, price: 0 }, host: 'Vos (demo)', rating: 4.6, photos: 2, images: [], amenities: ['Wi-Fi', 'Televisión'],
+    modes: { palcoYear: { on: false, price: 960000 }, seatYear: { on: true, price: 78000, taken: [1, 4, 7] }, seatEvent: { on: true, price: 5200, taken: { e3: [2, 3], e6: [1] } } }, status: 'publicado' },
+  { id: 'p4', stadium: 'saroldi', title: 'Palco Río', sector: 'Tribuna Río · Platea Alta', map: { x: 26, y: 30 }, seats: 10, parking: { has: true, n: 2, price: 80000 }, host: 'Inversiones del Este', rating: 4.5, photos: 3, images: [], amenities: ['Wi-Fi', 'Parrillero', 'Baño'],
+    modes: { palcoYear: { on: true, price: 1050000 }, seatYear: { on: false, price: 99000, taken: [] }, seatEvent: { on: true, price: 6000, taken: { e4: [1, 2, 3, 4, 5], e7: [] } } }, status: 'publicado' },
+  { id: 'p5', stadium: 'cen', title: 'Palco Cebra', sector: 'Tribuna Ámsterdam · Centro', map: { x: 82, y: 50 }, seats: 14, parking: { has: true, n: 4, price: 95000 }, host: 'Estudio Caraballo', rating: 5.0, photos: 5, images: [], amenities: ['Wi-Fi', 'Cocina', 'Heladera', 'Televisión', 'Calefacción', 'Bar'],
+    modes: { palcoYear: { on: true, price: 1500000 }, seatYear: { on: true, price: 110000, taken: [3] }, seatEvent: { on: true, price: 7500, taken: { e1: [2, 4], e2: [1, 2, 3], 'e5-1': [1, 2], 'e5-2': [] } } }, status: 'publicado' },
+  { id: 'p6', stadium: 'franzini', title: 'Palco Estudio', sector: 'Codo Sur · Nivel Palcos', map: { x: 24, y: 74 }, seats: 8, parking: { has: true, n: 1, price: 68000 }, host: 'Vos (demo)', rating: 4.4, photos: 2, images: [], amenities: ['Wi-Fi', 'Heladera'],
+    modes: { palcoYear: { on: true, price: 990000 }, seatYear: { on: true, price: 82000, taken: [5, 6] }, seatEvent: { on: true, price: 5400, taken: { e3: [1], e6: [2, 3] } } }, status: 'pausado' },
 ]
 
 export const FOOD: FoodItem[] = [
-  { id: 'f1', cat: 'compartir', name: 'Nachos con cheddar', price: 590, desc: 'Cheddar fundido y jalapeños' },
-  { id: 'f2', cat: 'compartir', name: 'Picada del palco', price: 1290, desc: 'Quesos, fiambres y aceitunas' },
-  { id: 'f3', cat: 'compartir', name: 'Papas bravas', price: 480, desc: 'Con alioli y picante' },
-  { id: 'f4', cat: 'sandwich', name: 'Chivito al pan', price: 790, desc: 'Lomo, panceta, huevo y queso' },
-  { id: 'f5', cat: 'sandwich', name: 'Choripán', price: 420, desc: 'Con chimichurri casero' },
-  { id: 'f6', cat: 'sandwich', name: 'Pancho completo', price: 340, desc: 'Doble salchicha' },
-  { id: 'f7', cat: 'pizza', name: 'Pizza muzzarella', price: 680, desc: '8 porciones' },
-  { id: 'f8', cat: 'pizza', name: 'Fainá', price: 220, desc: 'Recién horneada' },
-  { id: 'f9', cat: 'cerveza', name: 'Cerveza tirada 1L', price: 520, desc: 'Rubia bien fría' },
-  { id: 'f10', cat: 'cerveza', name: 'Six pack lata', price: 840, desc: '6 x 473ml' },
-  { id: 'f11', cat: 'bebida', name: 'Refresco 1.5L', price: 280, desc: 'Cola / lima / naranja' },
-  { id: 'f12', cat: 'bebida', name: 'Agua mineral', price: 140, desc: 'Con o sin gas' },
-  { id: 'f13', cat: 'dulce', name: 'Alfajores x3', price: 260, desc: 'De maicena o chocolate' },
-  { id: 'f14', cat: 'dulce', name: 'Pop corn dulce', price: 230, desc: 'Balde grande' },
+  { id: 'f1', cat: 'compartir', name: 'Tabla de fiambres', price: 1350, desc: 'Quesos, jamón crudo y aceitunas' },
+  { id: 'f2', cat: 'compartir', name: 'Nachos supremos', price: 620, desc: 'Cheddar, guacamole y pico de gallo' },
+  { id: 'f3', cat: 'compartir', name: 'Rabas a la provenzal', price: 890, desc: 'Con alioli de limón' },
+  { id: 'f4', cat: 'sandwich', name: 'Chivito canario', price: 850, desc: 'Lomo, panceta, huevo y queso' },
+  { id: 'f5', cat: 'sandwich', name: 'Milanesa al pan', price: 640, desc: 'Con lechuga, tomate y mayonesa' },
+  { id: 'f6', cat: 'sandwich', name: 'Choripán artesanal', price: 450, desc: 'Con chimichurri casero' },
+  { id: 'f7', cat: 'pizza', name: 'Pizza muzzarella', price: 720, desc: '8 porciones' },
+  { id: 'f8', cat: 'pizza', name: 'Fugazzeta rellena', price: 780, desc: 'Cebolla y muzzarella' },
+  { id: 'f9', cat: 'cerveza', name: 'Pinta artesanal IPA', price: 380, desc: 'Tirada, bien fría' },
+  { id: 'f10', cat: 'cerveza', name: 'Balde x6 lager', price: 1650, desc: '6 x 355ml en hielo' },
+  { id: 'f11', cat: 'bebida', name: 'Refresco 1.5L', price: 300, desc: 'Cola / lima / naranja' },
+  { id: 'f12', cat: 'bebida', name: 'Agua mineral 600ml', price: 150, desc: 'Con o sin gas' },
+  { id: 'f13', cat: 'dulce', name: 'Churros con dulce de leche', price: 340, desc: 'Media docena' },
+  { id: 'f14', cat: 'dulce', name: 'Helado artesanal', price: 290, desc: 'Dulce de leche o chocolate' },
 ]
 
 export const FOOD_CATS: FoodCat[] = [
@@ -133,20 +145,28 @@ export const FOOD_CATS: FoodCat[] = [
   { id: 'pizza', name: 'Pizzas' }, { id: 'cerveza', name: 'Cervezas' }, { id: 'bebida', name: 'Bebidas' }, { id: 'dulce', name: 'Dulce' },
 ]
 
-// Cuenta demo
+// Cuenta demo (el inicio de sesión de la demo entra a esta cuenta).
 export const SEED_USER: User = {
-  id: 'u_maru', name: 'María Eugenia', email: 'maria.eugenia@palqueate.uy', phone: '099 555 123', pass: 'palqueate', joined: '2025-03-12T00:00:00.000Z',
-  ci: '4.812.345-6', birth: '1989-07-14', city: 'Montevideo', address: 'Bvar. España 2456, Apto 701', country: 'Uruguay',
-  favStadium: 'gpc', lang: 'Español (UY)', verified: true, points: 1840, admin: true,
+  id: 'u_valen', name: 'Valentina Rivas', email: 'valentina.rivas@palqueate.uy', phone: '099 762 418', pass: 'palqueate', joined: '2025-02-08T00:00:00.000Z',
+  ci: '5.204.771-3', birth: '1991-11-02', city: 'Montevideo', address: 'Av. Brasil 2765, Apto 402', country: 'Uruguay',
+  favStadium: 'cen', lang: 'Español (UY)', verified: true, points: 2140, admin: true,
   notif: { email: true, sms: false, push: true, promos: true },
-  card: { brand: 'Visa', last4: '4242', exp: '08/27', name: 'María Eugenia Fernández' },
-  billing: { name: 'María Eugenia Fernández', rut: '' },
+  card: { brand: 'Visa', last4: '7731', exp: '05/28', name: 'Valentina Rivas Long' },
+  billing: { name: 'Valentina Rivas Long', rut: '' },
 }
 
+// Compras sembradas del usuario demo. Cubren las tres modalidades y los tres
+// casos de botana: evento pasado (no admite), evento futuro (admite) y anual
+// (admite toda la temporada). Las butacas coinciden con los `taken` de cada palco.
 export const SEED_ORDERS: Order[] = [
-  { code: 'PLQ-ME02', userId: 'u_maru', subtotal: 108000, fee: 4320, total: 112320, date: '2026-05-22T19:30:00.000Z', contact: { name: 'María Eugenia', email: 'maria.eugenia@palqueate.uy' }, food: [], foodTotal: 0,
-    items: [{ uid: 'me2a', palcoId: 'p2', palcoTitle: 'Palco Henderson', stadium: 'cds', mode: 'seatYear', modeLabel: 'Asiento anual · 1 año', seats: [4], term: 'Temporada 2026 · 1 año', qty: 1, price: 108000 }] },
-  { code: 'PLQ-ME01', userId: 'u_maru', subtotal: 13000, fee: 520, total: 13520, date: '2026-06-10T17:00:00.000Z', contact: { name: 'María Eugenia', email: 'maria.eugenia@palqueate.uy' }, foodTotal: 2620,
-    food: [{ id: 'f4', name: 'Chivito al pan', qty: 2, price: 790 }, { id: 'f9', name: 'Cerveza tirada 1L', qty: 2, price: 520 }],
-    items: [{ uid: 'me1a', palcoId: 'p1', palcoTitle: 'Palco Atilio García', stadium: 'gpc', mode: 'seatEvent', modeLabel: 'Asiento · por evento', seats: [5, 6], eventId: 'e1', occurrenceId: 'e1', eventLabel: 'Torneo Apertura · Fecha 7', eventOpp: 'Costa FC', term: '12 JUL · 17:00 hs', qty: 2, price: 13000 }] },
+  // Asiento anual (temporada en curso) — admite sumar botana.
+  { code: 'PLQ-VR03', userId: 'u_valen', subtotal: 110000, fee: 4400, total: 114400, date: '2026-04-15T20:00:00.000Z', contact: { name: 'Valentina Rivas', email: 'valentina.rivas@palqueate.uy' }, food: [], foodTotal: 0,
+    items: [{ uid: 'vr3a', palcoId: 'p5', palcoTitle: 'Palco Cebra', stadium: 'cen', mode: 'seatYear', modeLabel: 'Asiento anual · 1 año', seats: [3], term: 'Temporada 2026 · 1 año', qty: 1, price: 110000 }] },
+  // Asiento por un evento YA JUGADO (24 MAY) — NO admite sumar botana.
+  { code: 'PLQ-VR01', userId: 'u_valen', subtotal: 12000, fee: 480, total: 12480, date: '2026-05-10T18:00:00.000Z', contact: { name: 'Valentina Rivas', email: 'valentina.rivas@palqueate.uy' }, food: [], foodTotal: 0,
+    items: [{ uid: 'vr1a', palcoId: 'p4', palcoTitle: 'Palco Río', stadium: 'saroldi', mode: 'seatEvent', modeLabel: 'Asiento · por evento', seats: [1, 2], eventId: 'e4', occurrenceId: 'e4', eventLabel: 'Torneo Clausura · Fecha 2', eventOpp: 'Cerro', term: '24 MAY · 15:30 hs', qty: 2, price: 12000 }] },
+  // Asiento por un evento POR VENIR (05 JUL), ya con algo de botana — admite sumar más.
+  { code: 'PLQ-VR02', userId: 'u_valen', subtotal: 6800, fee: 272, total: 7072, date: '2026-06-20T16:30:00.000Z', contact: { name: 'Valentina Rivas', email: 'valentina.rivas@palqueate.uy' }, foodTotal: 1610,
+    food: [{ id: 'f4', name: 'Chivito canario', qty: 1, price: 850 }, { id: 'f9', name: 'Pinta artesanal IPA', qty: 2, price: 380 }],
+    items: [{ uid: 'vr2a', palcoId: 'p1', palcoTitle: 'Palco Olímpico Norte', stadium: 'cen', mode: 'seatEvent', modeLabel: 'Asiento · por evento', seats: [3], eventId: 'e1', occurrenceId: 'e1', eventLabel: 'Torneo Clausura · Fecha 3', eventOpp: 'Racing', term: '05 JUL · 16:00 hs', qty: 1, price: 6800 }] },
 ]

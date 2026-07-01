@@ -269,10 +269,7 @@ export default function Account() {
                 label="ESTADIO FAVORITO"
                 value={vals.favStadiumVal}
                 onChange={(v) => vals.setFavStadium({ target: { value: v } } as any)}
-                options={[
-                  { value: 'gpc', label: 'Gran Parque Central' },
-                  { value: 'cds', label: 'Campeón del Siglo' },
-                ]}
+                options={vals.stadiumOptions}
               />
               <Select
                 label="IDIOMA"

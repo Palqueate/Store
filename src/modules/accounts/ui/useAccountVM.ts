@@ -84,7 +84,8 @@ export function useAccountVM(): any {
     saveProfile: function () { self.saveProfileDraft() },
 
     // preferences
-    favStadiumVal: uu.favStadium || 'gpc',
+    favStadiumVal: uu.favStadium || Object.keys(s.stadiums)[0] || '',
+    stadiumOptions: Object.keys(s.stadiums).map(function (id) { return { value: id, label: s.stadiums[id].name } }),
     setFavStadium: function (e) { self.setFavStadium(e.target.value) },
     langVal: uu.lang || 'Español (UY)',
     setLang: function (e) { self.setLang(e.target.value) },

@@ -26,7 +26,7 @@ export const createAdminSlice = (set, get) => ({
   palcoReviewFlags: {} as Record<string, any>,
   // `dates` son las funciones del evento (fecha + hora). Fútbol suele tener una;
   // shows y otros eventos pueden tener varias.
-  evDraft: { type: 'futbol', stadium: 'gpc', country: DEFAULT_COUNTRY, dates: [{ date: '', time: '17:00' }], comp: '', round: '', opp: '', images: [] as string[], obs: '' },
+  evDraft: { type: 'futbol', stadium: '', country: DEFAULT_COUNTRY, dates: [{ date: '', time: '17:00' }], comp: '', round: '', opp: '', images: [] as string[], obs: '' },
   stadDraft: { name: '', short: '', city: 'Montevideo', country: DEFAULT_COUNTRY, address: '', capacity: '', year: '', surface: '', levels: '2', roof: 'no', mapImage: '' },
 
   isAdmin: () => !!(get().user && get().user.admin),
