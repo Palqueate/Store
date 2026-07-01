@@ -7,7 +7,6 @@
 // screen name -> URL path (params resolved at navigation time from state)
 const SCREEN_PATHS = {
   home: '/',
-  results: '/palcos',
   events: '/eventos',
   eventPalcos: '/evento/:eventId',
   detail: '/palco/:palcoId',
@@ -31,7 +30,6 @@ export function pathForScreen(screen, state) {
 }
 
 const STATIC_SCREEN_BY_PATH = {
-  '/palcos': 'results',
   '/eventos': 'events',
   '/carrito': 'cart',
   '/checkout': 'checkout',

@@ -10,7 +10,6 @@ import BootGate from '@/shared/ui/components/BootGate'
 import { BottomNav, AcctBackdrop, AuthModal, EventModal, StadiumModal, PalcoReviewModal, SnacksModal, Toast } from '@/shared/ui/components/Overlays'
 
 import Home from '@/modules/home/ui/Home'
-import Results from '@/modules/palcos/ui/Results'
 import Detail from '@/modules/palcos/ui/Detail'
 import Cart from '@/modules/orders/ui/Cart'
 import Checkout from '@/modules/orders/ui/Checkout'
@@ -45,7 +44,6 @@ export default function App() {
           <BootGate>
             <Routes>
               <Route path="/" element={<Home />} />
-              <Route path="/palcos" element={<Results />} />
               <Route path="/eventos" element={<Events />} />
               <Route path="/evento/:eventId" element={<EventPalcos />} />
               <Route path="/palco/:palcoId" element={<Detail />} />

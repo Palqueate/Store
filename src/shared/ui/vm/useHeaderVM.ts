@@ -20,7 +20,7 @@ export function useHeaderVM(): any {
 
     navStyle: (mobile ? 'display:none;' : 'display:flex;') + ' align-items:center; gap:22px;',
     navLinkHome: navLink(s.screen === 'home'),
-    navLinkResults: navLink(s.screen === 'events' || s.screen === 'eventPalcos' || s.screen === 'detail' || s.screen === 'results'),
+    navLinkResults: navLink(s.screen === 'events' || s.screen === 'eventPalcos' || s.screen === 'detail'),
     navLinkOwner: navLink(s.screen === 'owner' || s.screen === 'publish' || s.screen === 'metrics'),
 
     // theme toggle

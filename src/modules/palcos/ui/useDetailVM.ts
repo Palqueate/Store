@@ -43,9 +43,9 @@ export function useDetailVM(): any {
     det.eventName = curEv ? (curEv.comp + (curEv.round ? (' · ' + curEv.round) : '')) : ''
     det.eventOpp = curEv ? curEv.opp : ''
     det.eventWhen = curOcc ? (curOcc.dow + ' ' + curOcc.day + ' ' + curOcc.month + ' · ' + curOcc.time + ' hs') : ''
-    det.backLabel = s.fromEvent ? 'Volver al evento' : 'Volver a palcos'
+    det.backLabel = s.fromEvent ? 'Volver al evento' : 'Volver a eventos'
     // Volver al evento conservando la función (fecha + hora) ya elegida.
-    det.back = s.fromEvent ? function () { self.go('eventPalcos') } : function () { self.go('results') }
+    det.back = s.fromEvent ? function () { self.go('eventPalcos') } : function () { self.go('events') }
     // Siempre se reserva por evento: se muestra el selector de asientos, y el de
     // funciones salvo que ya se venga de un evento con la función fijada.
     det.showSeats = true

@@ -121,7 +121,7 @@ export function useOverlaysVM(): any {
     goOwner: function () { self.go('owner') },
     goCart: function () { self.go('cart') },
     bnHome: bnS(s.screen === 'home'),
-    bnResults: bnS(s.screen === 'events' || s.screen === 'eventPalcos' || s.screen === 'detail' || s.screen === 'results'),
+    bnResults: bnS(s.screen === 'events' || s.screen === 'eventPalcos' || s.screen === 'detail'),
     bnOwner: bnS(s.screen === 'owner' || s.screen === 'publish' || s.screen === 'metrics'),
     bnCart: bnS(s.screen === 'cart' || s.screen === 'checkout' || s.screen === 'confirm' || s.screen === 'food' || s.screen === 'foodConfirm'),
 
