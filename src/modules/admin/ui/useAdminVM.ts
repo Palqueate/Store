@@ -18,12 +18,20 @@ export function useAdminVM(): any {
 
   var gmv = ordersAll.reduce(function (a, o) { return a + (o.total || 0) + (o.foodTotal || 0) }, 0)
   var commission = ordersAll.reduce(function (a, o) { return a + (o.fee || 0) }, 0)
-  var ticketsSold = ordersAll.reduce(function (a, o) { return a + o.items.reduce(function (x, it) { return x + (it.mode === 'palcoYear' ? 1 : (it.seats ? it.seats.length : (it.qty || 1))) }, 0) }, 0)
+  var ticketsSold = ordersAll.reduce(function (a, o) { return a + o.items.reduce(function (x, it) { return x + (it.seats ? it.seats.length : (it.qty || 1)) }, 0) }, 0)
   var avgTicket = ordersAll.length ? Math.round(gmv / ordersAll.length) : 0
   var activePalcos = ALL_PALCOS.filter(function (p) { return self.statusOf(p) !== 'pausado' }).length
   var foodRev = ordersAll.reduce(function (a, o) { return a + (o.foodTotal || 0) }, 0)
   var payout = Math.max(0, gmv - commission)
-  var occVals = ALL_PALCOS.map(function (p) { var cap = p.modes.seatYear.on ? p.seats : 0; var tk = (p.modes.seatYear.on && p.modes.seatYear.taken) ? p.modes.seatYear.taken.length : 0; return cap > 0 ? tk / cap : null }).filter(function (x) { return x != null })
+  // Ocupación media por evento: butacas vendidas sobre butacas-función totales
+  // (asientos × funciones del estadio).
+  var occCountByStad = {}; EVENTS.forEach(function (e) { occCountByStad[e.stadium] = (occCountByStad[e.stadium] || 0) + eventOccurrences(e).length })
+  var occVals = ALL_PALCOS.map(function (p) {
+    var cap = p.modes.seatEvent.on ? p.seats * (occCountByStad[p.stadium] || 0) : 0
+    var taken = p.modes.seatEvent.taken || {}
+    var tk = Object.keys(taken).reduce(function (n, k) { return n + (taken[k] || []).length }, 0)
+    return cap > 0 ? tk / cap : null
+  }).filter(function (x) { return x != null })
   var occAvg = occVals.length ? Math.round(occVals.reduce(function (a, b) { return a + b }, 0) / occVals.length * 100) : 0
 
   var adminKpis = [
@@ -31,10 +39,10 @@ export function useAdminVM(): any {
     { label: 'COMISIÓN PALQUEATE', value: self.money(commission), sub: '4% s/ reservas' },
     { label: 'PAYOUT A PALQUISTAS', value: self.money(payout), sub: 'neto a dueños' },
     { label: 'INGRESO BOTANA', value: self.money(foodRev), sub: 'comidas y bebidas' },
-    { label: 'ENTRADAS VENDIDAS', value: String(ticketsSold), sub: 'butacas + palcos' },
+    { label: 'ENTRADAS VENDIDAS', value: String(ticketsSold), sub: 'butacas por evento' },
     { label: 'TICKET PROMEDIO', value: self.money(avgTicket), sub: 'por reserva' },
     { label: 'CLIENTES', value: String(s.accounts.length), sub: 'cuentas registradas' },
-    { label: 'OCUPACIÓN MEDIA', value: occAvg + '%', sub: 'asientos anuales' },
+    { label: 'OCUPACIÓN MEDIA', value: occAvg + '%', sub: 'butacas por evento' },
     { label: 'PALCOS ACTIVOS', value: activePalcos + '/' + ALL_PALCOS.length, sub: 'publicados' },
     { label: 'EVENTOS · ESTADIOS', value: EVENTS.length + ' · ' + STAD_LIST.length, sub: 'en plataforma' },
   ]
@@ -52,13 +60,6 @@ export function useAdminVM(): any {
   var monthMax = monthSales.reduce(function (a, b) { return Math.max(a, b) }, 1)
   var adminMonthBars = monthSales.map(function (v, i) { return { mo: monthsLbl[i], val: self.money(v), barStyle: 'width:100%; height:' + Math.max(8, Math.round(v / monthMax * 100)) + '%; border-radius:5px 5px 2px 2px; background:linear-gradient(180deg, var(--primary,#C9A24B), color-mix(in srgb,var(--primary,#C9A24B) 45%, transparent));' } })
 
-  var modeRev = { palcoYear: 0, seatYear: 0, seatEvent: 0 }
-  ordersAll.forEach(function (o) { o.items.forEach(function (it) { if (modeRev[it.mode] != null) modeRev[it.mode] += it.price }) })
-  var modeTotal = (modeRev.palcoYear + modeRev.seatYear + modeRev.seatEvent) || 1
-  var pPalco = Math.round(modeRev.palcoYear / modeTotal * 100), pSeatY = Math.round(modeRev.seatYear / modeTotal * 100), pSeatE = Math.max(0, 100 - pPalco - pSeatY)
-  var adminDonut = { width: '132px', height: '132px', borderRadius: '50%', flex: '0 0 auto', background: 'conic-gradient(var(--primary,#C9A24B) 0 ' + pPalco + '%, var(--success,#34D17E) ' + pPalco + '% ' + (pPalco + pSeatY) + '%, var(--warning,#E5A94D) ' + (pPalco + pSeatY) + '% 100%)' }
-  var adminModality = [{ label: 'Palco anual', pct: pPalco + '%', val: self.money(modeRev.palcoYear), dot: { width: '10px', height: '10px', borderRadius: '3px', background: 'var(--primary,#C9A24B)', flex: '0 0 auto' } }, { label: 'Asiento anual', pct: pSeatY + '%', val: self.money(modeRev.seatYear), dot: { width: '10px', height: '10px', borderRadius: '3px', background: 'var(--success,#34D17E)', flex: '0 0 auto' } }, { label: 'Por evento', pct: pSeatE + '%', val: self.money(modeRev.seatEvent), dot: { width: '10px', height: '10px', borderRadius: '3px', background: 'var(--warning,#E5A94D)', flex: '0 0 auto' } }]
-
   // Mapa función (occurrence id) → evento, para acumular ingresos por evento
   // aunque la disponibilidad esté indexada por función (fecha + hora).
   var occToEvent = {}; EVENTS.forEach(function (e) { eventOccurrences(e).forEach(function (o) { occToEvent[o.id] = e.id }) })
@@ -72,7 +73,7 @@ export function useAdminVM(): any {
 
   var adminStadiums = STAD_LIST.map(function (st) { return { id: st.id, name: st.name, short: st.short, city: st.city || '—', country: st.country || '—', address: st.address || '—', capacity: st.capacity ? st.capacity.toLocaleString('es-UY') : '—', year: st.year || '—', surface: st.surface || '—', levels: String(st.levels || '—'), roof: (st.roof ? 'Techado' : 'Abierto'), palcos: String(ALL_PALCOS.filter(function (p) { return p.stadium === st.id }).length), events: String(EVENTS.filter(function (e) { return e.stadium === st.id }).length), edit: function () { self.openStadModalEdit(st.id) } } })
 
-  var adminPalcos = ALL_PALCOS.map(function (p) { var stt = stad(p.stadium); var status = self.statusOf(p); var b = statusBadge(status); var fp = self.fromPrice(p); var occ = (p.modes.seatYear.on && p.modes.seatYear.taken) ? Math.round(p.modes.seatYear.taken.length / p.seats * 100) : 0
+  var adminPalcos = ALL_PALCOS.map(function (p) { var stt = stad(p.stadium); var status = self.statusOf(p); var b = statusBadge(status); var fp = self.fromPrice(p); var pCap = p.modes.seatEvent.on ? p.seats * (occCountByStad[p.stadium] || 0) : 0; var pTk = Object.keys(p.modes.seatEvent.taken || {}).reduce(function (n, k) { return n + ((p.modes.seatEvent.taken[k]) || []).length }, 0); var occ = pCap > 0 ? Math.round(pTk / pCap * 100) : 0
     return { id: p.id, title: p.title, host: p.host, stadiumName: stt.name, stadiumShort: stt.short, seats: String(p.seats), parking: (p.parking.has ? ('Estac. x' + p.parking.n) : 'Sin estac.'), price: self.money(fp.v), priceLabel: fp.l, statusLabel: b.lbl, statusStyle: b.style, occ: occ + '%',
       occBar: 'height:100%; width:' + occ + '%; background:var(--success,#34D17E); border-radius:4px;' } })
 
@@ -134,8 +135,6 @@ export function useAdminVM(): any {
     adminRecent: adminRecent,
     hasRecent: adminRecent.length > 0,
     adminMonthBars: adminMonthBars,
-    adminDonut: adminDonut,
-    adminModality: adminModality,
     adminTopEvents: adminTopEvents,
     // eventos
     adminEvents: adminEvents,

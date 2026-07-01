@@ -11,7 +11,7 @@ export function useOwnerVM(): any {
 
   var owned = self.allPalcos().filter(function (p) { return p.host === 'Vos (demo)' }).map(function (p) {
     var st = self.statusOf(p); var b = statusBadge(st)
-    var modes: string[] = []; if (p.modes.palcoYear.on) modes.push('Palco/año'); if (p.modes.seatYear.on) modes.push('Asiento/año'); if (p.modes.seatEvent.on) modes.push('Por evento')
+    var modes: string[] = []; if (p.modes.seatEvent.on) modes.push('Por evento')
     var fp = self.fromPrice(p)
     var isRejected = st === 'rechazado'
     var review = (isRejected && p.review) ? {
@@ -36,14 +36,18 @@ export function useOwnerVM(): any {
     }
   })
 
+  // Recaudación estimada: butacas vendidas por evento × precio, por cada palco.
   var ownIncome = owned.reduce(function (a, o) {
-    var pp = self.byId(o.id); return a + ((pp && pp.modes.palcoYear.on) ? pp.modes.palcoYear.price : 0)
+    var pp = self.byId(o.id); if (!pp) return a
+    var taken = pp.modes.seatEvent.taken || {}
+    var sold = Object.keys(taken).reduce(function (n, k) { return n + (taken[k] || []).length }, 0)
+    return a + sold * (pp.modes.seatEvent.on ? pp.modes.seatEvent.price : 0)
   }, 0)
 
   var ownerStats = [
     { label: 'PALCOS', value: String(owned.length) },
     { label: 'PUBLICADOS', value: String(owned.filter(function (o) { return o.statusLabel === 'Publicado' }).length) },
-    { label: 'INGRESO ANUAL EST.', value: self.money(ownIncome) },
+    { label: 'RECAUDACIÓN EST.', value: self.money(ownIncome) },
   ]
 
   return {

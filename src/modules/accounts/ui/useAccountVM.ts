@@ -12,13 +12,12 @@ export function useAccountVM(): any {
 
   var rawOrders = self.myOrders()
   var acctTotalSpent = rawOrders.reduce(function (a, o) { return a + (o.total || 0) + (o.foodTotal || 0) }, 0)
-  var acctReservas = rawOrders.reduce(function (a, o) { return a + o.items.reduce(function (x, it) { return x + (it.mode === 'palcoYear' ? 1 : (it.seats ? it.seats.length : (it.qty || 1))) }, 0) }, 0)
+  var acctReservas = rawOrders.reduce(function (a, o) { return a + o.items.reduce(function (x, it) { return x + (it.seats ? it.seats.length : (it.qty || 1)) }, 0) }, 0)
 
   var today = todayISO()
 
   var myOrders = self.myOrders().map(function (o) {
-    // Botana sólo si el evento todavía no pasó (los alquileres anuales valen
-    // toda la temporada). Si pasó, se muestra deshabilitado con su motivo.
+    // Botana sólo si el evento todavía no pasó. Si pasó, se muestra deshabilitado.
     var canSnack = orderSnackable(o, s.events, today)
     return {
       code: o.code,

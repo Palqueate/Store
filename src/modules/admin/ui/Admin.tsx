@@ -81,21 +81,6 @@ export default function Admin() {
                     ))}
                   </div>
                 </Card>
-                <Card padding="20px">
-                  <h3 style={{ margin: '0 0 16px', fontFamily: "'Archivo'", fontWeight: 800, fontSize: '16px', color: 'var(--foreground,#F4EFE6)' }}>Ventas por modalidad</h3>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
-                    <div style={css(vals.adminDonut)}></div>
-                    <div style={{ flex: 1, minWidth: '140px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                      {(vals.adminModality || []).map((m: any, i: number) => (
-                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
-                          <span style={css(m.dot)}></span>
-                          <span style={{ flex: 1, fontSize: '13px', color: 'var(--muted-foreground,#9AA6B2)' }}>{m.label}</span>
-                          <span style={{ fontFamily: "'Archivo'", fontWeight: 800, fontSize: '13px', color: 'var(--foreground,#F4EFE6)' }}>{m.pct}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </Card>
               </div>
               <Card padding="20px">
                 <h3 style={{ margin: '0 0 16px', fontFamily: "'Archivo'", fontWeight: 800, fontSize: '16px', color: 'var(--foreground,#F4EFE6)' }}>Top eventos por recaudación</h3>

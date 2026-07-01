@@ -22,22 +22,8 @@ export function useDetailVM(): any {
     det.parkSubtotal = self.money(dvm.parkTotal)
     det.parkAvailLabel = dvm.parkAvail + (dvm.parkAvail === 1 ? ' lugar disponible' : ' lugares disponibles')
     det.amenities = dp.amenities || []
-    det.modeCards = dvm.modeDefs.filter(function (m) { return m.on }).map(function (m) {
-      var on = s.mode === m.key
-      // Modalidad sin disponibilidad (RN-11): se muestra atenuada y no se puede
-      // elegir; el cliente entiende por qué no puede reservar de esa forma.
-      var avail = m.available !== false
-      return {
-        key: m.key, title: m.title, sub: m.sub, term: m.term, price: self.money(m.price), check: on,
-        available: avail, soldOutNote: avail ? '' : 'Sin disponibilidad',
-        pick: avail ? function () { self.setMode(m.key) } : function () { self.flash('Esa modalidad no está disponible en este palco') },
-        style: { position: 'relative', textAlign: 'left', cursor: (avail ? 'pointer' : 'not-allowed'), opacity: (avail ? 1 : 0.55), padding: '14px 15px', borderRadius: '13px', width: '100%', display: 'flex', flexDirection: 'column', gap: '3px', border: '1.5px solid ' + (on ? 'var(--primary)' : 'var(--border)'), background: (on ? 'color-mix(in srgb,var(--primary) 13%, var(--card))' : 'var(--card)') },
-        dotStyle: { position: 'absolute', top: '14px', right: '14px', width: '18px', height: '18px', borderRadius: '50%', border: '2px solid ' + (on ? 'var(--primary)' : 'var(--subtle-foreground)'), background: (on ? 'var(--primary)' : 'transparent'), display: 'grid', placeItems: 'center' }
-      }
-    })
-    det.showSeats = s.mode !== 'palcoYear'
-    det.showEvents = s.mode === 'seatEvent'
-    det.allMode = s.mode === 'palcoYear'
+    // Precio del palco (por asiento, por evento) — única modalidad de reserva.
+    det.seatPrice = self.money(dvm.price)
     det.seatList = dvm.seats.map(function (c) { return { n: c.n, state: c.st, onPick: c.click } })
     det.eventChips = dvm.events.map(function (e) {
       var on = e.selected
@@ -48,11 +34,9 @@ export function useDetailVM(): any {
       }
     })
     det.total = self.money(dvm.total); det.qty = dvm.qty
-    // No se puede reservar si la modalidad no tiene disponibilidad (RN-11).
-    det.modeAvailable = dvm.modeAvailable !== false
-    det.canReserve = det.modeAvailable && (s.mode === 'palcoYear' ? true : dvm.qty > 0)
-    det.summary = s.mode === 'palcoYear' ? 'Palco entero · 1 año' : (s.mode === 'seatYear' ? (dvm.qty + ' asiento' + (dvm.qty === 1 ? '' : 's') + ' · anual') : (dvm.qty + ' asiento' + (dvm.qty === 1 ? '' : 's') + ' · evento'))
-    det.unitNote = s.mode === 'palcoYear' ? 'Precio total del año' : (dvm.qty > 0 ? (dvm.qty + ' × ' + self.money(s.mode === 'seatYear' ? dp.modes.seatYear.price : dp.modes.seatEvent.price)) : 'Elegí tus asientos')
+    det.canReserve = dvm.qty > 0
+    det.summary = dvm.qty + ' asiento' + (dvm.qty === 1 ? '' : 's') + ' · evento'
+    det.unitNote = dvm.qty > 0 ? (dvm.qty + ' × ' + self.money(dp.modes.seatEvent.price)) : 'Elegí tus asientos'
     var curEv = EVENTS.find(function (e) { return e.id === s.eventId })
     var curOcc = curEv ? eventOccurrence(curEv, s.occurrenceId ?? undefined) : null
     det.fromEvent = !!s.fromEvent && !!curEv
@@ -62,7 +46,10 @@ export function useDetailVM(): any {
     det.backLabel = s.fromEvent ? 'Volver al evento' : 'Volver a palcos'
     // Volver al evento conservando la función (fecha + hora) ya elegida.
     det.back = s.fromEvent ? function () { self.go('eventPalcos') } : function () { self.go('results') }
-    det.showEvents = s.mode === 'seatEvent' && !s.fromEvent
+    // Siempre se reserva por evento: se muestra el selector de asientos, y el de
+    // funciones salvo que ya se venga de un evento con la función fijada.
+    det.showSeats = true
+    det.showEvents = !s.fromEvent
   }
 
   return {

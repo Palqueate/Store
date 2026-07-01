@@ -116,31 +116,16 @@ export default function Detail() {
               </div>
             ) : null}
 
-            {/* Mode selector */}
-            <div style={{ fontFamily: "'Space Mono'", fontSize: '11px', letterSpacing: '.1em', color: 'var(--subtle-foreground,#6B7480)', marginBottom: '12px' }}>
-              ELEGÍ TU MODALIDAD
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '9px' }}>
-              {(vals.det.modeCards || []).map((m: any, i: number) => (
-                <button key={i} onClick={m.pick} style={css(m.style)}>
-                  <div style={css(m.dotStyle)}>
-                    {m.check ? (
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--primary-foreground,#1A1407)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
-                    ) : null}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingRight: '24px' }}>
-                    <span style={{ fontFamily: 'Archivo', fontWeight: 800, fontSize: '16px', color: 'var(--foreground,#F4EFE6)' }}>{m.title}</span>
-                    {m.available === false ? (
-                      <span style={{ flex: '0 0 auto', padding: '2px 7px', borderRadius: '6px', background: 'var(--muted,#1F2530)', color: 'var(--subtle-foreground,#6B7480)', fontFamily: "'Space Mono'", fontWeight: 700, fontSize: '9.5px', letterSpacing: '.04em', textTransform: 'uppercase' }}>{m.soldOutNote}</span>
-                    ) : null}
-                  </div>
-                  <div style={{ fontSize: '12.5px', color: 'var(--muted-foreground,#9AA6B2)' }}>{m.sub}</div>
-                  <div style={{ marginTop: '5px', display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-                    <span style={{ fontFamily: 'Archivo', fontWeight: 800, fontSize: '18px', color: 'var(--primary,#C9A24B)' }}>{m.price}</span>
-                    <span style={{ fontFamily: "'Space Mono'", fontSize: '10px', color: 'var(--subtle-foreground,#6B7480)' }}>{m.term}</span>
-                  </div>
-                </button>
-              ))}
+            {/* Modalidad única: asiento por evento. Se muestra el precio por asiento. */}
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '10px', padding: '14px 15px', borderRadius: '13px', border: '1.5px solid var(--border)', background: 'var(--card)' }}>
+              <div>
+                <div style={{ fontFamily: 'Archivo', fontWeight: 800, fontSize: '16px', color: 'var(--foreground,#F4EFE6)' }}>Asiento por evento</div>
+                <div style={{ fontSize: '12.5px', color: 'var(--muted-foreground,#9AA6B2)' }}>Una butaca para un evento puntual</div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '5px', whiteSpace: 'nowrap' }}>
+                <span style={{ fontFamily: 'Archivo', fontWeight: 800, fontSize: '18px', color: 'var(--primary,#C9A24B)' }}>{vals.det.seatPrice}</span>
+                <span style={{ fontFamily: "'Space Mono'", fontSize: '10px', color: 'var(--subtle-foreground,#6B7480)' }}>· por asiento</span>
+              </div>
             </div>
 
             {/* Event chip list */}

@@ -1,4 +1,4 @@
-import { Btn, Card, Stack, Toggle, QuantityStepper, Field, FileDropzone, SearchInput, VirtualList, EmptyState, Combobox } from '@/lib'
+import { Btn, Card, Stack, QuantityStepper, Field, FileDropzone, SearchInput, VirtualList, EmptyState, Combobox } from '@/lib'
 import { css } from '@/shared/ui/css'
 import StadiumMap from '@/shared/ui/components/StadiumMap'
 import { isImageDataUrl, fileTypeLabel } from '@/shared/lib/readImages'
@@ -407,54 +407,13 @@ export default function Publish() {
         </Stack>
       </Section>
 
-      {/* ───── 6 · Modalidades y precios ───── */}
-      <Section n="6" title="Modalidades y precios" desc="Activá las modalidades de alquiler y poné su precio. Podés combinar varias.">
-        <Stack gap={14}>
-          <Card accent={w.mPalco} padding="18px 20px">
-            <Stack direction="row" gap={14} align="center">
-              <Toggle on={w.mPalco} onToggle={w.tPalco} />
-              <div style={{ flex: 1 }}>
-                <div style={{ fontFamily: "'Archivo'", fontWeight: 800, fontSize: '16px', color: 'var(--foreground,#F4EFE6)' }}>Palco entero · 1 año</div>
-                <div style={{ fontSize: '13px', color: 'var(--muted-foreground,#9AA6B2)' }}>Una persona alquila todo el palco por la temporada.</div>
-              </div>
-            </Stack>
-            {w.mPalco ? (
-              <div style={{ marginTop: '14px' }}>
-                <Field label="PRECIO $U / AÑO" type="number" value={String(w.pricePalco)} onInput={w.setPricePalco} placeholder="0" />
-              </div>
-            ) : null}
-          </Card>
-
-          <Card accent={w.mSeatY} padding="18px 20px">
-            <Stack direction="row" gap={14} align="center">
-              <Toggle on={w.mSeatY} onToggle={w.tSeatY} />
-              <div style={{ flex: 1 }}>
-                <div style={{ fontFamily: "'Archivo'", fontWeight: 800, fontSize: '16px', color: 'var(--foreground,#F4EFE6)' }}>Asiento · 1 año</div>
-                <div style={{ fontSize: '13px', color: 'var(--muted-foreground,#9AA6B2)' }}>Cada asiento se alquila por separado, toda la temporada.</div>
-              </div>
-            </Stack>
-            {w.mSeatY ? (
-              <div style={{ marginTop: '14px' }}>
-                <Field label="PRECIO $U / AÑO · ASIENTO" type="number" value={String(w.priceSeatY)} onInput={w.setPriceSeatY} placeholder="0" />
-              </div>
-            ) : null}
-          </Card>
-
-          <Card accent={w.mSeatE} padding="18px 20px">
-            <Stack direction="row" gap={14} align="center">
-              <Toggle on={w.mSeatE} onToggle={w.tSeatE} />
-              <div style={{ flex: 1 }}>
-                <div style={{ fontFamily: "'Archivo'", fontWeight: 800, fontSize: '16px', color: 'var(--foreground,#F4EFE6)' }}>Asiento · por evento</div>
-                <div style={{ fontSize: '13px', color: 'var(--muted-foreground,#9AA6B2)' }}>Alquiler único de un asiento para un evento puntual.</div>
-              </div>
-            </Stack>
-            {w.mSeatE ? (
-              <div style={{ marginTop: '14px' }}>
-                <Field label="PRECIO $U / EVENTO · ASIENTO" type="number" value={String(w.priceSeatE)} onInput={w.setPriceSeatE} placeholder="0" />
-              </div>
-            ) : null}
-          </Card>
-        </Stack>
+      {/* ───── 6 · Precio ───── */}
+      <Section n="6" title="Precio" desc="Los palcos se alquilan por evento: poné el precio de un asiento para una función.">
+        <Card padding="18px 20px" style={{ maxWidth: '420px' }}>
+          <div style={{ fontFamily: "'Archivo'", fontWeight: 800, fontSize: '16px', color: 'var(--foreground,#F4EFE6)' }}>Asiento · por evento</div>
+          <div style={{ fontSize: '13px', color: 'var(--muted-foreground,#9AA6B2)', marginBottom: '14px' }}>Alquiler de un asiento para un evento puntual.</div>
+          <Field label="PRECIO $U / EVENTO · ASIENTO" type="number" value={String(w.priceSeatE)} onInput={w.setPriceSeatE} placeholder="0" />
+        </Card>
       </Section>
 
       {/* Footer · enviar */}

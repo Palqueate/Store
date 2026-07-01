@@ -69,15 +69,6 @@ export default function Results() {
             </div>
 
             <div>
-              <div style={FILTER_LABEL}>MODALIDAD</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '7px' }}>
-                {(vals.typeFilter || []).map((c: any, i: number) => (
-                  <Chip key={i} active={c.active} onClick={c.pick}>{c.label}</Chip>
-                ))}
-              </div>
-            </div>
-
-            <div>
               <div style={FILTER_LABEL}>ASIENTOS</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '7px' }}>
                 {(vals.seatChips || []).map((c: any, i: number) => (

@@ -1,5 +1,5 @@
 import { useFacade } from '@/shared/ui/vm/facade'
-import { selCard, sw } from '@/shared/ui/vm/helpers'
+import { selCard } from '@/shared/ui/vm/helpers'
 import { COUNTRY_OPTIONS } from '@/shared/domain/countries'
 import { DEFAULT_AMENITIES } from '@/app/store/slices/ownerSlice'
 
@@ -99,11 +99,8 @@ export function usePublishVM(): any {
         removePropertyTitle: function () { self.wzRemovePayoutDoc('propertyTitle') },
       },
 
-      mPalco: w.mPalco, mSeatY: w.mSeatY, mSeatE: w.mSeatE,
-      mPalcoStyle: selCard(w.mPalco), mSeatYStyle: selCard(w.mSeatY), mSeatEStyle: selCard(w.mSeatE),
-      swPalco: sw(w.mPalco), swSeatY: sw(w.mSeatY), swSeatE: sw(w.mSeatE),
-      pricePalco: w.pricePalco, priceSeatY: w.priceSeatY, priceSeatE: w.priceSeatE,
-      pricePalcoTxt: self.money(w.pricePalco), priceSeatYTxt: self.money(w.priceSeatY), priceSeatETxt: self.money(w.priceSeatE),
+      priceSeatE: w.priceSeatE,
+      priceSeatETxt: self.money(w.priceSeatE),
       markers: (w.x != null) ? [{ x: w.x, y: w.y, active: true, label: 'Acá' }] : [],
       locTxt: (w.x != null ? 'Ubicación marcada ✓' : 'Tocá el plano para marcar'),
       submitLabel: editing ? 'Guardar cambios' : 'Publicar palco',
@@ -130,11 +127,6 @@ export function usePublishVM(): any {
       incPark: function () { self.wzSet({ parkN: Math.min(30, (w.parkN || 0) + 1) }) },
       decPark: function () { self.wzSet({ parkN: Math.max(1, (w.parkN || 1) - 1) }) },
       setParkPrice: function (e) { self.wzSet({ parkPrice: parseInt((e.target.value || '').replace(/[^0-9]/g, ''), 10) || 0 }) },
-      tPalco: function () { self.wzSet({ mPalco: !w.mPalco }) },
-      tSeatY: function () { self.wzSet({ mSeatY: !w.mSeatY }) },
-      tSeatE: function () { self.wzSet({ mSeatE: !w.mSeatE }) },
-      setPricePalco: function (e) { self.wzSet({ pricePalco: parseInt((e.target.value || '').replace(/[^0-9]/g, ''), 10) || 0 }) },
-      setPriceSeatY: function (e) { self.wzSet({ priceSeatY: parseInt((e.target.value || '').replace(/[^0-9]/g, ''), 10) || 0 }) },
       setPriceSeatE: function (e) { self.wzSet({ priceSeatE: parseInt((e.target.value || '').replace(/[^0-9]/g, ''), 10) || 0 }) },
       submit: function () { self.wzSubmit() },
       cancel: function () { self.wzCancel() },

@@ -7,12 +7,11 @@
 // exists, the HTTP adapters replace these reads/writes — this module is
 // the single source of truth that the in-memory adapters wrap.
 //
-// Los datos ejercitan los modelos vigentes:
-//  · palcoYear.taken → un palco entero puede estar alquilado por la temporada
-//    (RN-11): ver p2 (Palco Presidencial). Bloquea asiento anual y por evento.
-//  · seatYear/seatEvent.taken → butacas ocupadas por temporada / por función,
-//    coherentes entre sí y con las compras sembradas (SEED_ORDERS).
-//  · Órdenes con evento pasado (botana no disponible), futuro y anual.
+// La única modalidad de reserva es "asiento por evento" (las anuales se
+// removieron del producto; ver PalcoModes). Los datos incluyen:
+//  · seatEvent.taken → butacas ocupadas por función, coherentes con las compras
+//    sembradas (SEED_ORDERS).
+//  · Órdenes con evento pasado (botana no disponible) y futuro (sí disponible).
 // ============================================================
 import type { Stadium } from '../../../modules/stadiums/domain/Stadium'
 import type { Ev, EventType } from '../../../modules/events/domain/Event'
@@ -108,19 +107,17 @@ export const EVENT_TYPES: EventType[] = [
 
 export const PALCOS: Palco[] = [
   { id: 'p1', stadium: 'cen', title: 'Palco Olímpico Norte', sector: 'Tribuna Olímpica · Nivel Palcos', map: { x: 50, y: 13.5 }, seats: 10, parking: { has: true, n: 2, price: 82000 }, host: 'Familia Sosa', rating: 4.8, photos: 3, images: [], amenities: ['Wi-Fi', 'Heladera', 'Televisión', 'Baño'],
-    modes: { palcoYear: { on: true, price: 1200000 }, seatYear: { on: true, price: 92000, taken: [2, 5] }, seatEvent: { on: true, price: 6800, taken: { e1: [1, 3], e2: [4], 'e5-1': [1, 2, 3, 4], 'e5-2': [] } } }, status: 'publicado' },
-  // Palco ENTERO alquilado por la temporada (palcoYear.taken): no admite asiento
-  // anual ni por evento. Sus arrays de butacas quedan vacíos (coherencia RN-11).
+    modes: { seatEvent: { on: true, price: 6800, taken: { e1: [1, 3], e2: [4], 'e5-1': [1, 2, 3, 4], 'e5-2': [] } } }, status: 'publicado' },
   { id: 'p2', stadium: 'cen', title: 'Palco Presidencial', sector: 'Tribuna América · Platea Preferencial', map: { x: 50, y: 86.5 }, seats: 12, parking: { has: true, n: 3, price: 90000 }, host: 'Grupo Aurora SA', rating: 4.9, photos: 4, images: [], amenities: ['Wi-Fi', 'Cocina', 'Bar', 'Aire acondicionado', 'Baño'],
-    modes: { palcoYear: { on: true, price: 1650000, taken: true }, seatYear: { on: true, price: 125000, taken: [] }, seatEvent: { on: true, price: 8500, taken: {} } }, status: 'alquilado' },
+    modes: { seatEvent: { on: true, price: 8500, taken: { e1: [5, 6, 7], e2: [1, 2], 'e5-1': [3, 4], 'e5-2': [1] } } }, status: 'publicado' },
   { id: 'p3', stadium: 'franzini', title: 'Palco Bulevar', sector: 'Tribuna Bulevar · Nivel Palcos', map: { x: 76, y: 26 }, seats: 8, parking: { has: false, n: 0, price: 0 }, host: 'Vos (demo)', rating: 4.6, photos: 2, images: [], amenities: ['Wi-Fi', 'Televisión'],
-    modes: { palcoYear: { on: false, price: 960000 }, seatYear: { on: true, price: 78000, taken: [1, 4, 7] }, seatEvent: { on: true, price: 5200, taken: { e3: [2, 3], e6: [1] } } }, status: 'publicado' },
+    modes: { seatEvent: { on: true, price: 5200, taken: { e3: [2, 3], e6: [1] } } }, status: 'publicado' },
   { id: 'p4', stadium: 'saroldi', title: 'Palco Río', sector: 'Tribuna Río · Platea Alta', map: { x: 26, y: 30 }, seats: 10, parking: { has: true, n: 2, price: 80000 }, host: 'Inversiones del Este', rating: 4.5, photos: 3, images: [], amenities: ['Wi-Fi', 'Parrillero', 'Baño'],
-    modes: { palcoYear: { on: true, price: 1050000 }, seatYear: { on: false, price: 99000, taken: [] }, seatEvent: { on: true, price: 6000, taken: { e4: [1, 2, 3, 4, 5], e7: [] } } }, status: 'publicado' },
+    modes: { seatEvent: { on: true, price: 6000, taken: { e4: [1, 2, 3, 4, 5], e7: [] } } }, status: 'publicado' },
   { id: 'p5', stadium: 'cen', title: 'Palco Cebra', sector: 'Tribuna Ámsterdam · Centro', map: { x: 82, y: 50 }, seats: 14, parking: { has: true, n: 4, price: 95000 }, host: 'Estudio Caraballo', rating: 5.0, photos: 5, images: [], amenities: ['Wi-Fi', 'Cocina', 'Heladera', 'Televisión', 'Calefacción', 'Bar'],
-    modes: { palcoYear: { on: true, price: 1500000 }, seatYear: { on: true, price: 110000, taken: [3] }, seatEvent: { on: true, price: 7500, taken: { e1: [2, 4], e2: [1, 2, 3], 'e5-1': [1, 2], 'e5-2': [] } } }, status: 'publicado' },
+    modes: { seatEvent: { on: true, price: 7500, taken: { e1: [2, 4], e2: [1, 2, 3], 'e5-1': [1, 2], 'e5-2': [] } } }, status: 'publicado' },
   { id: 'p6', stadium: 'franzini', title: 'Palco Estudio', sector: 'Codo Sur · Nivel Palcos', map: { x: 24, y: 74 }, seats: 8, parking: { has: true, n: 1, price: 68000 }, host: 'Vos (demo)', rating: 4.4, photos: 2, images: [], amenities: ['Wi-Fi', 'Heladera'],
-    modes: { palcoYear: { on: true, price: 990000 }, seatYear: { on: true, price: 82000, taken: [5, 6] }, seatEvent: { on: true, price: 5400, taken: { e3: [1], e6: [2, 3] } } }, status: 'pausado' },
+    modes: { seatEvent: { on: true, price: 5400, taken: { e3: [1], e6: [2, 3] } } }, status: 'pausado' },
 ]
 
 export const FOOD: FoodItem[] = [
@@ -155,13 +152,10 @@ export const SEED_USER: User = {
   billing: { name: 'Valentina Rivas Long', rut: '' },
 }
 
-// Compras sembradas del usuario demo. Cubren las tres modalidades y los tres
-// casos de botana: evento pasado (no admite), evento futuro (admite) y anual
-// (admite toda la temporada). Las butacas coinciden con los `taken` de cada palco.
+// Compras sembradas del usuario demo. Todas por evento (única modalidad), y
+// cubren los dos casos de botana: evento pasado (no admite) y futuro (admite).
+// Las butacas coinciden con los `taken` de cada palco.
 export const SEED_ORDERS: Order[] = [
-  // Asiento anual (temporada en curso) — admite sumar botana.
-  { code: 'PLQ-VR03', userId: 'u_valen', subtotal: 110000, fee: 4400, total: 114400, date: '2026-04-15T20:00:00.000Z', contact: { name: 'Valentina Rivas', email: 'valentina.rivas@palqueate.uy' }, food: [], foodTotal: 0,
-    items: [{ uid: 'vr3a', palcoId: 'p5', palcoTitle: 'Palco Cebra', stadium: 'cen', mode: 'seatYear', modeLabel: 'Asiento anual · 1 año', seats: [3], term: 'Temporada 2026 · 1 año', qty: 1, price: 110000 }] },
   // Asiento por un evento YA JUGADO (24 MAY) — NO admite sumar botana.
   { code: 'PLQ-VR01', userId: 'u_valen', subtotal: 12000, fee: 480, total: 12480, date: '2026-05-10T18:00:00.000Z', contact: { name: 'Valentina Rivas', email: 'valentina.rivas@palqueate.uy' }, food: [], foodTotal: 0,
     items: [{ uid: 'vr1a', palcoId: 'p4', palcoTitle: 'Palco Río', stadium: 'saroldi', mode: 'seatEvent', modeLabel: 'Asiento · por evento', seats: [1, 2], eventId: 'e4', occurrenceId: 'e4', eventLabel: 'Torneo Clausura · Fecha 2', eventOpp: 'Cerro', term: '24 MAY · 15:30 hs', qty: 2, price: 12000 }] },

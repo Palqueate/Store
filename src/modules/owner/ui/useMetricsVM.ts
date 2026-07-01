@@ -17,50 +17,45 @@ export function useMetricsVM(): any {
 
   function palcoMet(p) {
     var stEvents = EVENTS.filter(function (e) { return e.stadium === p.stadium })
-    var annualSeats = (p.modes.seatYear.on && p.modes.seatYear.taken) ? p.modes.seatYear.taken.length : 0
-    var annualRev = annualSeats * (p.modes.seatYear.on ? p.modes.seatYear.price : 0)
+    var occCount = 0
     var perEvent = stEvents.map(function (e) {
       // Suma de butacas vendidas en todas las funciones (fechas) del evento.
-      var sold = eventOccurrences(e).reduce(function (a, o) { var t = (p.modes.seatEvent.taken && p.modes.seatEvent.taken[o.id]) || []; return a + t.length }, 0)
+      var occs = eventOccurrences(e); occCount += occs.length
+      var sold = occs.reduce(function (a, o) { var t = (p.modes.seatEvent.taken && p.modes.seatEvent.taken[o.id]) || []; return a + t.length }, 0)
       return { ev: e, sold: sold, rev: sold * (p.modes.seatEvent.on ? p.modes.seatEvent.price : 0) }
     })
     var eventTickets = perEvent.reduce(function (a, x) { return a + x.sold }, 0)
     var eventRev = perEvent.reduce(function (a, x) { return a + x.rev }, 0)
-    var annualCap = p.modes.seatYear.on ? p.seats : 0
-    var occ = annualCap > 0 ? annualSeats / annualCap : 0
+    // Ocupación por evento: butacas vendidas sobre el total de butacas-función
+    // (asientos × funciones de la temporada).
+    var eventCap = (p.modes.seatEvent.on ? p.seats : 0) * occCount
+    var occ = eventCap > 0 ? eventTickets / eventCap : 0
     var views = 240 + (idHash(p.id) % 640) + Math.round(p.rating * 46)
     var favs = Math.round(views * 0.12)
-    var bookings = annualSeats + eventTickets
+    var bookings = eventTickets
     return {
       id: p.id, title: p.title, stadium: p.stadium, stadiumName: STADIUMS[p.stadium].name, rating: p.rating, seats: p.seats, status: self.statusOf(p),
-      annualSeats: annualSeats, annualCap: annualCap, annualRev: annualRev, perEvent: perEvent, eventTickets: eventTickets, eventRev: eventRev,
-      revenue: annualRev + eventRev, occ: occ, views: views, favs: favs, bookings: bookings, conv: (views > 0 ? bookings / views : 0),
+      perEvent: perEvent, eventTickets: eventTickets, eventRev: eventRev, eventCap: eventCap,
+      revenue: eventRev, occ: occ, views: views, favs: favs, bookings: bookings, conv: (views > 0 ? bookings / views : 0),
     }
   }
 
   var metAll = ownedRaw.map(palcoMet)
   var metSel = (s.statPid === 'all') ? metAll : metAll.filter(function (m) { return m.id === s.statPid })
 
-  var agRevenue = 0, agAnnualSeats = 0, agAnnualCap = 0, agEventTickets = 0, agViews = 0, agBookings = 0, agAnnualRev = 0, agEventRev = 0
+  var agRevenue = 0, agEventCap = 0, agEventTickets = 0, agViews = 0, agBookings = 0
   metSel.forEach(function (m) {
-    agRevenue += m.revenue; agAnnualSeats += m.annualSeats; agAnnualCap += m.annualCap
-    agEventTickets += m.eventTickets; agViews += m.views
-    agBookings += m.bookings; agAnnualRev += m.annualRev; agEventRev += m.eventRev
+    agRevenue += m.revenue; agEventCap += m.eventCap
+    agEventTickets += m.eventTickets; agViews += m.views; agBookings += m.bookings
   })
-  var agOcc = agAnnualCap > 0 ? Math.round(agAnnualSeats / agAnnualCap * 100) : 0
+  var agOcc = agEventCap > 0 ? Math.round(agEventTickets / agEventCap * 100) : 0
   var agConv = agViews > 0 ? Math.round(agBookings / agViews * 1000) / 10 : 0
 
   var metKpis = [
     { label: 'RECAUDACIÓN', value: self.money(agRevenue), sub: 'temporada en curso', accent: true },
-    { label: 'OCUPACIÓN ANUAL', value: agOcc + '%', sub: agAnnualSeats + ' de ' + agAnnualCap + ' asientos', accent: false },
+    { label: 'OCUPACIÓN', value: agOcc + '%', sub: agEventTickets + ' de ' + agEventCap + ' butacas', accent: false },
     { label: 'ENTRADAS / EVENTO', value: String(agEventTickets), sub: 'butacas vendidas', accent: false },
     { label: 'VISTAS · 30 DÍAS', value: agViews.toLocaleString('es-UY'), sub: agConv + '% conversión', accent: false },
-  ]
-
-  var revModMax = Math.max(agAnnualRev, agEventRev, 1)
-  var metRevBars = [
-    { l: 'Asientos anuales', v: self.money(agAnnualRev), fillStyle: 'height:100%; width:' + Math.round(agAnnualRev / revModMax * 100) + '%; background:var(--primary); border-radius:6px; transition:width .4s ease;' },
-    { l: 'Entradas por evento', v: self.money(agEventRev), fillStyle: 'height:100%; width:' + Math.round(agEventRev / revModMax * 100) + '%; background:var(--success); border-radius:6px; transition:width .4s ease;' },
   ]
 
   var evMap = {}
@@ -92,8 +87,8 @@ export function useMetricsVM(): any {
     var on = s.statPid === m.id; var b = statusBadge(m.status)
     return {
       id: m.id, title: m.title, stadiumName: m.stadiumName, rating: m.rating.toFixed(1),
-      revenue: self.money(m.revenue), occPct: (m.annualCap > 0 ? Math.round(m.occ * 100) : 0) + '%', occTxt: (m.annualCap > 0 ? (m.annualSeats + '/' + m.annualCap) : '—'),
-      occBar: 'height:100%; width:' + (m.annualCap > 0 ? Math.round(m.occ * 100) : 0) + '%; background:var(--success); border-radius:5px;',
+      revenue: self.money(m.revenue), occPct: (m.eventCap > 0 ? Math.round(m.occ * 100) : 0) + '%', occTxt: (m.eventCap > 0 ? (m.eventTickets + '/' + m.eventCap) : '—'),
+      occBar: 'height:100%; width:' + (m.eventCap > 0 ? Math.round(m.occ * 100) : 0) + '%; background:var(--success); border-radius:5px;',
       views: m.views.toLocaleString('es-UY'), favs: String(m.favs), tickets: String(m.eventTickets),
       statusLabel: b.lbl, statusStyle: b.style,
       rowStyle: { cursor: 'pointer', display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr 0.9fr 0.9fr', gap: '14px', alignItems: 'center', padding: '15px 16px', borderRadius: '13px', border: '1.5px solid ' + (on ? 'var(--primary)' : 'var(--border)'), background: (on ? 'color-mix(in srgb,var(--primary) 9%, var(--card))' : 'var(--card)') },
@@ -115,7 +110,6 @@ export function useMetricsVM(): any {
     metEmpty: metAll.length === 0,
     hasMet: metAll.length > 0,
     metKpis: metKpis,
-    metRevBars: metRevBars,
     metEventBars: metEventBars,
     hasEventBars: hasEventBars,
     metTrend: metTrend,

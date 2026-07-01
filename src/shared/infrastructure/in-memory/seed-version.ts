@@ -8,7 +8,7 @@
 // Subí SEED_VERSION cada vez que regeneres los datos sembrados.
 import { readString, writeString } from '../storage/localStorage'
 
-export const SEED_VERSION = '2026-07-02'
+export const SEED_VERSION = '2026-07-03-solo-evento'
 
 const VERSION_KEY = 'pq_seed_version'
 // Colecciones sembradas que se persisten y por lo tanto hay que limpiar al

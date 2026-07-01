@@ -8,7 +8,6 @@ export const createFiltersSlice = () => ({
   // --- Palcos (explorar) ---
   fQuery: '',
   fStadiums: [] as string[],
-  fType: 'all',
   fParking: false,
   fMinSeats: 0,
   fMinPrice: 0,

@@ -56,22 +56,16 @@ export const createCatalogSlice = (set, get) => ({
   allPalcos: () => get().palcos,
   byId: (id) => get().allPalcos().find((p) => p.id === id),
   statusOf: (p) => get().statusOver[p.id] || p.status,
-  // Butacas libres para una función: descuenta lo tomado en ESA función y también
-  // lo anual / palco-entero, que tapa la butaca en todos los eventos (RN-11).
+  // Butacas libres para una función: descuenta lo tomado en ESA función, sumando
+  // también lo que el carrito ya reservó para ese palco.
   eventFreeSeats: (p, eid) => freeSeatsForEvent(p, withCart(palcoOccupancy(p), get().cart, p.id), eid),
   palcoChips: (p) => {
     const c = [p.seats + ' asientos']
     if (p.parking.has) c.push('Estac. x' + p.parking.n); else c.push('Sin estac.')
     return c
   },
-  fromPrice: (p) => {
-    const m = p.modes; const opts: { v: number; l: string }[] = []
-    if (m.seatEvent && m.seatEvent.on) opts.push({ v: m.seatEvent.price, l: 'desde · por evento' })
-    if (m.seatYear && m.seatYear.on) opts.push({ v: m.seatYear.price, l: 'asiento / año' })
-    if (m.palcoYear && m.palcoYear.on) opts.push({ v: m.palcoYear.price, l: 'palco / año' })
-    opts.sort((a, b) => a.v - b.v)
-    return opts[0] || { v: m.palcoYear.price, l: 'palco / año' }
-  },
+  // Precio "desde": la única modalidad es "asiento por evento".
+  fromPrice: (p) => ({ v: p.modes.seatEvent.price, l: 'desde · por evento' }),
   // Palcos visibles al público (aprobados o ya alquilados). Base de los filtros
   // y del rango de precios.
   publicPalcos: () => get().allPalcos().filter((p) => { const st = get().statusOf(p); return st === 'publicado' || st === 'alquilado' }),
@@ -98,7 +92,6 @@ export const createCatalogSlice = (set, get) => ({
       })
     }
     if (s.fStadiums && s.fStadiums.length) list = list.filter((p) => s.fStadiums.indexOf(p.stadium) >= 0)
-    if (s.fType !== 'all') list = list.filter((p) => p.modes[s.fType] && p.modes[s.fType].on)
     if (s.fParking) list = list.filter((p) => p.parking.has)
     if (s.fMinSeats > 0) list = list.filter((p) => p.seats >= s.fMinSeats)
     if (s.fMinPrice > 0) list = list.filter((p) => get().fromPrice(p).v >= s.fMinPrice)

@@ -3,7 +3,8 @@ export interface OrderItem {
   palcoId: string
   palcoTitle: string
   stadium: string
-  mode: 'palcoYear' | 'seatYear' | 'seatEvent'
+  /** Hoy solo existe la reserva "por evento" (ver PalcoModes / idea a futuro). */
+  mode: 'seatEvent'
   modeLabel: string
   seats: number[]
   term: string

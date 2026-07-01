@@ -57,7 +57,7 @@ function metRowColumns(rows: any[]) {
     },
     {
       key: 'occ',
-      header: 'Ocupación anual',
+      header: 'Ocupación',
       width: '22%',
       render: (r: any) => (
         <div>
@@ -145,31 +145,8 @@ export default function Metrics() {
             ))}
           </div>
 
-          {/* Two panels: revenue by modality + views trend */}
-          <div style={css(vals.metPanelGrid)}>
-            {/* Recaudación por modalidad — Progress bars */}
-            <Card padding="20px">
-              <h3 style={{ margin: '0 0 18px', fontFamily: "'Archivo'", fontWeight: 800, fontSize: '16px', color: 'var(--foreground,#F4EFE6)' }}>
-                Recaudación por modalidad
-              </h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {(vals.metRevBars || []).map((b: any, i: number) => (
-                  <div key={i}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '7px' }}>
-                      <span style={{ fontSize: '13.5px', color: 'var(--muted-foreground,#9AA6B2)' }}>{b.l}</span>
-                      <span style={{ fontFamily: "'Archivo'", fontWeight: 800, fontSize: '15px', color: 'var(--foreground,#F4EFE6)' }}>{b.v}</span>
-                    </div>
-                    <Progress
-                      value={pctFrom(b.fillStyle)}
-                      height={10}
-                      color={colorFrom(b.fillStyle) || 'var(--primary,#C9A24B)'}
-                    />
-                  </div>
-                ))}
-              </div>
-            </Card>
-
-            {/* Vistas últimos 6 meses — Sparkline bar + month labels */}
+          {/* Vistas últimos 6 meses — Sparkline bar + month labels */}
+          <div>
             <Card padding="20px">
               <h3 style={{ margin: '0 0 6px', fontFamily: "'Archivo'", fontWeight: 800, fontSize: '16px', color: 'var(--foreground,#F4EFE6)' }}>
                 Vistas · últimos 6 meses

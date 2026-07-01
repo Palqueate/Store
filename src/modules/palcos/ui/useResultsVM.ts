@@ -21,11 +21,10 @@ export function useResultsVM(): any {
   function setMaxPrice(v) { var nv = Math.max(v, minVal); self.setState({ fMaxPrice: nv >= pb.hi ? 0 : nv }) }
   var priceActive = s.fMinPrice > 0 || s.fMaxPrice > 0
 
-  var typeFilter = [['all', 'Todas'], ['palcoYear', 'Palco /año'], ['seatYear', 'Asiento /año'], ['seatEvent', 'Por evento']].map(function (o) { return { label: o[1], active: s.fType === o[0], style: chipS(s.fType === o[0]), pick: function () { self.setState({ fType: o[0] }) } } })
-  var seatChips = [[0, 'Cualquiera'], [8, '8+'], [10, '10+'], [12, '12+']].map(function (o) { return { label: o[1], active: s.fMinSeats === o[0], style: chipS(s.fMinSeats === o[0]), pick: function () { self.setState({ fMinSeats: o[0] }) } } })
+  var seatChips =[[0, 'Cualquiera'], [8, '8+'], [10, '10+'], [12, '12+']].map(function (o) { return { label: o[1], active: s.fMinSeats === o[0], style: chipS(s.fMinSeats === o[0]), pick: function () { self.setState({ fMinSeats: o[0] }) } } })
   var sortChips = [['rel', 'Relevancia'], ['price', 'Menor precio'], ['seats', 'Más asientos'], ['rating', 'Mejor rating']].map(function (o) { return { label: o[1], active: s.sort === o[0], style: chipS(s.sort === o[0]), pick: function () { self.setState({ sort: o[0] }) } } })
 
-  var filtersActive = (s.fQuery && s.fQuery.trim() ? 1 : 0) + (fStadiums.length ? 1 : 0) + (s.fType !== 'all' ? 1 : 0) + (s.fMinSeats > 0 ? 1 : 0) + (priceActive ? 1 : 0) + (s.fParking ? 1 : 0)
+  var filtersActive = (s.fQuery && s.fQuery.trim() ? 1 : 0) + (fStadiums.length ? 1 : 0) + (s.fMinSeats > 0 ? 1 : 0) + (priceActive ? 1 : 0) + (s.fParking ? 1 : 0)
 
   return {
     resultCards: resultCards,
@@ -44,13 +43,12 @@ export function useResultsVM(): any {
     priceLabel: self.money(minVal) + ' — ' + self.money(maxVal),
     setMinPrice: setMinPrice,
     setMaxPrice: setMaxPrice,
-    typeFilter: typeFilter,
     seatChips: seatChips,
     sortChips: sortChips,
     parkingActive: s.fParking,
     toggleParking: function () { self.setState({ fParking: !s.fParking }) },
     filtersActive: filtersActive || null,
-    clearFilters: function () { self.setState({ fQuery: '', fStadiums: [], fType: 'all', fParking: false, fMinSeats: 0, fMinPrice: 0, fMaxPrice: 0, sort: 'rel' }) },
+    clearFilters: function () { self.setState({ fQuery: '', fStadiums: [], fParking: false, fMinSeats: 0, fMinPrice: 0, fMaxPrice: 0, sort: 'rel' }) },
     resultsWrap: mobile ? 'display:flex; flex-direction:column; gap:18px;' : 'display:flex; gap:30px; align-items:flex-start;',
     resultsSidebar: mobile ? 'width:100%;' : 'width:250px; flex:0 0 250px; position:sticky; top:88px;',
     resultsCol: 'flex:1; min-width:0;',

@@ -16,8 +16,8 @@ export function useHomeVM(): any {
   var heroStats = [{ n: '2', l: 'ESTADIOS' }, { n: self.allPalcos().length + '', l: 'PALCOS ACTIVOS' }, { n: '3', l: 'MODALIDADES' }, { n: '4.8', l: 'RATING PROMEDIO' }]
 
   var steps = [
-    { n: '01', t: 'Encontrá tu lugar', d: 'Filtrá por estadio, ubicación y modalidad. Mirá exactamente dónde está el palco en el mapa.' },
-    { n: '02', t: 'Reservá y pagá', d: 'Palco entero por un año, un asiento por la temporada o una butaca para un evento puntual.' },
+    { n: '01', t: 'Encontrá tu lugar', d: 'Filtrá por estadio y ubicación. Mirá exactamente dónde está el palco en el mapa.' },
+    { n: '02', t: 'Reservá y pagá', d: 'Elegí tus butacas para el evento que quieras ver y asegurá tu lugar en el palco.' },
     { n: '03', t: 'Disfrutá', d: 'Tu botana y bebidas te esperan en el palco. Llegás, te sentás y a alentar.' },
   ]
 

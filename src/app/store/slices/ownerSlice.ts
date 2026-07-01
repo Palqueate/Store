@@ -30,7 +30,7 @@ export const createOwnerSlice = (set, get) => ({
     const country = DEFAULT_COUNTRY
     const inCountry = get()._wzStadiumsInCountry(country)
     const stadium = inCountry[0] || ''
-    set({ wz: { editId: null, country, stadium, x: null, y: null, title: '', seats: 10, parkHas: true, parkN: 2, parkPrice: 80000, amenities: [], coOwners: [], images: [], payout: emptyPayout(), mPalco: true, pricePalco: 1200000, mSeatY: true, priceSeatY: 95000, mSeatE: true, priceSeatE: 6500 } })
+    set({ wz: { editId: null, country, stadium, x: null, y: null, title: '', seats: 10, parkHas: true, parkN: 2, parkPrice: 80000, amenities: [], coOwners: [], images: [], payout: emptyPayout(), priceSeatE: 6500 } })
     get().go('publish')
   },
   startEditWizard: (id) => {
@@ -44,9 +44,7 @@ export const createOwnerSlice = (set, get) => ({
       coOwners: (p.coOwners || []).map((c) => ({ name: c.name, email: c.email })),
       images: (p.images || []).slice(),
       payout: { ...emptyPayout(), ...(p.payout || {}) },
-      mPalco: p.modes.palcoYear.on, pricePalco: p.modes.palcoYear.price,
-      mSeatY: p.modes.seatYear.on, priceSeatY: p.modes.seatYear.price,
-      mSeatE: p.modes.seatEvent.on, priceSeatE: p.modes.seatEvent.price,
+      priceSeatE: p.modes.seatEvent.price,
     } })
     get().go('publish')
   },
@@ -130,7 +128,7 @@ export const createOwnerSlice = (set, get) => ({
     if (!p.idBack) return fail('Subí el reverso del documento de identidad')
     if (!p.proofOfAddress) return fail('Subí el comprobante de domicilio')
     if (!p.propertyTitle) return fail('Subí el título de propiedad del palco')
-    if (!(w.mPalco || w.mSeatY || w.mSeatE)) return fail('Activá al menos una modalidad')
+    if (!(w.priceSeatE > 0)) return fail('Poné el precio del asiento por evento')
     get().publishPalco()
   },
   wzCancel: () => { set({ wz: null }); get().go('owner') },
@@ -167,9 +165,7 @@ export const createOwnerSlice = (set, get) => ({
         photos: imgs.length, images: imgs,
         status: 'pendiente',
         modes: {
-          palcoYear: { on: w.mPalco, price: w.pricePalco || 0 },
-          seatYear: { on: w.mSeatY, price: w.priceSeatY || 0, taken: prev.modes.seatYear.taken || [] },
-          seatEvent: { on: w.mSeatE, price: w.priceSeatE || 0, taken: prev.modes.seatEvent.taken || {} },
+          seatEvent: { on: true, price: w.priceSeatE || 0, taken: prev.modes.seatEvent.taken || {} },
         },
       }
       get().savePalco(np)
@@ -179,7 +175,7 @@ export const createOwnerSlice = (set, get) => ({
     }
     const id = 'px' + Date.now()
     // Todo palco nuevo entra en proceso de verificación antes de publicarse.
-    const np = { id, stadium: w.stadium, country, title: (w.title || '').trim() || 'Mi palco', sector: get().stadiums[w.stadium].name + ' · Nivel Palcos', map: { x: w.x == null ? 50 : w.x, y: w.y == null ? 14 : w.y }, seats: w.seats || 1, parking: { has: w.parkHas, n: w.parkHas ? (w.parkN || 1) : 0, price: w.parkHas ? (w.parkPrice || 0) : 0 }, amenities, coOwners, payout, host: 'Vos (demo)', rating: 5.0, photos: imgs.length, images: imgs, modes: { palcoYear: { on: w.mPalco, price: w.pricePalco || 0 }, seatYear: { on: w.mSeatY, price: w.priceSeatY || 0, taken: [] }, seatEvent: { on: w.mSeatE, price: w.priceSeatE || 0, taken: {} } }, status: 'pendiente' }
+    const np = { id, stadium: w.stadium, country, title: (w.title || '').trim() || 'Mi palco', sector: get().stadiums[w.stadium].name + ' · Nivel Palcos', map: { x: w.x == null ? 50 : w.x, y: w.y == null ? 14 : w.y }, seats: w.seats || 1, parking: { has: w.parkHas, n: w.parkHas ? (w.parkN || 1) : 0, price: w.parkHas ? (w.parkPrice || 0) : 0 }, amenities, coOwners, payout, host: 'Vos (demo)', rating: 5.0, photos: imgs.length, images: imgs, modes: { seatEvent: { on: true, price: w.priceSeatE || 0, taken: {} } }, status: 'pendiente' }
     get().publishPalcoEntity(np)
     set({ palcos: get().palcos.concat([np]), wz: null }); get().flash('Palco enviado a revisión'); get().go('owner')
   },

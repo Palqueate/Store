@@ -1,7 +1,9 @@
+// IDEA A FUTURO: además del alquiler "por evento", se pensó ofrecer modalidades
+// ANUALES por temporada — "palco entero" y "asiento anual". Por ahora el producto
+// se simplifica: solo se puede reservar por evento. Las modalidades anuales se
+// removieron de la app y quedan como posible funcionalidad futura.
 export interface PalcoModes {
-  /** `taken` = el palco entero ya está alquilado por la temporada (RN-11). */
-  palcoYear: { on: boolean; price: number; taken?: boolean }
-  seatYear: { on: boolean; price: number; taken: number[] }
+  /** Alquiler de una butaca para una función puntual (occurrenceId → butacas tomadas). */
   seatEvent: { on: boolean; price: number; taken: Record<string, number[]> }
 }
 
